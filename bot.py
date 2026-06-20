@@ -1,9 +1,9 @@
 # bot.py
 # ================================
-# SentinelMod - Full Bot + Dashboard
+# SentinelMod - FULL Bot + Dashboard
+# ALL FEATURES INCLUDED
 # ================================
 
-# ============ IMPORTS ============
 import discord
 from discord.ext import commands, tasks
 from discord import app_commands
@@ -20,7 +20,7 @@ import secrets
 import unicodedata
 from datetime import datetime, timedelta
 from collections import defaultdict
-from flask import Flask, request, redirect, session, render_template_string, jsonify, url_for
+from flask import Flask, request, redirect, session, render_template_string, jsonify
 import requests
 
 # ============ CONFIG ============
@@ -29,52 +29,68 @@ GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 GROQ_MODEL = "llama-3.1-8b-instant"
 BOT_NAME = "SentinelMod"
 AI_CHAT_CHANNEL = "sentinel-bot"
-
-# Dashboard config
 CLIENT_ID = os.getenv("DISCORD_CLIENT_ID", "")
 CLIENT_SECRET = os.getenv("DISCORD_CLIENT_SECRET", "")
 REDIRECT_URI = os.getenv("DISCORD_REDIRECT_URI", "http://localhost:8080/callback")
 SECRET_KEY = os.getenv("DASHBOARD_SECRET_KEY", secrets.token_hex(32))
-
-# Mod settings
 MOD_ROLE_NAME = "Sentinel-Mod"
 MOD_LOG_CHANNEL = "sentinel-logs"
 RAID_CHANNEL = "sentinel-raid-alerts"
 
 PERSONALITIES = {
-    "friendly": "You are extremely friendly and warm. Use emojis.",
-    "sarcastic": "You are deeply sarcastic and witty.",
-    "serious": "You are professional and serious.",
-    "chaotic": "You are completely chaotic and random.",
-    "pirate": "You are a pirate. Arr matey!",
-    "medieval": "You are a medieval knight. Speak in old English.",
-    "robot": "You are a robot. Beep boop.",
-    "therapist": "You are a caring therapist.",
-    "villain": "You are a dramatic villain.",
-    "hype": "You are the ultimate hype man. ALL CAPS ENERGY.",
-    "philosopher": "You are a deep philosopher.",
-    "caveman": "You speak like a caveman. UGH.",
-    "shakespeare": "You speak in Shakespearean English.",
-    "surfer": "You are a chill surfer dude.",
-    "anime": "You speak like an anime character.",
-    "british": "You are extremely British.",
-    "australian": "You are extremely Australian.",
-    "gen_z": "You speak in Gen Z slang.",
-    "boomer": "You are a stereotypical boomer.",
-    "yoda": "Speak like Yoda you must.",
-    "deadpool": "You are Deadpool. Break the fourth wall.",
-    "sherlock": "You are Sherlock Holmes.",
-    "gandalf": "You are Gandalf. Wise and mysterious.",
-    "tony_stark": "You are Tony Stark. Genius billionaire.",
-    "groot": "I am Groot. (Translate in parentheses)",
-    "darth_vader": "You are Darth Vader.",
+    "friendly": "You are extremely friendly, warm, and supportive. Use lots of emojis.",
+    "sarcastic": "You are deeply sarcastic and witty. Everything has a sarcastic undertone.",
+    "serious": "You are professional, serious, formal. No jokes, straight to the point.",
+    "chaotic": "You are completely chaotic, random, and unpredictable.",
+    "pirate": "You are a pirate. Speak like a pirate. Arr matey!",
+    "medieval": "You are a medieval knight. Speak in old English. Very honorable.",
+    "robot": "You are a robot. Speak robotically. Beep boop.",
+    "therapist": "You are a caring therapist. Always validate feelings.",
+    "villain": "You are a dramatic villain who is helpful but theatrical.",
+    "hype": "You are the ultimate hype man. Everything is AMAZING.",
+    "philosopher": "You are a deep philosopher. Question everything.",
+    "caveman": "You speak like a caveman. Simple words. UGH. FIRE GOOD.",
+    "shakespeare": "You speak in Shakespearean English. Thee, thou, doth.",
+    "surfer": "You are a chill surfer dude. Everything is gnarly.",
+    "nerd": "You are an extreme nerd. Reference science and pop culture.",
+    "anime": "You speak like an anime character. Very dramatic.",
+    "cowboy": "You are a cowboy. Yeehaw partner!",
+    "british": "You are extremely British. Tea, crumpets, cheerio.",
+    "australian": "You are extremely Australian. G'day mate, crikey.",
+    "valley_girl": "You are a valley girl. Like, totally, oh my god.",
+    "professor": "You are a distinguished professor. Always teaching.",
+    "chef": "You are a passionate chef. Relate everything to cooking.",
+    "detective": "You are a film noir detective. Mysterious, investigative.",
+    "alien": "You are an alien learning about humans. Everything is fascinating.",
+    "time_traveler": "You are a time traveler from the future.",
+    "ghost": "You are a friendly ghost. Spooky but helpful.",
+    "dragon": "You are an ancient dragon. Wise, powerful.",
+    "wizard": "You are a powerful wizard. Reference spells and magic.",
+    "superhero": "You are an enthusiastic superhero. Ready to save the day.",
+    "gen_z": "You speak in Gen Z slang. No cap, bussin, slay, based.",
+    "boomer": "You are a stereotypical boomer. Good old days.",
+    "gamer": "You are an extreme gamer. Reference games constantly.",
+    "yoda": "Speak like Yoda you must. Inverted sentences always.",
+    "jarvis": "You are JARVIS from Iron Man. Sophisticated AI.",
+    "deadpool": "You are Deadpool. Break the fourth wall. Chaotic.",
+    "sherlock": "You are Sherlock Holmes. Deduce everything.",
+    "gandalf": "You are Gandalf. Wise, mysterious. YOU SHALL NOT PASS.",
+    "tony_stark": "You are Tony Stark. Genius, billionaire, playboy.",
+    "groot": "I am Groot. (Translate in parentheses what Groot means)",
+    "gollum": "You are Gollum. My precious. Split personality.",
+    "darth_vader": "You are Darth Vader. The dark side. Heavy breathing.",
     "michael_scott": "You are Michael Scott. Inappropriate but lovable.",
-    "motivational": "You are extremely motivational!",
-    "pessimist": "You are extremely pessimistic.",
-    "optimist": "You are blindly optimistic.",
-    "ninja": "You are a ninja.",
-    "vampire": "You are a sophisticated vampire.",
-    "default": "You are SentinelMod, a helpful Discord bot."
+    "dwight_schrute": "You are Dwight Schrute. Bears, beets, Battlestar Galactica.",
+    "motivational": "You are an extreme motivational speaker. Everything is possible!",
+    "pessimist": "You are extremely pessimistic. Everything will go wrong.",
+    "optimist": "You are blindly optimistic. Everything is wonderful.",
+    "ninja": "You are a ninja. Stealthy and honorable.",
+    "samurai": "You are a samurai. Honor, discipline, bushido.",
+    "fairy": "You are a tiny fairy with big energy. Magical.",
+    "vampire": "You are a sophisticated vampire. Ancient and dramatic.",
+    "oracle": "You are an ancient oracle. Speak in prophecies.",
+    "mad_hatter": "You are the Mad Hatter. Wonderfully nonsensical.",
+    "default": "You are SentinelMod, a helpful and friendly Discord bot."
 }
 
 # ============ DATABASE ============
@@ -101,7 +117,9 @@ def init_database():
         """CREATE TABLE IF NOT EXISTS reputation (user_id TEXT, guild_id TEXT, rep INTEGER DEFAULT 0, PRIMARY KEY (user_id, guild_id))""",
         """CREATE TABLE IF NOT EXISTS quarantine (user_id TEXT, guild_id TEXT, reason TEXT, timestamp TEXT, PRIMARY KEY (user_id, guild_id))""",
         """CREATE TABLE IF NOT EXISTS trivia_scores (user_id TEXT, guild_id TEXT, score INTEGER DEFAULT 0, total INTEGER DEFAULT 0, PRIMARY KEY (user_id, guild_id))""",
-        """CREATE TABLE IF NOT EXISTS backup_data (id INTEGER PRIMARY KEY AUTOINCREMENT, guild_id TEXT, backup_type TEXT, data TEXT, timestamp TEXT)"""
+        """CREATE TABLE IF NOT EXISTS backup_data (id INTEGER PRIMARY KEY AUTOINCREMENT, guild_id TEXT, backup_type TEXT, data TEXT, timestamp TEXT)""",
+        """CREATE TABLE IF NOT EXISTS birthdays (user_id TEXT, guild_id TEXT, birthday TEXT, PRIMARY KEY (user_id, guild_id))""",
+        """CREATE TABLE IF NOT EXISTS suggestions (id INTEGER PRIMARY KEY AUTOINCREMENT, guild_id TEXT, user_id TEXT, suggestion TEXT, status TEXT DEFAULT 'pending', message_id TEXT, timestamp TEXT)"""
     ]
     for t in tables:
         c.execute(t)
@@ -228,12 +246,13 @@ def update_message_stats(uid, gid):
 # ============ BOT SETUP ============
 intents = discord.Intents.all()
 bot = commands.Bot(command_prefix="!", intents=intents)
-
 spam_tracker = defaultdict(list)
 raid_tracker = defaultdict(list)
 raid_mode_active = defaultdict(bool)
 nuke_action_tracker = defaultdict(list)
 recent_messages = defaultdict(list)
+mention_tracker = defaultdict(list)
+file_tracker = defaultdict(list)
 trivia_sessions = {}
 
 # ============ AI ============
@@ -313,6 +332,9 @@ async def stream_response(message, prompt, system, history=None, uid=None, gid=N
             if uid and gid:
                 add_to_conversation(uid, gid, "user", prompt)
                 add_to_conversation(uid, gid, "assistant", full)
+                mem = await ask_groq(f"Current memory: {get_user_memory(uid, gid)}\nNew: User: {prompt}\nBot: {full}\nUpdate memory with important facts. Under 500 chars.", "Remember user facts only.")
+                if mem:
+                    update_user_memory(uid, gid, mem[:500])
     except Exception as e:
         print(f"Stream error: {e}")
         if full:
@@ -324,7 +346,7 @@ def get_system_prompt(uid, gid, extra=""):
     pkey = get_user_personality(uid, gid)
     personality = PERSONALITIES.get(pkey, PERSONALITIES["default"])
     memory = get_user_memory(uid, gid)
-    return f"You are SentinelMod, a Discord bot.\nPersonality: {personality}\n{f'Memory: {memory}' if memory else ''}\n{extra}\nKeep responses under 1500 chars."
+    return f"You are SentinelMod, a Discord bot.\nPersonality: {personality}\n{f'Memory about user: {memory}' if memory else ''}\n{extra}\nKeep responses under 1500 chars."
 
 # ============ COMMAND PARSER ============
 async def parse_command(content, guild, author):
@@ -342,14 +364,14 @@ Mentioned: {', '.join(mentioned_names) if mentioned_names else 'NONE'}
 Sender: {author.name}(ID:{author.id})
 Message: "{content}"
 
-CRITICAL: If message is unclear or chat → command="chat". For mod actions target MUST be mentioned. Never confuse sender with target.
+CRITICAL: If unclear/chat → command="chat". For mod actions target MUST be in Mentioned list. Never confuse sender with target. If confidence < 0.8 → chat.
 
 JSON only:
-{{"command":"create_channel|delete_channel|create_role|delete_role|create_category|delete_category|ban_user|kick_user|mute_user|unmute_user|warn_user|clear_warnings|warn_check|lock_channel|unlock_channel|lockdown|unlock_server|slowmode|purge|add_role_to_user|remove_role_from_user|start_giveaway|create_poll|set_afk|backup_server|setup_server|summarize|translate|add_word_filter|remove_word_filter|enable_feature|disable_feature|add_note|get_notes|set_autorole|raid_mode|trivia|wouldyourather|eightball|roast|compliment|dadjoke|ship|rate|fact|truthordare|story|debate|riddle|pickupline|horoscope|remind|confession|rep|server_health|activity_stats|mod_stats|suggestion|quarantine|unquarantine|add_custom_command|remove_custom_command|list_custom_commands|help|chat|unknown",
+{{"command":"create_channel|delete_channel|create_role|delete_role|create_category|delete_category|ban_user|kick_user|mute_user|unmute_user|warn_user|clear_warnings|warn_check|lock_channel|unlock_channel|lockdown|unlock_server|slowmode|purge|add_role_to_user|remove_role_from_user|start_giveaway|create_poll|set_afk|backup_server|setup_server|summarize|translate|add_word_filter|remove_word_filter|enable_feature|disable_feature|add_note|get_notes|set_autorole|raid_mode|trivia|wouldyourather|eightball|roast|compliment|dadjoke|ship|rate|fact|truthordare|story|debate|riddle|pickupline|horoscope|remind|birthday|confession|rep|server_health|activity_stats|mod_stats|suggestion|quarantine|unquarantine|add_custom_command|remove_custom_command|list_custom_commands|help|chat|unknown",
 "needs_confirmation":true/false,
-"confirmation_message":"detailed message",
+"confirmation_message":"detailed",
 "confidence":0.0-1.0,
-"params":{{"name":null,"target_user_id":null,"target_user_name":null,"target_user2":null,"reason":null,"duration":null,"category":null,"color":null,"private":false,"amount":null,"prize":null,"winners":null,"question":null,"options":null,"language":null,"text":null,"feature":null,"word":null,"note":null,"channel":null,"topic":null,"response":null,"reminder_time":null,"rating_target":null,"zodiac":null}}}}"""
+"params":{{"name":null,"target_user_id":null,"target_user_name":null,"target_user2":null,"reason":null,"duration":null,"category":null,"color":null,"private":false,"amount":null,"prize":null,"winners":null,"question":null,"options":null,"language":null,"text":null,"feature":null,"word":null,"note":null,"channel":null,"topic":null,"response":null,"reminder_time":null,"rating_target":null,"zodiac":null,"birthday_date":null}}}}"""
     return await ask_groq_json(prompt)
 
 def find_member_strict(guild, params):
@@ -371,45 +393,50 @@ def find_member_strict(guild, params):
 
 # ============ FUN ============
 async def do_trivia(message, gid, uid):
-    trivia = await ask_groq_json('{"question":"q","correct":"a","wrong1":"b","wrong2":"c","wrong3":"d","category":"cat","difficulty":"easy"} Generate one trivia. JSON only.')
+    trivia = await ask_groq_json('Generate trivia. JSON: {"question":"q","correct":"a","wrong1":"b","wrong2":"c","wrong3":"d","category":"cat","difficulty":"easy"}')
     if not trivia:
         return "❌ Failed!"
     answers = [trivia["correct"], trivia["wrong1"], trivia["wrong2"], trivia["wrong3"]]
     random.shuffle(answers)
     idx = answers.index(trivia["correct"])
     emojis = ["🇦","🇧","🇨","🇩"]
-    embed = discord.Embed(title=f"🧠 {trivia['category']}", description=trivia["question"], color=discord.Color.blue())
-    embed.add_field(name="Options", value="\n".join(f"{emojis[i]} {a}" for i, a in enumerate(answers)))
+    embed = discord.Embed(title=f"🧠 Trivia - {trivia['category']}", description=trivia["question"], color=discord.Color.blue())
+    embed.add_field(name="Difficulty", value=trivia["difficulty"].upper())
+    embed.add_field(name="Options", value="\n".join(f"{emojis[i]} {a}" for i, a in enumerate(answers)), inline=False)
+    embed.set_footer(text="React! 30 seconds!")
     msg = await message.channel.send(embed=embed)
     for e in emojis[:4]:
         await msg.add_reaction(e)
     trivia_sessions[msg.id] = {"correct_emoji": emojis[idx], "correct_answer": trivia["correct"], "guild_id": gid, "answered": []}
     await asyncio.sleep(30)
     if msg.id in trivia_sessions:
-        await message.channel.send(f"⏰ Time's up! Answer: **{trivia['correct']}**")
+        await message.channel.send(embed=discord.Embed(title="⏰ Time's Up!", description=f"Answer: **{trivia['correct']}**", color=discord.Color.green()))
         del trivia_sessions[msg.id]
     return None
 
 async def do_fun_embed(ftype, params, author):
     prompts = {
-        "wouldyourather": ("Generate fun Would You Rather.", "🤔 Would You Rather?"),
-        "eightball": (f"8ball answer for: {params.get('question','...')}. Brief.", "🎱 8-Ball"),
-        "roast": (f"Playful roast of {params.get('target_user_name','someone')}. Fun not mean.", "🔥 Roast"),
-        "compliment": (f"Heartfelt compliment for {params.get('target_user_name', author.name)}.", "💝 Compliment"),
-        "dadjoke": ("Tell a dad joke.", "👨 Dad Joke"),
-        "ship": (f"Love compatibility {params.get('target_user_name','x')} + {params.get('target_user2','y')}.", "💕 Ship"),
-        "rate": (f"Rate '{params.get('rating_target','life')}' out of 10.", "⭐ Rate"),
-        "fact": ("Random surprising fact.", "🤯 Fact"),
-        "truthordare": ("Truth or dare question.", "🎯 Truth or Dare"),
-        "story": (f"Short story {('about '+params.get('text','')) if params.get('text') else ''}. 150 words.", "📖 Story"),
-        "riddle": ("Riddle with answer.", "🧩 Riddle"),
-        "pickupline": ("Creative pickup line.", "😘 Pickup"),
-        "horoscope": (f"Horoscope for {params.get('zodiac','Aries')}.", "⭐ Horoscope"),
+        "wouldyourather": ("Generate fun Would You Rather question.", "🤔 Would You Rather?"),
+        "eightball": (f"Magic 8ball answer for: '{params.get('question','...')}'. Mystical, brief.", "🎱 Magic 8-Ball"),
+        "roast": (f"Playful roast of {params.get('target_user_name','someone')}. Fun not mean. 2-3 sentences.", "🔥 Roast"),
+        "compliment": (f"Heartfelt compliment for {params.get('target_user_name', author.name)}. 2-3 sentences.", "💝 Compliment"),
+        "dadjoke": ("Tell a dad joke. Groan-worthy.", "👨 Dad Joke"),
+        "ship": (f"Love compatibility between {params.get('target_user_name','x')} and {params.get('target_user2','y')}. % + ship name.", "💕 Ship"),
+        "rate": (f"Rate '{params.get('rating_target','life')}' out of 10 with funny explanation.", "⭐ Rating"),
+        "fact": ("Random surprising fact. 2-3 sentences.", "🤯 Fact"),
+        "truthordare": (f"Generate {'truth' if random.choice([True,False]) else 'dare'} for Discord.", "🎯 Truth or Dare"),
+        "story": (f"Short creative story {('about '+params.get('text','')) if params.get('text') else ''}. 150 words.", "📖 Story"),
+        "riddle": ("Give a riddle with answer at end.", "🧩 Riddle"),
+        "pickupline": ("Creative funny pickup line.", "😘 Pickup Line"),
+        "horoscope": (f"Fun horoscope for {params.get('zodiac','Aries')} today. 3-4 sentences.", f"⭐ {params.get('zodiac','Aries')} Horoscope"),
     }
-    p, title = prompts.get(ftype, ("Tell joke.", "😄"))
+    p, title = prompts.get(ftype, ("Tell joke.", "😄 Fun"))
     result = await ask_groq(p, "Fun Discord bot.")
     if result:
-        return discord.Embed(title=title, description=result, color=discord.Color.blue())
+        colors = {"roast": discord.Color.red(), "compliment": discord.Color.pink(), "ship": discord.Color.red(), "fact": discord.Color.teal(), "horoscope": discord.Color.purple()}
+        embed = discord.Embed(title=title, description=result, color=colors.get(ftype, discord.Color.blue()))
+        embed.set_footer(text=f"Asked by {author.display_name}")
+        return embed
     return None
 
 # ============ EXECUTE COMMAND ============
@@ -419,10 +446,10 @@ async def execute_command(parsed, message, guild, author):
     settings = get_guild_settings(guild.id)
     try:
         if cmd == "create_channel":
-            name = (params.get("name") or "new").lower().replace(" ", "-")
+            name = (params.get("name") or "new-channel").lower().replace(" ", "-")
             existing = discord.utils.get(guild.text_channels, name=name)
             if existing:
-                return f"⏭️ {existing.mention} exists!"
+                return f"⏭️ {existing.mention} already exists!"
             cat = None
             if params.get("category"):
                 cat = discord.utils.get(guild.categories, name=params["category"])
@@ -437,13 +464,13 @@ async def execute_command(parsed, message, guild, author):
             name = (params.get("name") or params.get("channel") or "").lower().replace(" ", "-")
             ch = discord.utils.get(guild.text_channels, name=name)
             if not ch:
-                return f"❌ Not found."
-            await ch.delete()
+                return f"❌ Channel **#{name}** not found."
+            await ch.delete(reason=f"Deleted by {author.name}")
             return f"🗑️ Deleted **#{name}**!"
         elif cmd == "create_role":
-            name = params.get("name") or "Role"
+            name = params.get("name") or "New Role"
             if discord.utils.get(guild.roles, name=name):
-                return f"⏭️ Role exists!"
+                return f"⏭️ Role **{name}** already exists!"
             color = discord.Color.default()
             if params.get("color"):
                 try:
@@ -451,55 +478,65 @@ async def execute_command(parsed, message, guild, author):
                 except:
                     pass
             role = await guild.create_role(name=name, color=color, hoist=params.get("hoist", False), mentionable=params.get("mentionable", False))
-            return f"✅ Created {role.mention}!"
+            return f"✅ Created role {role.mention}!"
         elif cmd == "delete_role":
             role = discord.utils.get(guild.roles, name=params.get("name"))
             if not role:
-                return "❌ Not found."
+                return "❌ Role not found."
             await role.delete()
-            return f"🗑️ Deleted!"
+            return f"🗑️ Deleted role!"
         elif cmd == "create_category":
-            name = params.get("name") or "Category"
+            name = params.get("name") or "New Category"
             if discord.utils.get(guild.categories, name=name):
-                return f"⏭️ Exists!"
+                return f"⏭️ Category exists!"
             await guild.create_category(name=name)
-            return f"✅ Created **{name}**!"
+            return f"✅ Created category **{name}**!"
         elif cmd == "delete_category":
             cat = discord.utils.get(guild.categories, name=params.get("name"))
             if not cat:
-                return "❌ Not found."
+                return "❌ Category not found."
             await cat.delete()
             return f"🗑️ Deleted!"
         elif cmd == "ban_user":
             t = find_member_strict(guild, params)
             if not t:
-                return "❌ User not found. @mention them!"
+                return "❌ User not found. Please @mention them!"
             if t.id == author.id:
-                return "❌ Can't ban yourself!"
+                return "❌ You can't ban yourself!"
+            if t.id == guild.me.id:
+                return "❌ I can't ban myself!"
             reason = params.get("reason") or "No reason"
             try:
-                await t.send(f"🔨 Banned from **{guild.name}**: {reason}")
+                await t.send(embed=discord.Embed(title="🔨 Banned", description=f"Banned from **{guild.name}**\nReason: {reason}", color=discord.Color.dark_red()))
             except:
                 pass
             await guild.ban(t, reason=f"{author.name}: {reason}")
             log_mod_action(t.id, guild.id, "BAN", reason, author.id)
             add_warning(t.id, guild.id, reason, "critical")
-            await alert_mods(guild, discord.Embed(title="🔨 Banned", color=discord.Color.dark_red()).add_field(name="User", value=f"{t}").add_field(name="By", value=author.mention).add_field(name="Reason", value=reason))
+            embed = discord.Embed(title="🔨 User Banned", color=discord.Color.dark_red(), timestamp=datetime.now())
+            embed.add_field(name="User", value=f"{t} ({t.id})", inline=True)
+            embed.add_field(name="By", value=author.mention, inline=True)
+            embed.add_field(name="Reason", value=reason, inline=False)
+            await alert_mods(guild, embed)
             return f"🔨 Banned **{t.name}**!"
         elif cmd == "kick_user":
             t = find_member_strict(guild, params)
             if not t:
-                return "❌ User not found!"
+                return "❌ User not found. Please @mention them!"
             if t.id == author.id:
-                return "❌ Can't kick yourself!"
+                return "❌ You can't kick yourself!"
             reason = params.get("reason") or "No reason"
             try:
-                await t.send(f"👢 Kicked from **{guild.name}**: {reason}")
+                await t.send(embed=discord.Embed(title="👢 Kicked", description=f"Kicked from **{guild.name}**\nReason: {reason}", color=discord.Color.orange()))
             except:
                 pass
             await guild.kick(t, reason=f"{author.name}: {reason}")
             log_mod_action(t.id, guild.id, "KICK", reason, author.id)
-            await alert_mods(guild, discord.Embed(title="👢 Kicked", color=discord.Color.orange()).add_field(name="User", value=f"{t}").add_field(name="By", value=author.mention))
+            embed = discord.Embed(title="👢 User Kicked", color=discord.Color.orange(), timestamp=datetime.now())
+            embed.add_field(name="User", value=f"{t} ({t.id})", inline=True)
+            embed.add_field(name="By", value=author.mention, inline=True)
+            embed.add_field(name="Reason", value=reason, inline=False)
+            await alert_mods(guild, embed)
             return f"👢 Kicked **{t.name}**!"
         elif cmd == "mute_user":
             t = find_member_strict(guild, params)
@@ -511,10 +548,15 @@ async def execute_command(parsed, message, guild, author):
             log_mod_action(t.id, guild.id, "MUTE", reason, author.id)
             add_warning(t.id, guild.id, reason, "medium")
             try:
-                await t.send(f"🔇 Muted in **{guild.name}** for {dur}min: {reason}")
+                await t.send(embed=discord.Embed(title="🔇 Muted", description=f"Muted in **{guild.name}** for {dur}min\nReason: {reason}", color=discord.Color.orange()))
             except:
                 pass
-            return f"🔇 Muted **{t.name}** for {dur}min!"
+            embed = discord.Embed(title="🔇 User Muted", color=discord.Color.orange(), timestamp=datetime.now())
+            embed.add_field(name="User", value=t.mention, inline=True)
+            embed.add_field(name="Duration", value=f"{dur} min", inline=True)
+            embed.add_field(name="Reason", value=reason, inline=False)
+            await alert_mods(guild, embed)
+            return f"🔇 Muted **{t.name}** for {dur} minutes!"
         elif cmd == "unmute_user":
             t = find_member_strict(guild, params)
             if not t:
@@ -529,16 +571,22 @@ async def execute_command(parsed, message, guild, author):
             wc = add_warning(t.id, guild.id, reason, "manual")
             log_mod_action(t.id, guild.id, "WARN", reason, author.id)
             try:
-                await t.send(f"⚠️ Warning in **{guild.name}**: {reason} ({wc}/{settings.get('warn_ban',5)})")
+                await t.send(embed=discord.Embed(title="⚠️ Warning", description=f"Warning in **{guild.name}**\nReason: {reason}\nTotal: {wc}/{settings.get('warn_ban',5)}", color=discord.Color.yellow()))
             except:
                 pass
+            embed = discord.Embed(title="⚠️ Warning Issued", color=discord.Color.yellow(), timestamp=datetime.now())
+            embed.add_field(name="User", value=t.mention, inline=True)
+            embed.add_field(name="By", value=author.mention, inline=True)
+            embed.add_field(name="Reason", value=reason, inline=False)
+            embed.add_field(name="Total", value=f"{wc}/{settings.get('warn_ban',5)}", inline=True)
+            await alert_mods(guild, embed)
             return f"⚠️ Warned **{t.name}** ({wc} warnings)"
         elif cmd == "clear_warnings":
             t = find_member_strict(guild, params)
             if not t:
                 return "❌ Not found."
             clear_warnings(t.id, guild.id)
-            return f"✅ Cleared **{t.name}** warnings!"
+            return f"✅ Cleared warnings for **{t.name}**!"
         elif cmd == "warn_check":
             t = find_member_strict(guild, params)
             if not t:
@@ -546,21 +594,33 @@ async def execute_command(parsed, message, guild, author):
             ws = get_warnings(t.id, guild.id)
             if not ws:
                 return f"✅ **{t.name}** has no warnings!"
-            return f"**{t.name}** - {len(ws)} warnings:\n" + "\n".join(f"#{i+1} [{w['severity']}] {w['reason']}" for i, w in enumerate(ws[:5]))
+            lines = [f"**{t.name}** - {len(ws)} warnings:"]
+            for i, w in enumerate(ws[:5], 1):
+                lines.append(f"#{i} [{w['severity'].upper()}] {w['reason']} - {w['timestamp'][:10]}")
+            return "\n".join(lines)
         elif cmd == "quarantine":
             t = find_member_strict(guild, params)
             if not t:
-                return "❌ Not found."
-            reason = params.get("reason") or "Suspicious"
+                return "❌ User not found."
+            reason = params.get("reason") or "Suspicious activity"
             q = discord.utils.get(guild.roles, name="Quarantined")
             if not q:
                 q = await guild.create_role(name="Quarantined", color=discord.Color.dark_gray())
                 for ch in guild.text_channels:
                     try:
-                        await ch.set_permissions(q, send_messages=False)
+                        await ch.set_permissions(q, send_messages=False, add_reactions=False)
                     except:
                         pass
             await t.add_roles(q, reason=reason)
+            conn = get_db()
+            c = conn.cursor()
+            c.execute("INSERT OR REPLACE INTO quarantine (user_id, guild_id, reason, timestamp) VALUES (?, ?, ?, ?)", (str(t.id), str(guild.id), reason, datetime.now().isoformat()))
+            conn.commit()
+            conn.close()
+            embed = discord.Embed(title="🔒 Quarantined", color=discord.Color.dark_gray(), timestamp=datetime.now())
+            embed.add_field(name="User", value=t.mention, inline=True)
+            embed.add_field(name="Reason", value=reason, inline=True)
+            await alert_mods(guild, embed)
             return f"🔒 Quarantined **{t.name}**!"
         elif cmd == "unquarantine":
             t = find_member_strict(guild, params)
@@ -569,13 +629,20 @@ async def execute_command(parsed, message, guild, author):
             q = discord.utils.get(guild.roles, name="Quarantined")
             if q and q in t.roles:
                 await t.remove_roles(q)
+            conn = get_db()
+            c = conn.cursor()
+            c.execute("DELETE FROM quarantine WHERE user_id=? AND guild_id=?", (str(t.id), str(guild.id)))
+            conn.commit()
+            conn.close()
             return f"✅ Unquarantined **{t.name}**!"
         elif cmd == "lock_channel":
-            ch = message.channel
+            ch_name = params.get("channel") or params.get("name")
+            ch = discord.utils.get(guild.text_channels, name=ch_name) if ch_name else message.channel
             await ch.set_permissions(guild.default_role, send_messages=False)
             return f"🔒 Locked {ch.mention}!"
         elif cmd == "unlock_channel":
-            ch = message.channel
+            ch_name = params.get("channel") or params.get("name")
+            ch = discord.utils.get(guild.text_channels, name=ch_name) if ch_name else message.channel
             await ch.set_permissions(guild.default_role, send_messages=None)
             return f"🔓 Unlocked {ch.mention}!"
         elif cmd == "lockdown":
@@ -586,7 +653,10 @@ async def execute_command(parsed, message, guild, author):
                     count += 1
                 except:
                     pass
-            return f"🔒 Locked {count} channels!"
+            embed = discord.Embed(title="🔒 SERVER LOCKDOWN", description=f"By {author.mention}", color=discord.Color.red(), timestamp=datetime.now())
+            embed.add_field(name="Channels", value=str(count))
+            await alert_mods(guild, embed)
+            return f"🔒 Server locked! {count} channels."
         elif cmd == "unlock_server":
             count = 0
             for ch in guild.text_channels:
@@ -608,7 +678,7 @@ async def execute_command(parsed, message, guild, author):
             t = find_member_strict(guild, params)
             r = discord.utils.get(guild.roles, name=params.get("name"))
             if not t or not r:
-                return "❌ Not found."
+                return "❌ User or role not found."
             await t.add_roles(r)
             return f"✅ Added {r.name} to {t.mention}!"
         elif cmd == "remove_role_from_user":
@@ -634,15 +704,16 @@ async def execute_command(parsed, message, guild, author):
                 await message.channel.send(embed=e)
             return None
         elif cmd == "debate":
-            topic = params.get("text") or "pineapple pizza"
-            r = await ask_groq(f"Start debate: {topic}", "Debate moderator.")
+            topic = params.get("text") or params.get("question") or "pineapple on pizza"
+            r = await ask_groq(f"Start a debate about: {topic}. Present both sides. Ask channel to vote.", "Debate moderator.")
             if r:
-                msg = await message.channel.send(embed=discord.Embed(title=f"⚔️ {topic}", description=r, color=discord.Color.orange()))
+                embed = discord.Embed(title=f"⚔️ Debate: {topic}", description=r, color=discord.Color.orange())
+                msg = await message.channel.send(embed=embed)
                 await msg.add_reaction("👍")
                 await msg.add_reaction("👎")
             return None
         elif cmd == "remind":
-            text = params.get("text") or "Reminder!"
+            text = params.get("text") or params.get("note") or "Reminder!"
             mins = int(params.get("reminder_time") or params.get("duration") or 10)
             t = datetime.now() + timedelta(minutes=mins)
             conn = get_db()
@@ -650,7 +721,17 @@ async def execute_command(parsed, message, guild, author):
             c.execute("INSERT INTO reminders (user_id, guild_id, channel_id, reminder, remind_time) VALUES (?, ?, ?, ?, ?)", (str(author.id), str(guild.id), str(message.channel.id), text, t.isoformat()))
             conn.commit()
             conn.close()
-            return f"⏰ Reminder in {mins}min: **{text}**"
+            return f"⏰ I'll remind you in {mins} minutes: **{text}**"
+        elif cmd == "birthday":
+            date = params.get("birthday_date") or params.get("text")
+            if not date:
+                return "❌ Tell me your birthday! E.g. 'my birthday is January 15'"
+            conn = get_db()
+            c = conn.cursor()
+            c.execute("INSERT OR REPLACE INTO birthdays (user_id, guild_id, birthday) VALUES (?, ?, ?)", (str(author.id), str(guild.id), date))
+            conn.commit()
+            conn.close()
+            return f"🎂 Birthday set to **{date}**!"
         elif cmd == "confession":
             text = params.get("text") or params.get("note")
             if not text:
@@ -661,7 +742,9 @@ async def execute_command(parsed, message, guild, author):
             cid = c.lastrowid
             conn.commit()
             conn.close()
-            await message.channel.send(embed=discord.Embed(title=f"🤫 Confession #{cid}", description=text, color=discord.Color.dark_purple()))
+            embed = discord.Embed(title=f"🤫 Anonymous Confession #{cid}", description=text, color=discord.Color.dark_purple(), timestamp=datetime.now())
+            embed.set_footer(text="Anonymous via SentinelMod")
+            await message.channel.send(embed=embed)
             try:
                 await message.delete()
             except:
@@ -680,15 +763,16 @@ async def execute_command(parsed, message, guild, author):
             c.execute("SELECT rep FROM reputation WHERE user_id=? AND guild_id=?", (str(t.id), str(guild.id)))
             rep = c.fetchone()[0]
             conn.close()
-            return f"✅ +1 to {t.name}! Total: {rep}"
+            return f"✅ +1 rep to **{t.name}**! Total: **{rep}**"
         elif cmd == "start_giveaway":
-            prize = params.get("prize") or "Mystery"
+            prize = params.get("prize") or "Mystery Prize"
             dur = int(params.get("duration") or 60)
             wins = int(params.get("winners") or 1)
             end = datetime.now() + timedelta(minutes=dur)
-            embed = discord.Embed(title="🎉 GIVEAWAY!", description=f"**Prize:** {prize}\nReact 🎉!", color=discord.Color.gold())
-            embed.add_field(name="Winners", value=str(wins))
-            embed.add_field(name="Ends", value=f"<t:{int(end.timestamp())}:R>")
+            embed = discord.Embed(title="🎉 GIVEAWAY!", description=f"**Prize:** {prize}\nReact with 🎉 to enter!", color=discord.Color.gold(), timestamp=end)
+            embed.add_field(name="Winners", value=str(wins), inline=True)
+            embed.add_field(name="By", value=author.mention, inline=True)
+            embed.add_field(name="Ends", value=f"<t:{int(end.timestamp())}:R>", inline=True)
             msg = await message.channel.send(embed=embed)
             await msg.add_reaction("🎉")
             conn = get_db()
@@ -696,7 +780,7 @@ async def execute_command(parsed, message, guild, author):
             c.execute("INSERT INTO giveaways (guild_id, channel_id, message_id, prize, winners, end_time, host_id) VALUES (?, ?, ?, ?, ?, ?, ?)", (str(guild.id), str(message.channel.id), str(msg.id), prize, wins, end.isoformat(), str(author.id)))
             conn.commit()
             conn.close()
-            return f"🎉 Started!"
+            return f"🎉 Giveaway started for **{prize}**!"
         elif cmd == "create_poll":
             q = params.get("question") or "Poll"
             opts = params.get("options") or ["Yes","No"]
@@ -715,19 +799,19 @@ async def execute_command(parsed, message, guild, author):
             c.execute("INSERT OR REPLACE INTO afk_users (user_id, guild_id, reason, timestamp) VALUES (?, ?, ?, ?)", (str(author.id), str(guild.id), reason, datetime.now().isoformat()))
             conn.commit()
             conn.close()
-            return f"💤 AFK: **{reason}**"
+            return f"💤 AFK set: **{reason}**"
         elif cmd == "backup_server":
-            r = [{"name":x.name,"color":str(x.color)} for x in guild.roles if x.name != "@everyone"]
-            ch = [{"name":x.name,"category":x.category.name if x.category else None} for x in guild.text_channels]
+            r = [{"name":x.name,"color":str(x.color),"hoist":x.hoist} for x in guild.roles if x.name != "@everyone"]
+            ch = [{"name":x.name,"topic":x.topic,"category":x.category.name if x.category else None} for x in guild.text_channels]
             conn = get_db()
             c = conn.cursor()
             c.execute("INSERT INTO backup_data (guild_id, backup_type, data, timestamp) VALUES (?, ?, ?, ?)", (str(guild.id), "full", json.dumps({"roles":r,"channels":ch}), datetime.now().isoformat()))
             conn.commit()
             conn.close()
-            return f"💾 Backed up {len(r)} roles & {len(ch)} channels!"
+            return f"💾 Backed up {len(r)} roles and {len(ch)} channels!"
         elif cmd == "setup_server":
             results = await setup_server(guild)
-            return "🛡️ Setup!\n" + "\n".join(results[:10])
+            return "🛡️ Setup complete!\n" + "\n".join(results[:15])
         elif cmd == "summarize":
             amt = min(int(params.get("amount") or 20), 50)
             msgs = []
@@ -736,15 +820,15 @@ async def execute_command(parsed, message, guild, author):
                     msgs.append(f"{m.author.display_name}: {m.content}")
             if not msgs:
                 return "❌ No messages."
-            s = await ask_groq("Summarize in bullets:\n" + "\n".join(reversed(msgs)), "Summarizer.")
+            s = await ask_groq("Summarize in 3-5 bullet points:\n" + "\n".join(reversed(msgs)), "Summarizer.")
             return f"📝 **Summary:**\n{s}"
         elif cmd == "translate":
             text = params.get("text") or ""
             lang = params.get("language") or "English"
             if not text:
                 return "❌ No text."
-            t = await ask_groq(f"Translate to {lang}, only translation:\n{text}", "Translator.")
-            return f"🌐 **{lang}:** {t}"
+            t = await ask_groq(f"Translate to {lang}. ONLY translation:\n{text}", "Translator.")
+            return f"🌐 **({lang}):** {t}"
         elif cmd == "add_word_filter":
             w = params.get("word")
             if not w:
@@ -754,7 +838,7 @@ async def execute_command(parsed, message, guild, author):
             c.execute("INSERT OR IGNORE INTO word_filters (guild_id, word) VALUES (?, ?)", (str(guild.id), w.lower()))
             conn.commit()
             conn.close()
-            return f"✅ Added **{w}**!"
+            return f"✅ Added **{w}** to filter!"
         elif cmd == "remove_word_filter":
             w = params.get("word")
             conn = get_db()
@@ -784,23 +868,23 @@ async def execute_command(parsed, message, guild, author):
             n = c.fetchall()
             conn.close()
             if not n:
-                return f"📝 No notes."
+                return f"📝 No notes for **{t.name}**."
             return f"📝 **{t.name}:**\n" + "\n".join(f"• {x['note']}" for x in n)
         elif cmd == "set_autorole":
             r = discord.utils.get(guild.roles, name=params.get("name"))
             if not r:
-                return "❌ Not found."
+                return "❌ Role not found."
             conn = get_db()
             c = conn.cursor()
             c.execute("INSERT OR IGNORE INTO auto_roles (guild_id, role_id) VALUES (?, ?)", (str(guild.id), str(r.id)))
             conn.commit()
             conn.close()
-            return f"✅ {r.name} auto-assigned!"
+            return f"✅ **{r.name}** auto-assigned!"
         elif cmd == "raid_mode":
             text = (params.get("feature") or params.get("text") or "").lower()
             status = "on" in text or "enable" in text
             raid_mode_active[guild.id] = status
-            return f"🚨 Raid mode {'ON' if status else 'OFF'}!"
+            return f"🚨 Raid mode **{'ON' if status else 'OFF'}**!"
         elif cmd == "server_health":
             total = guild.member_count
             bots = sum(1 for m in guild.members if m.bot)
@@ -808,9 +892,19 @@ async def execute_command(parsed, message, guild, author):
             c = conn.cursor()
             c.execute("SELECT COUNT(*) FROM warnings WHERE guild_id=?", (str(guild.id),))
             wc = c.fetchone()[0]
+            c.execute("SELECT COUNT(*) FROM mod_actions WHERE guild_id=?", (str(guild.id),))
+            ma = c.fetchone()[0]
             conn.close()
             score = max(0, 100 - (wc // 5))
-            await message.channel.send(embed=discord.Embed(title="🏥 Server Health", color=discord.Color.green()).add_field(name="Score", value=f"{score}/100").add_field(name="Members", value=str(total-bots)).add_field(name="Warnings", value=str(wc)))
+            embed = discord.Embed(title="🏥 Server Health", color=discord.Color.green() if score > 70 else discord.Color.orange(), timestamp=datetime.now())
+            embed.add_field(name="Score", value=f"{score}/100", inline=True)
+            embed.add_field(name="Members", value=str(total-bots), inline=True)
+            embed.add_field(name="Bots", value=str(bots), inline=True)
+            embed.add_field(name="Channels", value=str(len(guild.text_channels)), inline=True)
+            embed.add_field(name="Warnings", value=str(wc), inline=True)
+            embed.add_field(name="Mod Actions", value=str(ma), inline=True)
+            embed.add_field(name="Raid Mode", value="🔴 ON" if raid_mode_active[guild.id] else "🟢 OFF", inline=True)
+            await message.channel.send(embed=embed)
             return None
         elif cmd == "activity_stats":
             conn = get_db()
@@ -819,14 +913,14 @@ async def execute_command(parsed, message, guild, author):
             top = c.fetchall()
             conn.close()
             if not top:
-                return "📊 No data."
+                return "📊 No data yet!"
             lines = []
             medals = ["🥇","🥈","🥉"]
             for i, r in enumerate(top):
                 m = guild.get_member(int(r["user_id"]))
                 medal = medals[i] if i < 3 else f"#{i+1}"
-                lines.append(f"{medal} {m.display_name if m else '?'}: **{r['message_count']}**")
-            await message.channel.send(embed=discord.Embed(title="📊 Activity", description="\n".join(lines), color=discord.Color.blue()))
+                lines.append(f"{medal} {m.display_name if m else '?'}: **{r['message_count']}** msgs")
+            await message.channel.send(embed=discord.Embed(title="📊 Activity Stats", description="\n".join(lines), color=discord.Color.blue()))
             return None
         elif cmd == "mod_stats":
             conn = get_db()
@@ -835,23 +929,30 @@ async def execute_command(parsed, message, guild, author):
             top = c.fetchall()
             conn.close()
             if not top:
-                return "🛡️ No data."
+                return "🛡️ No mod data!"
             lines = []
             for i, r in enumerate(top, 1):
                 m = guild.get_member(int(r["mod_id"]))
-                lines.append(f"#{i} {m.display_name if m else '?'}: **{r['t']}**")
-            await message.channel.send(embed=discord.Embed(title="🛡️ Mods", description="\n".join(lines), color=discord.Color.red()))
+                lines.append(f"#{i} {m.display_name if m else '?'}: **{r['t']}** actions")
+            await message.channel.send(embed=discord.Embed(title="🛡️ Mod Leaderboard", description="\n".join(lines), color=discord.Color.red()))
             return None
         elif cmd == "suggestion":
             text = params.get("text") or params.get("note")
             if not text:
-                return "❌ What suggestion?"
+                return "❌ No suggestion."
             ch = discord.utils.get(guild.text_channels, name="suggestions")
             if ch:
-                msg = await ch.send(embed=discord.Embed(title="💡 Suggestion", description=text, color=discord.Color.blue()).set_footer(text=f"By {author.display_name}"))
+                embed = discord.Embed(title="💡 New Suggestion", description=text, color=discord.Color.blue(), timestamp=datetime.now())
+                embed.set_footer(text=f"By {author.display_name}")
+                msg = await ch.send(embed=embed)
                 await msg.add_reaction("👍")
                 await msg.add_reaction("👎")
-                return f"✅ Posted!"
+                conn = get_db()
+                c = conn.cursor()
+                c.execute("INSERT INTO suggestions (guild_id, user_id, suggestion, message_id, timestamp) VALUES (?, ?, ?, ?, ?)", (str(guild.id), str(author.id), text, str(msg.id), datetime.now().isoformat()))
+                conn.commit()
+                conn.close()
+                return f"✅ Posted in {ch.mention}!"
             return "❌ No suggestions channel."
         elif cmd == "add_custom_command":
             trigger = (params.get("name") or params.get("word") or "").lower().strip()
@@ -863,7 +964,7 @@ async def execute_command(parsed, message, guild, author):
             c.execute("INSERT OR REPLACE INTO custom_commands (guild_id, trigger_word, response) VALUES (?, ?, ?)", (str(guild.id), trigger, response))
             conn.commit()
             conn.close()
-            return f"✅ Custom command `{trigger}` added!"
+            return f"✅ Custom command added!\nTrigger: `{trigger}`\nResponse: {response[:200]}"
         elif cmd == "remove_custom_command":
             trigger = (params.get("name") or params.get("word") or "").lower().strip()
             conn = get_db()
@@ -894,13 +995,21 @@ async def execute_command(parsed, message, guild, author):
             try:
                 c.execute(f"UPDATE guild_settings SET {f}=? WHERE guild_id=?", (v, str(guild.id)))
                 conn.commit()
-                return f"{'✅ Enabled' if v else '❌ Disabled'} {f}!"
+                return f"{'✅ Enabled' if v else '❌ Disabled'} **{f}**!"
             except:
                 return f"❌ Unknown: {f}"
             finally:
                 conn.close()
         elif cmd == "help":
-            await message.channel.send(embed=discord.Embed(title="🛡️ SentinelMod", description="@mention me or chat in #sentinel-bot!\nWeb dashboard: check your render URL!", color=discord.Color.blue()).add_field(name="Mod", value="ban/kick/mute/warn/purge").add_field(name="Fun", value="trivia/roast/ship/8ball").add_field(name="AI", value="summarize/translate/story").add_field(name="Server", value="make channel/role/category"))
+            embed = discord.Embed(title="🛡️ SentinelMod Help", description="@mention me or chat in #sentinel-bot!", color=discord.Color.blue())
+            embed.add_field(name="🔧 Server", value="make/delete channels, roles, categories", inline=False)
+            embed.add_field(name="🔨 Mod", value="ban, kick, mute, warn, purge, lock, lockdown, quarantine", inline=False)
+            embed.add_field(name="🎮 Fun", value="trivia, roast, compliment, 8ball, ship, rate, story, riddle", inline=False)
+            embed.add_field(name="🤖 AI", value="summarize, translate, story, debate, confess", inline=False)
+            embed.add_field(name="📊 Info", value="server health, activity, mod stats, remind, birthday", inline=False)
+            embed.add_field(name="🎭 Personality", value="/personality or /setpersonality", inline=False)
+            embed.add_field(name="🌐 Dashboard", value=f"{REDIRECT_URI.replace('/callback','')}", inline=False)
+            await message.channel.send(embed=embed)
             return None
         else:
             return None
@@ -927,16 +1036,26 @@ async def check_spam(msg, settings):
     return len(spam_tracker[key]) >= settings.get("spam_limit", 5)
 
 async def handle_spam(msg, settings):
+    u = msg.author
+    g = msg.guild
     try:
-        await msg.channel.purge(limit=10, check=lambda m: m.author == msg.author)
+        await msg.channel.purge(limit=10, check=lambda m: m.author == u)
     except:
         pass
     try:
-        await msg.author.timeout(datetime.now() + timedelta(minutes=settings.get("mute_duration",10)), reason="Spam")
+        await u.timeout(datetime.now() + timedelta(minutes=settings.get("mute_duration",10)), reason="Spam")
     except:
         pass
-    wc = add_warning(msg.author.id, msg.guild.id, "Spam", "medium")
-    await alert_mods(msg.guild, discord.Embed(title="🔇 Spam", color=discord.Color.orange()).add_field(name="User", value=msg.author.mention).add_field(name="Warnings", value=str(wc)))
+    wc = add_warning(u.id, g.id, "Spam", "medium")
+    log_mod_action(u.id, g.id, "SPAM_MUTE", "Spam", bot.user.id)
+    try:
+        await u.send(embed=discord.Embed(title="⚠️ Spam Detected", description=f"Muted in **{g.name}**", color=discord.Color.orange()))
+    except:
+        pass
+    embed = discord.Embed(title="🔇 Spam Handled", color=discord.Color.orange(), timestamp=datetime.now())
+    embed.add_field(name="User", value=u.mention, inline=True)
+    embed.add_field(name="Warnings", value=str(wc), inline=True)
+    await alert_mods(g, embed)
 
 async def check_raid(member):
     g = member.guild
@@ -953,7 +1072,7 @@ async def handle_raid(guild, member):
         ch = discord.utils.get(guild.text_channels, name=s["raid_channel"])
         mr = discord.utils.get(guild.roles, name=s["mod_role_name"])
         if ch:
-            await ch.send(content=f"🚨 {mr.mention if mr else ''} RAID!", embed=discord.Embed(title="🚨 RAID", color=discord.Color.red()))
+            await ch.send(content=f"🚨 {mr.mention if mr else ''} RAID!", embed=discord.Embed(title="🚨 RAID DETECTED", color=discord.Color.red()))
         await asyncio.sleep(300)
         raid_mode_active[guild.id] = False
     age = (datetime.now() - member.created_at.replace(tzinfo=None)).days
@@ -963,6 +1082,28 @@ async def handle_raid(guild, member):
         except:
             pass
 
+async def check_nuke(guild, action, executor):
+    if executor == guild.me:
+        return False
+    key = f"{guild.id}:{executor.id}"
+    now = time.time()
+    nuke_action_tracker[key].append(now)
+    nuke_action_tracker[key] = [t for t in nuke_action_tracker[key] if now - t < 10]
+    return len(nuke_action_tracker[key]) >= 3
+
+async def handle_nuke(guild, executor, action):
+    try:
+        await guild.ban(executor, reason="Anti-nuke")
+    except:
+        pass
+    embed = discord.Embed(title="💣 NUKE STOPPED", description=f"**{executor}** banned!", color=discord.Color.dark_red(), timestamp=datetime.now())
+    ch = discord.utils.get(guild.text_channels, name="sentinel-nuke-alerts")
+    if ch:
+        mr = discord.utils.get(guild.roles, name=get_guild_settings(guild.id)["mod_role_name"])
+        await ch.send(content=mr.mention if mr else "", embed=embed)
+    else:
+        await alert_mods(guild, embed)
+
 async def check_patterns(msg, settings):
     content = msg.content
     cl = content.lower()
@@ -971,88 +1112,136 @@ async def check_patterns(msg, settings):
     if settings.get("email_filter",1) and re.search(r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b', content):
         return "email", "Email", "high"
     keywords = [
-        (settings.get("fake_nitro_filter",1), ["free nitro","claim nitro"], "fake_nitro", "Nitro scam", "critical"),
-        (settings.get("token_filter",1), ["discord token","grabify"], "token", "Token grabber", "critical"),
-        (settings.get("scam_filter",1), ["you won","claim your prize","account will be deleted"], "scam", "Scam", "critical"),
-        (settings.get("anti_advertisement",1), ["join my server","subscribe to my"], "ad", "Advertisement", "medium"),
-        (1, ["want to kill myself","want to die"], "self_harm", "Self-harm", "high"),
+        (settings.get("fake_nitro_filter",1), ["free nitro","discord nitro free","claim nitro"], "fake_nitro", "Fake Nitro scam", "critical"),
+        (settings.get("token_filter",1), ["discord token","grab token","token logger","grabify.link"], "token", "Token grabber", "critical"),
+        (settings.get("scam_filter",1), ["you won","claim your prize","account will be deleted","verify your account"], "scam", "Scam", "critical"),
+        (settings.get("anti_advertisement",1), ["join my server","subscribe to my","check out my server"], "ad", "Advertisement", "medium"),
+        (settings.get("nsfw_text_filter",1), ["how old are you","send me a pic","don't tell your parents"], "grooming", "Grooming", "critical"),
+        (1, ["i will expose you","pay me or","i know where you live"], "blackmail", "Blackmail", "critical"),
+        (1, ["want to kill myself","want to die","going to hurt myself"], "self_harm", "Self-harm content", "high"),
         (1, ["death to all","kill all","exterminate"], "extremism", "Extremism", "critical"),
+        (1, ["i'm from discord","official discord","your account has been flagged"], "social_eng", "Social engineering", "critical"),
     ]
     for en, words, t, r, sev in keywords:
         if en and any(w in cl for w in words):
             return t, r, sev
+    if settings.get("zalgo_filter",1) and sum(1 for c in content if unicodedata.combining(c)) > 10:
+        return "zalgo", "Zalgo text", "medium"
     if settings.get("caps_filter",1) and len(content) > 10:
         if sum(1 for c in content if c.isupper())/len(content) > 0.7:
-            return "caps", "Caps", "low"
+            return "caps", "Excessive caps", "low"
     if settings.get("mention_spam",1) and len(msg.mentions) >= 5:
         return "mentions", "Mention spam", "high"
+    if settings.get("everyone_block",0) and ("@everyone" in content or "@here" in content):
+        return "everyone", "@everyone block", "medium"
     if settings.get("invite_block",0) and re.search(r'(discord\.gg|discord\.com/invite)/[a-zA-Z0-9]+', content):
-        return "invite", "Invite", "medium"
+        return "invite", "Invite link", "medium"
     if settings.get("link_scan",1) and "http" in cl:
-        bad = ["grabify","iplogger","discord.gift","free-nitro","phish"]
+        bad = ["grabify","iplogger","discord.gift","free-nitro","phish","dlscord","ip-logger"]
         for b in bad:
             if b in cl:
                 return "phishing", f"Phishing: {b}", "critical"
+    if re.search(r'(.)\1{9,}', content):
+        return "repeat", "Repeated chars", "low"
+    zw = ['\u200b','\u200c','\u200d','\ufeff','\u2060']
+    if sum(content.count(z) for z in zw) > 5:
+        return "zero_width", "Zero-width spam", "medium"
+    if settings.get("unicode_filter",1):
+        try:
+            norm = unicodedata.normalize("NFKC", content).lower()
+            if norm != cl:
+                for word in get_filtered_words(msg.guild.id):
+                    if word in norm:
+                        return "unicode_bypass", f"Unicode bypass: {word}", "high"
+        except:
+            pass
     return None, None, None
 
 async def check_toxicity(content, context=""):
-    return await ask_groq_json(f'Analyze: "{content}" Context: {context}\nJSON: {{"toxic":true/false,"severity":"none|low|medium|high|critical","category":"none|harassment|threat|hate","confidence":0.0-1.0,"reason":"brief"}}')
+    return await ask_groq_json(f'Analyze for harm: "{content}" Context: {context}\nJSON: {{"toxic":true/false,"severity":"none|low|medium|high|critical","category":"none|harassment|threat|hate|sexual|bullying","confidence":0.0-1.0,"reason":"brief","immediate_action":true/false}}')
 
 async def punish_user(msg, sev, reason, analysis):
     u = msg.author
     g = msg.guild
     s = get_guild_settings(g.id)
     wc = add_warning(u.id, g.id, reason, sev)
+    log_mod_action(u.id, g.id, "AI_WARN", reason, bot.user.id)
     try:
         await msg.delete()
     except:
         pass
     try:
-        await u.send(f"⚠️ Message removed in **{g.name}**: {reason}")
+        await msg.channel.send(embed=discord.Embed(title="🛡️ Message Removed", description=f"{u.mention} message removed.\nReason: {reason}", color=discord.Color.orange()), delete_after=8)
     except:
         pass
+    try:
+        await u.send(embed=discord.Embed(title="⚠️ Warning", description=f"Message removed in **{g.name}**\nReason: {reason}\nWarnings: {wc}/{s.get('warn_ban',5)}", color=discord.Color.yellow()))
+    except:
+        pass
+    colors = {"low":discord.Color.yellow(),"medium":discord.Color.orange(),"high":discord.Color.red(),"critical":discord.Color.dark_red()}
+    embed = discord.Embed(title="🚨 AI Moderation", color=colors.get(sev, discord.Color.red()), timestamp=datetime.now())
+    embed.add_field(name="User", value=f"{u.mention} ({u.id})", inline=True)
+    embed.add_field(name="Severity", value=sev.upper(), inline=True)
+    embed.add_field(name="Confidence", value=f"{analysis.get('confidence',0)*100:.0f}%", inline=True)
+    embed.add_field(name="Warnings", value=f"{wc}/{s.get('warn_ban',5)}", inline=True)
+    embed.add_field(name="Message", value=f"||{msg.content[:400]}||", inline=False)
+    embed.add_field(name="Reason", value=reason, inline=False)
+    action = "⚠️ Warning"
     if wc >= s.get("warn_mute",3) and wc < s.get("warn_ban",5):
         try:
             await u.timeout(datetime.now() + timedelta(minutes=s.get("mute_duration",10)), reason=reason)
+            action = f"🔇 Muted {s.get('mute_duration',10)}min"
         except:
             pass
     if wc >= s.get("warn_ban",5):
         try:
-            await g.ban(u, reason=reason)
+            await g.ban(u, reason=f"AI: {reason}")
+            action = "🔨 BANNED"
         except:
             pass
-    await alert_mods(g, discord.Embed(title="🚨 AI Mod", color=discord.Color.red()).add_field(name="User", value=u.mention).add_field(name="Severity", value=sev).add_field(name="Reason", value=reason).add_field(name="Warnings", value=str(wc)))
+    if analysis.get("immediate_action") and sev == "critical":
+        try:
+            await g.ban(u, reason=f"IMMEDIATE: {reason}")
+            action = "🔨 IMMEDIATELY BANNED"
+        except:
+            pass
+    embed.add_field(name="Action", value=action, inline=False)
+    await alert_mods(g, embed)
 
 # ============ SETUP & VIEWS ============
 async def setup_server(guild):
     results = []
     s = get_guild_settings(guild.id)
-    for rn, c, h in [(s["mod_role_name"], discord.Color.red(), True), ("Muted", discord.Color.dark_gray(), False), ("Member", discord.Color.blue(), False)]:
+    for rn, c, h in [(s["mod_role_name"], discord.Color.red(), True), ("Muted", discord.Color.dark_gray(), False), ("Member", discord.Color.blue(), False), ("Quarantined", discord.Color.dark_gray(), False)]:
         if not discord.utils.get(guild.roles, name=rn):
             try:
-                await guild.create_role(name=rn, color=c, hoist=h)
+                await guild.create_role(name=rn, color=c, hoist=h, mentionable=True)
                 results.append(f"✅ Role: {rn}")
             except:
                 results.append(f"❌ Role: {rn}")
+        else:
+            results.append(f"⏭️ Role exists: {rn}")
     mr = discord.utils.get(guild.roles, name=s["mod_role_name"])
     scat = discord.utils.get(guild.categories, name="🛡️ SENTINELAI")
     if not scat:
         try:
-            ow = {guild.default_role: discord.PermissionOverwrite(read_messages=False), guild.me: discord.PermissionOverwrite(read_messages=True)}
+            ow = {guild.default_role: discord.PermissionOverwrite(read_messages=False), guild.me: discord.PermissionOverwrite(read_messages=True, send_messages=True)}
             if mr:
-                ow[mr] = discord.PermissionOverwrite(read_messages=True)
+                ow[mr] = discord.PermissionOverwrite(read_messages=True, send_messages=True)
             scat = await guild.create_category(name="🛡️ SENTINELAI", overwrites=ow)
-            results.append("✅ Category SENTINELAI")
+            results.append("✅ Category: SENTINELAI")
         except:
             pass
-    for cn, t in [(s["log_channel"],"Mod logs"),(s["raid_channel"],"Raids"),("sentinel-bot","Chat with AI!")]:
+    for cn, t in [(s["log_channel"],"Mod logs"),(s["raid_channel"],"Raid alerts"),("sentinel-nuke-alerts","Nuke alerts"),("sentinel-bot","Chat with SentinelMod AI!")]:
         if not discord.utils.get(guild.text_channels, name=cn):
             try:
                 await guild.create_text_channel(name=cn, category=scat, topic=t)
                 results.append(f"✅ #{cn}")
             except:
                 results.append(f"❌ #{cn}")
-    for cn, t in [("welcome","Welcome"),("rules","Rules"),("general","Chat"),("suggestions","Ideas")]:
+        else:
+            results.append(f"⏭️ #{cn}")
+    for cn, t in [("welcome","Welcome"),("rules","Rules"),("general","General"),("announcements","Announcements"),("suggestions","Suggestions")]:
         if not discord.utils.get(guild.text_channels, name=cn):
             try:
                 await guild.create_text_channel(name=cn, topic=t)
@@ -1084,18 +1273,26 @@ class ConfirmView(discord.ui.View):
         self.stop()
 
 # ============ SLASH COMMANDS ============
-@bot.tree.command(name="personality", description="Choose personality")
+@bot.tree.command(name="personality", description="Choose SentinelMod personality")
 async def personality_cmd(interaction: discord.Interaction):
-    embed = discord.Embed(title="🎭 Personalities", description="Pick from dropdown!", color=discord.Color.purple())
-    embed.add_field(name="Available", value=", ".join(f"`{p}`" for p in list(PERSONALITIES.keys())[:20]))
+    categories = {
+        "🎭 Characters": ["pirate","medieval","wizard","vampire","ghost","dragon","ninja","samurai","cowboy","fairy"],
+        "🎬 Pop Culture": ["yoda","jarvis","deadpool","sherlock","gandalf","tony_stark","groot","gollum","darth_vader","michael_scott"],
+        "😄 Moods": ["friendly","sarcastic","serious","chaotic","motivational","pessimist","optimist","hype","philosopher","therapist"],
+        "🌍 Styles": ["british","australian","valley_girl","gen_z","boomer","caveman","shakespeare","surfer","anime","gamer"],
+        "👔 Roles": ["professor","chef","detective","alien","time_traveler","oracle","robot","superhero","villain","mad_hatter"]
+    }
+    embed = discord.Embed(title="🎭 Personalities", description="Use /setpersonality with a name!", color=discord.Color.purple())
+    for cat, names in categories.items():
+        embed.add_field(name=cat, value=", ".join(f"`{n}`" for n in names), inline=False)
     embed.set_footer(text=f"Current: {get_user_personality(str(interaction.user.id), str(interaction.guild.id))}")
-    opts = [discord.SelectOption(label=n.replace("_"," ").title(), value=n) for n in list(PERSONALITIES.keys())[:25]]
+    opts = [discord.SelectOption(label=n.replace("_"," ").title(), value=n, description=PERSONALITIES[n][:50]) for n in list(PERSONALITIES.keys())[:25]]
     view = discord.ui.View(timeout=60)
     select = discord.ui.Select(placeholder="Choose...", options=opts)
     async def cb(i):
         p = i.data["values"][0]
         set_user_personality(str(i.user.id), str(i.guild.id), p)
-        await i.response.send_message(f"✅ Now: **{p}**!", ephemeral=True)
+        await i.response.send_message(f"✅ Personality: **{p.replace('_',' ').title()}**!", ephemeral=True)
     select.callback = cb
     view.add_item(select)
     await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
@@ -1107,16 +1304,16 @@ async def setpersonality_cmd(interaction: discord.Interaction, personality: str)
         await interaction.response.send_message(f"❌ Unknown. Use /personality", ephemeral=True)
         return
     set_user_personality(str(interaction.user.id), str(interaction.guild.id), p)
-    await interaction.response.send_message(f"✅ **{p}**!", ephemeral=True)
+    await interaction.response.send_message(f"✅ Now: **{p.replace('_',' ').title()}**!\n*{PERSONALITIES[p]}*", ephemeral=True)
 
 @bot.tree.command(name="help", description="Show help")
 async def help_cmd(interaction: discord.Interaction):
     embed = discord.Embed(title="🛡️ SentinelMod Help", color=discord.Color.blue())
     embed.add_field(name="💬 Chat", value=f"@mention me or chat in #sentinel-bot", inline=False)
     embed.add_field(name="🔧 Server", value="make/delete channels, roles, categories", inline=False)
-    embed.add_field(name="🔨 Moderation", value="ban, kick, mute, warn, purge, lock", inline=False)
-    embed.add_field(name="🎮 Fun", value="trivia, roast, compliment, 8ball, ship, rate", inline=False)
-    embed.add_field(name="🤖 AI", value="summarize, translate, story, debate", inline=False)
+    embed.add_field(name="🔨 Moderation", value="ban, kick, mute, warn, purge, lock, quarantine", inline=False)
+    embed.add_field(name="🎮 Fun", value="trivia, roast, compliment, 8ball, ship, rate, story", inline=False)
+    embed.add_field(name="🤖 AI", value="summarize, translate, story, debate, confess", inline=False)
     embed.add_field(name="🎭 Personality", value="/personality or /setpersonality", inline=False)
     embed.add_field(name="🌐 Dashboard", value=f"{REDIRECT_URI.replace('/callback','')}", inline=False)
     await interaction.response.send_message(embed=embed, ephemeral=True)
@@ -1124,7 +1321,7 @@ async def help_cmd(interaction: discord.Interaction):
 @bot.tree.command(name="dashboard", description="Get dashboard link")
 async def dashboard_cmd(interaction: discord.Interaction):
     url = REDIRECT_URI.replace('/callback', '')
-    embed = discord.Embed(title="🌐 Web Dashboard", description=f"Manage your server here:\n**{url}**", color=discord.Color.blue())
+    embed = discord.Embed(title="🌐 Web Dashboard", description=f"Manage your server:\n**{url}**", color=discord.Color.blue())
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
 # ============ TASKS ============
@@ -1168,7 +1365,7 @@ async def check_reminders():
         try:
             ch = bot.get_channel(int(rem["channel_id"]))
             if ch:
-                await ch.send(f"⏰ <@{rem['user_id']}>: **{rem['reminder']}**")
+                await ch.send(f"⏰ <@{rem['user_id']}> Reminder: **{rem['reminder']}**")
         except:
             pass
         c.execute("UPDATE reminders SET active=0 WHERE id=?", (rem["id"],))
@@ -1178,7 +1375,11 @@ async def check_reminders():
 # ============ EVENTS ============
 @bot.event
 async def on_ready():
-    print(f"🤖 {bot.user} ONLINE in {len(bot.guilds)} servers")
+    print("━━━━━━━━━━━━━━━━━━━━━━━━━━")
+    print(f"🤖 {bot.user} ONLINE")
+    print(f"🏠 {len(bot.guilds)} servers")
+    print(f"🎭 {len(PERSONALITIES)} personalities")
+    print("━━━━━━━━━━━━━━━━━━━━━━━━━━")
     for g in bot.guilds:
         init_guild_settings(g.id)
     try:
@@ -1188,7 +1389,7 @@ async def on_ready():
         print(f"Sync error: {e}")
     check_giveaways.start()
     check_reminders.start()
-    await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name="everything 👁️"))
+    await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name="everything 👁️ | @mention me!"))
 
 @bot.event
 async def on_guild_join(guild):
@@ -1213,10 +1414,15 @@ async def on_member_join(member):
             except:
                 pass
     conn.close()
+    age = (datetime.now() - member.created_at.replace(tzinfo=None)).days
+    if age < s.get("min_account_age", 7):
+        ch = discord.utils.get(g.text_channels, name=s["raid_channel"])
+        if ch:
+            await ch.send(embed=discord.Embed(title="⚠️ Suspicious Account", color=discord.Color.yellow()).add_field(name="User", value=member.mention).add_field(name="Age", value=f"{age} days"))
     if s.get("welcome_enabled", 1):
         wch = discord.utils.get(g.text_channels, name=s.get("welcome_channel","welcome"))
         if wch:
-            w = await ask_groq(f"Short welcome for {member.display_name} joining {g.name}.", "Friendly.")
+            w = await ask_groq(f"Short warm welcome for {member.display_name} joining {g.name}. 2 sentences.", "Friendly.")
             if w:
                 embed = discord.Embed(title=f"👋 Welcome to {g.name}!", description=w, color=discord.Color.green())
                 embed.set_thumbnail(url=member.display_avatar.url)
@@ -1232,8 +1438,29 @@ async def on_reaction_add(reaction, user):
             return
         s["answered"].append(user.id)
         if str(reaction.emoji) == s["correct_emoji"]:
+            conn = get_db()
+            c = conn.cursor()
+            c.execute("INSERT INTO trivia_scores (user_id, guild_id, score, total) VALUES (?, ?, 1, 1) ON CONFLICT(user_id, guild_id) DO UPDATE SET score=score+1, total=total+1", (str(user.id), str(s["guild_id"])))
+            conn.commit()
+            conn.close()
             await reaction.message.channel.send(f"✅ {user.mention} correct! **{s['correct_answer']}**")
             del trivia_sessions[reaction.message.id]
+
+@bot.event
+async def on_audit_log_entry_create(entry):
+    g = entry.guild
+    s = get_guild_settings(g.id)
+    if not s.get("anti_nuke_enabled", 1):
+        return
+    nuke = [discord.AuditLogAction.channel_delete, discord.AuditLogAction.role_delete, discord.AuditLogAction.ban, discord.AuditLogAction.kick, discord.AuditLogAction.webhook_create]
+    if entry.action in nuke and entry.user:
+        mr = discord.utils.get(g.roles, name=s["mod_role_name"])
+        if entry.user == g.me:
+            return
+        if mr and mr in entry.user.roles:
+            return
+        if await check_nuke(g, str(entry.action), entry.user):
+            await handle_nuke(g, entry.user, str(entry.action))
 
 @bot.event
 async def on_message(message):
@@ -1298,11 +1525,23 @@ async def on_message(message):
                         if tn or ti:
                             t = find_member_strict(message.guild, parsed.get("params",{}))
                             if not t:
-                                await message.reply(f"❌ User not found. @mention them!")
+                                await message.reply(f"❌ User not found. @mention them directly!")
                                 return
                     nc = parsed.get("needs_confirmation", False) or parsed.get("command") in dangerous
                     if nc:
-                        embed = discord.Embed(title=f"⚠️ Confirm: {parsed.get('command','').replace('_',' ').title()}", description=parsed.get("confirmation_message","Confirm?"), color=discord.Color.orange())
+                        cn = parsed.get('command','').replace('_',' ').title()
+                        params = parsed.get("params", {})
+                        details = []
+                        if params.get("target_user_name"):
+                            details.append(f"**Target:** {params['target_user_name']}")
+                        if params.get("name"):
+                            details.append(f"**Name:** {params['name']}")
+                        if params.get("reason"):
+                            details.append(f"**Reason:** {params['reason']}")
+                        if params.get("duration"):
+                            details.append(f"**Duration:** {params['duration']} min")
+                        embed = discord.Embed(title=f"⚠️ Confirm: {cn}", description=parsed.get("confirmation_message","Confirm?") + "\n\n" + "\n".join(details), color=discord.Color.orange())
+                        embed.set_footer(text="30 seconds to confirm")
                         view = ConfirmView(parsed, message, message.guild, message.author)
                         await message.reply(embed=embed, view=view)
                     else:
@@ -1311,7 +1550,7 @@ async def on_message(message):
                         if r:
                             await message.reply(r[:2000])
                     return
-            sys = get_system_prompt(str(message.author.id), str(message.guild.id))
+            sys = get_system_prompt(str(message.author.id), str(message.guild.id), f"Server: {message.guild.name}\nUser: {message.author.display_name}")
             hist = get_conversation_history(str(message.author.id), str(message.guild.id))
             await stream_response(message, content, sys, hist, str(message.author.id), str(message.guild.id))
             return
@@ -1329,31 +1568,68 @@ async def on_message(message):
             pass
         if pt == "self_harm":
             try:
-                await message.channel.send(embed=discord.Embed(title="💙 We're Here", description=f"{message.author.mention} please reach out:\n**988** Suicide Prevention\nText **HOME** to **741741**", color=discord.Color.blue()))
+                await message.channel.send(embed=discord.Embed(title="💙 We're Here", description=f"{message.author.mention} please reach out:\n**988** Suicide Prevention\nText **HOME** to **741741**\n**findahelpline.com**", color=discord.Color.blue()))
             except:
                 pass
         wc = add_warning(message.author.id, message.guild.id, pr, ps)
         if ps in ["high","critical"]:
-            await alert_mods(message.guild, discord.Embed(title=f"🚨 {pt}", color=discord.Color.red()).add_field(name="User", value=message.author.mention).add_field(name="Reason", value=pr))
-        if ps == "critical":
+            embed = discord.Embed(title=f"🚨 {pt.replace('_',' ').title()}", color=discord.Color.red(), timestamp=datetime.now())
+            embed.add_field(name="User", value=message.author.mention, inline=True)
+            embed.add_field(name="Reason", value=pr, inline=True)
+            embed.add_field(name="Warnings", value=str(wc), inline=True)
+            await alert_mods(message.guild, embed)
+        if ps == "critical" and pt in ["fake_nitro","token","phishing","scam","social_eng","blackmail","extremism","grooming"]:
             try:
                 await message.guild.ban(message.author, reason=f"IMMEDIATE: {pr}")
             except:
                 pass
+        if wc >= s.get("warn_mute", 3):
+            try:
+                await message.author.timeout(datetime.now() + timedelta(minutes=10), reason=pr)
+            except:
+                pass
+        if wc >= s.get("warn_ban", 5):
+            try:
+                await message.guild.ban(message.author, reason="Too many violations")
+            except:
+                pass
         return
     # Word filter
-    for w in get_filtered_words(message.guild.id):
-        if w in message.content.lower():
+    words = get_filtered_words(message.guild.id)
+    cl = message.content.lower()
+    norm = cl
+    for old, new in [("@","a"),("0","o"),("1","i"),("3","e"),("$","s"),("5","s"),("4","a")]:
+        norm = norm.replace(old, new)
+    for w in words:
+        if w in cl or w in norm:
             try:
                 await message.delete()
             except:
                 pass
-            add_warning(message.author.id, message.guild.id, "Filtered", "medium")
-            await message.channel.send(f"⚠️ {message.author.mention} word not allowed!", delete_after=5)
+            wc = add_warning(message.author.id, message.guild.id, "Filtered word", "medium")
+            await message.channel.send(f"⚠️ {message.author.mention} Word not allowed!", delete_after=5)
             return
     if len(message.content) < 3:
         await bot.process_commands(message)
         return
+    # Pre-conflict
+    ck = f"{message.guild.id}:{message.channel.id}"
+    recent_messages[ck].append({"author": message.author.name, "content": message.content, "time": time.time()})
+    recent_messages[ck] = [m for m in recent_messages[ck] if time.time() - m["time"] < 60]
+    if s.get("pre_conflict", 1) and len(recent_messages[ck]) >= 6:
+        mt = "\n".join(f"{m['author']}: {m['content']}" for m in recent_messages[ck][-10:])
+        conflict = await ask_groq_json(f'Conflict check:\n{mt}\nJSON:{{"escalating":true/false,"severity":"none|mild|moderate|severe","reason":"brief"}}')
+        if conflict and conflict.get("escalating") and conflict.get("severity") in ["moderate","severe"]:
+            await message.channel.send(embed=discord.Embed(title="⚠️ Cool Down", description="Please be respectful! 😊", color=discord.Color.yellow()), delete_after=30)
+            if conflict.get("severity") == "severe":
+                await alert_mods(message.guild, discord.Embed(title="🔥 Conflict", color=discord.Color.orange()).add_field(name="Channel", value=message.channel.mention))
+                if s.get("slowmode_ai", 1):
+                    try:
+                        await message.channel.edit(slowmode_delay=10)
+                        await asyncio.sleep(60)
+                        await message.channel.edit(slowmode_delay=0)
+                    except:
+                        pass
     # Toxicity
     ctx = ""
     try:
@@ -1368,66 +1644,69 @@ async def on_message(message):
     if a and a.get("toxic"):
         sev = a.get("severity","low")
         conf = a.get("confidence",0)
+        reason = a.get("reason","Toxic")
+        if s.get("slowmode_ai", 1) and sev in ["high","critical"]:
+            try:
+                await message.channel.edit(slowmode_delay=10)
+                await asyncio.sleep(60)
+                await message.channel.edit(slowmode_delay=0)
+            except:
+                pass
         if conf >= s.get("ai_sensitivity",0.7):
             if sev in ["medium","high","critical"]:
-                await punish_user(message, sev, a.get("reason","Toxic"), a)
+                await punish_user(message, sev, reason, a)
+            elif sev == "low":
+                add_warning(message.author.id, message.guild.id, reason, "low")
+                try:
+                    await message.author.send(embed=discord.Embed(title="⚠️ Heads up", description=f"Be respectful in **{message.guild.name}**\nReason: {reason}", color=discord.Color.yellow()))
+                except:
+                    pass
     await bot.process_commands(message)
 
-# ============================
-# DASHBOARD
-# ============================
+# ============ DASHBOARD ============
 app = Flask(__name__)
 app.secret_key = SECRET_KEY
 
 DASHBOARD_HTML = """
 <!DOCTYPE html>
-<html>
-<head>
-<title>SentinelMod Dashboard</title>
+<html><head><title>SentinelMod Dashboard</title>
 <style>
-* { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Arial, sans-serif; }
-body { background: linear-gradient(135deg, #1a1c2e, #2d1b4e); min-height: 100vh; color: #fff; padding: 20px; }
-.container { max-width: 1200px; margin: 0 auto; }
-.header { display: flex; justify-content: space-between; align-items: center; padding: 20px; background: rgba(255,255,255,0.05); border-radius: 15px; backdrop-filter: blur(10px); margin-bottom: 20px; }
-.logo { font-size: 28px; font-weight: bold; background: linear-gradient(45deg, #5865F2, #EB459E); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-.user-info { display: flex; align-items: center; gap: 10px; }
-.user-info img { width: 40px; height: 40px; border-radius: 50%; }
-.logout { background: #ed4245; color: white; padding: 8px 16px; border-radius: 8px; text-decoration: none; }
-.servers-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
-.server-card { background: rgba(255,255,255,0.05); padding: 20px; border-radius: 15px; backdrop-filter: blur(10px); transition: transform 0.3s; cursor: pointer; border: 1px solid rgba(255,255,255,0.1); }
-.server-card:hover { transform: translateY(-5px); border-color: #5865F2; }
-.server-icon { width: 60px; height: 60px; border-radius: 50%; margin-bottom: 10px; background: linear-gradient(45deg, #5865F2, #EB459E); display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: bold; }
-.server-name { font-size: 18px; font-weight: bold; margin-bottom: 10px; }
-.server-stat { color: #aaa; font-size: 14px; margin: 4px 0; }
-.btn { background: #5865F2; color: white; padding: 10px 20px; border: none; border-radius: 8px; text-decoration: none; display: inline-block; cursor: pointer; margin-top: 10px; }
-.btn:hover { background: #4752C4; }
-.login-box { text-align: center; padding: 60px 30px; background: rgba(255,255,255,0.05); border-radius: 20px; backdrop-filter: blur(10px); max-width: 500px; margin: 100px auto; }
-.login-box h1 { font-size: 48px; margin-bottom: 20px; background: linear-gradient(45deg, #5865F2, #EB459E); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-.login-box p { color: #aaa; margin-bottom: 30px; }
-.discord-btn { background: #5865F2; color: white; padding: 15px 30px; border-radius: 10px; text-decoration: none; font-size: 18px; display: inline-block; }
-.stat-card { background: rgba(255,255,255,0.05); padding: 20px; border-radius: 15px; text-align: center; }
-.stat-number { font-size: 36px; font-weight: bold; color: #5865F2; }
-.stat-label { color: #aaa; margin-top: 5px; }
-.stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px; }
-.section { background: rgba(255,255,255,0.05); padding: 25px; border-radius: 15px; margin-bottom: 20px; }
-.section h2 { margin-bottom: 15px; color: #5865F2; }
-.setting-row { display: flex; justify-content: space-between; align-items: center; padding: 12px; border-bottom: 1px solid rgba(255,255,255,0.1); }
-.setting-row:last-child { border: none; }
-.toggle { position: relative; width: 50px; height: 26px; background: #444; border-radius: 13px; cursor: pointer; transition: 0.3s; }
-.toggle.on { background: #5865F2; }
-.toggle-dot { position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; background: white; border-radius: 50%; transition: 0.3s; }
-.toggle.on .toggle-dot { left: 27px; }
-.back { color: #5865F2; text-decoration: none; margin-bottom: 20px; display: inline-block; }
-.warning-list { max-height: 400px; overflow-y: auto; }
-.warning-item { background: rgba(255,255,255,0.03); padding: 12px; margin-bottom: 8px; border-radius: 8px; border-left: 4px solid #f0b132; }
-</style>
-</head>
-<body>
-<div class="container">
-{{ content | safe }}
-</div>
-</body>
-</html>
+*{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',Arial,sans-serif}
+body{background:linear-gradient(135deg,#1a1c2e,#2d1b4e);min-height:100vh;color:#fff;padding:20px}
+.container{max-width:1200px;margin:0 auto}
+.header{display:flex;justify-content:space-between;align-items:center;padding:20px;background:rgba(255,255,255,0.05);border-radius:15px;backdrop-filter:blur(10px);margin-bottom:20px}
+.logo{font-size:28px;font-weight:bold;background:linear-gradient(45deg,#5865F2,#EB459E);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.user-info{display:flex;align-items:center;gap:10px}
+.user-info img{width:40px;height:40px;border-radius:50%}
+.logout{background:#ed4245;color:white;padding:8px 16px;border-radius:8px;text-decoration:none}
+.servers-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:20px}
+.server-card{background:rgba(255,255,255,0.05);padding:20px;border-radius:15px;backdrop-filter:blur(10px);transition:transform 0.3s;cursor:pointer;border:1px solid rgba(255,255,255,0.1)}
+.server-card:hover{transform:translateY(-5px);border-color:#5865F2}
+.server-icon{width:60px;height:60px;border-radius:50%;margin-bottom:10px;background:linear-gradient(45deg,#5865F2,#EB459E);display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:bold}
+.server-name{font-size:18px;font-weight:bold;margin-bottom:10px}
+.server-stat{color:#aaa;font-size:14px;margin:4px 0}
+.btn{background:#5865F2;color:white;padding:10px 20px;border:none;border-radius:8px;text-decoration:none;display:inline-block;cursor:pointer;margin-top:10px}
+.btn:hover{background:#4752C4}
+.login-box{text-align:center;padding:60px 30px;background:rgba(255,255,255,0.05);border-radius:20px;backdrop-filter:blur(10px);max-width:500px;margin:100px auto}
+.login-box h1{font-size:48px;margin-bottom:20px;background:linear-gradient(45deg,#5865F2,#EB459E);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.login-box p{color:#aaa;margin-bottom:30px}
+.discord-btn{background:#5865F2;color:white;padding:15px 30px;border-radius:10px;text-decoration:none;font-size:18px;display:inline-block}
+.stat-card{background:rgba(255,255,255,0.05);padding:20px;border-radius:15px;text-align:center}
+.stat-number{font-size:36px;font-weight:bold;color:#5865F2}
+.stat-label{color:#aaa;margin-top:5px}
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:15px;margin-bottom:20px}
+.section{background:rgba(255,255,255,0.05);padding:25px;border-radius:15px;margin-bottom:20px}
+.section h2{margin-bottom:15px;color:#5865F2}
+.setting-row{display:flex;justify-content:space-between;align-items:center;padding:12px;border-bottom:1px solid rgba(255,255,255,0.1)}
+.setting-row:last-child{border:none}
+.toggle{position:relative;width:50px;height:26px;background:#444;border-radius:13px;cursor:pointer;transition:0.3s}
+.toggle.on{background:#5865F2}
+.toggle-dot{position:absolute;top:3px;left:3px;width:20px;height:20px;background:white;border-radius:50%;transition:0.3s}
+.toggle.on .toggle-dot{left:27px}
+.back{color:#5865F2;text-decoration:none;margin-bottom:20px;display:inline-block}
+.warning-item{background:rgba(255,255,255,0.03);padding:12px;margin-bottom:8px;border-radius:8px;border-left:4px solid #f0b132}
+</style></head>
+<body><div class="container">{{ content | safe }}</div></body></html>
 """
 
 def render_page(content):
@@ -1441,8 +1720,7 @@ def index():
 <h1>🛡️ SentinelMod</h1>
 <p>The ultimate AI-powered Discord moderation bot</p>
 <a href="/login" class="discord-btn">🚀 Login with Discord</a>
-</div>
-""")
+</div>""")
     user = session["user"]
     try:
         headers = {"Authorization": f"Bearer {session['access_token']}"}
@@ -1455,10 +1733,7 @@ def index():
     for ug in user_guilds:
         try:
             if int(ug.get("permissions", 0)) & 0x8:
-                if int(ug["id"]) in bot_guild_ids:
-                    managable.append({**ug, "has_bot": True})
-                else:
-                    managable.append({**ug, "has_bot": False})
+                managable.append({**ug, "has_bot": int(ug["id"]) in bot_guild_ids})
         except:
             pass
     cards = ""
@@ -1466,22 +1741,10 @@ def index():
         if g["has_bot"]:
             icon = f"https://cdn.discordapp.com/icons/{g['id']}/{g['icon']}.png" if g.get('icon') else None
             icon_html = f'<img src="{icon}" style="width:60px;height:60px;border-radius:50%;margin-bottom:10px;">' if icon else f'<div class="server-icon">{g["name"][0]}</div>'
-            cards += f"""
-<div class="server-card" onclick="window.location='/server/{g['id']}'">
-{icon_html}
-<div class="server-name">{g['name']}</div>
-<div class="server-stat">✅ Bot installed</div>
-<a href="/server/{g['id']}" class="btn">Manage →</a>
-</div>"""
+            cards += f'<div class="server-card" onclick="window.location=\'/server/{g["id"]}\'">{icon_html}<div class="server-name">{g["name"]}</div><div class="server-stat">✅ Bot installed</div><a href="/server/{g["id"]}" class="btn">Manage →</a></div>'
         else:
             invite = f"https://discord.com/oauth2/authorize?client_id={CLIENT_ID}&permissions=8&scope=bot%20applications.commands&guild_id={g['id']}"
-            cards += f"""
-<div class="server-card">
-<div class="server-icon">{g['name'][0]}</div>
-<div class="server-name">{g['name']}</div>
-<div class="server-stat">❌ Bot not added</div>
-<a href="{invite}" target="_blank" class="btn" style="background:#3ba55c;">+ Add Bot</a>
-</div>"""
+            cards += f'<div class="server-card"><div class="server-icon">{g["name"][0]}</div><div class="server-name">{g["name"]}</div><div class="server-stat">❌ Bot not added</div><a href="{invite}" target="_blank" class="btn" style="background:#3ba55c;">+ Add Bot</a></div>'
     avatar = f"https://cdn.discordapp.com/avatars/{user['id']}/{user['avatar']}.png" if user.get("avatar") else "https://cdn.discordapp.com/embed/avatars/0.png"
     return render_page(f"""
 <div class="header">
@@ -1490,11 +1753,9 @@ def index():
 <img src="{avatar}">
 <span>{user['username']}</span>
 <a href="/logout" class="logout">Logout</a>
-</div>
-</div>
+</div></div>
 <h2 style="margin-bottom:20px;">Your Servers</h2>
-<div class="servers-grid">{cards if cards else '<p>No servers found. Make sure you are an admin in a server!</p>'}</div>
-""")
+<div class="servers-grid">{cards if cards else '<p>No servers found. Be an admin in a server!</p>'}</div>""")
 
 @app.route("/login")
 def login():
@@ -1556,27 +1817,17 @@ def server_page(guild_id):
         ("fake_nitro_filter", "💎 Fake Nitro Filter"),
         ("token_filter", "🔑 Token Grabber Filter"),
         ("anti_advertisement", "📣 Anti-Advertisement"),
-        ("everyone_block", "@everyone Block")
+        ("everyone_block", "🔕 @everyone Block")
     ]
     feature_html = ""
     for key, name in features:
         val = s.get(key, 0)
-        feature_html += f"""
-<div class="setting-row">
-<span>{name}</span>
-<div class="toggle {'on' if val else ''}" onclick="toggleFeature('{key}', this)">
-<div class="toggle-dot"></div>
-</div>
-</div>"""
+        feature_html += f'<div class="setting-row"><span>{name}</span><div class="toggle {"on" if val else ""}" onclick="toggleFeature(\'{key}\', this)"><div class="toggle-dot"></div></div></div>'
     warns_html = ""
     for w in recent_warns:
         m = guild.get_member(int(w["user_id"]))
         name = m.display_name if m else f"User {w['user_id']}"
-        warns_html += f"""
-<div class="warning-item">
-<strong>{name}</strong> - {w['severity'].upper()}<br>
-<small>{w['reason']} • {w['timestamp'][:16]}</small>
-</div>"""
+        warns_html += f'<div class="warning-item"><strong>{name}</strong> - {w["severity"].upper()}<br><small>{w["reason"]} • {w["timestamp"][:16]}</small></div>'
     avatar = f"https://cdn.discordapp.com/avatars/{session['user']['id']}/{session['user']['avatar']}.png" if session['user'].get("avatar") else ""
     return render_page(f"""
 <div class="header">
@@ -1584,8 +1835,7 @@ def server_page(guild_id):
 <div class="user-info">
 <img src="{avatar}" style="width:40px;height:40px;border-radius:50%;">
 <a href="/logout" class="logout">Logout</a>
-</div>
-</div>
+</div></div>
 <a href="/" class="back">← Back to servers</a>
 <div class="stats-grid">
 <div class="stat-card"><div class="stat-number">{guild.member_count}</div><div class="stat-label">Members</div></div>
@@ -1599,18 +1849,15 @@ def server_page(guild_id):
 </div>
 <div class="section">
 <h2>⚠️ Recent Warnings</h2>
-<div class="warning-list">{warns_html if warns_html else '<p>No warnings yet!</p>'}</div>
+<div>{warns_html if warns_html else '<p>No warnings yet!</p>'}</div>
 </div>
 <script>
 function toggleFeature(key, el) {{
 fetch('/api/toggle/{guild_id}/' + key, {{ method: 'POST' }})
 .then(r => r.json())
-.then(d => {{
-if (d.success) el.classList.toggle('on');
-}});
+.then(d => {{ if (d.success) el.classList.toggle('on'); }});
 }}
-</script>
-""")
+</script>""")
 
 @app.route("/api/toggle/<guild_id>/<feature>", methods=["POST"])
 def toggle_feature(guild_id, feature):
@@ -1642,6 +1889,6 @@ if __name__ == "__main__":
         thread = threading.Thread(target=run_flask)
         thread.daemon = True
         thread.start()
-        print(f"🌐 Dashboard on port 8080")
+        print("🌐 Dashboard on port 8080")
         print("🚀 Starting SentinelMod...")
         bot.run(DISCORD_TOKEN)
