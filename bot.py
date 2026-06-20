@@ -1667,46 +1667,247 @@ async def on_message(message):
 app = Flask(__name__)
 app.secret_key = SECRET_KEY
 
-DASHBOARD_HTML = """
-<!DOCTYPE html>
-<html><head><title>SentinelMod Dashboard</title>
+DASHBOARD_CSS = """
 <style>
-*{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',Arial,sans-serif}
-body{background:linear-gradient(135deg,#1a1c2e,#2d1b4e);min-height:100vh;color:#fff;padding:20px}
-.container{max-width:1200px;margin:0 auto}
-.header{display:flex;justify-content:space-between;align-items:center;padding:20px;background:rgba(255,255,255,0.05);border-radius:15px;backdrop-filter:blur(10px);margin-bottom:20px}
-.logo{font-size:28px;font-weight:bold;background:linear-gradient(45deg,#5865F2,#EB459E);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
-.user-info{display:flex;align-items:center;gap:10px}
-.user-info img{width:40px;height:40px;border-radius:50%}
-.logout{background:#ed4245;color:white;padding:8px 16px;border-radius:8px;text-decoration:none}
-.servers-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:20px}
-.server-card{background:rgba(255,255,255,0.05);padding:20px;border-radius:15px;backdrop-filter:blur(10px);transition:transform 0.3s;cursor:pointer;border:1px solid rgba(255,255,255,0.1)}
-.server-card:hover{transform:translateY(-5px);border-color:#5865F2}
-.server-icon{width:60px;height:60px;border-radius:50%;margin-bottom:10px;background:linear-gradient(45deg,#5865F2,#EB459E);display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:bold}
-.server-name{font-size:18px;font-weight:bold;margin-bottom:10px}
-.server-stat{color:#aaa;font-size:14px;margin:4px 0}
-.btn{background:#5865F2;color:white;padding:10px 20px;border:none;border-radius:8px;text-decoration:none;display:inline-block;cursor:pointer;margin-top:10px}
-.btn:hover{background:#4752C4}
-.login-box{text-align:center;padding:60px 30px;background:rgba(255,255,255,0.05);border-radius:20px;backdrop-filter:blur(10px);max-width:500px;margin:100px auto}
-.login-box h1{font-size:48px;margin-bottom:20px;background:linear-gradient(45deg,#5865F2,#EB459E);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
-.login-box p{color:#aaa;margin-bottom:30px}
-.discord-btn{background:#5865F2;color:white;padding:15px 30px;border-radius:10px;text-decoration:none;font-size:18px;display:inline-block}
-.stat-card{background:rgba(255,255,255,0.05);padding:20px;border-radius:15px;text-align:center}
-.stat-number{font-size:36px;font-weight:bold;color:#5865F2}
-.stat-label{color:#aaa;margin-top:5px}
-.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:15px;margin-bottom:20px}
-.section{background:rgba(255,255,255,0.05);padding:25px;border-radius:15px;margin-bottom:20px}
-.section h2{margin-bottom:15px;color:#5865F2}
-.setting-row{display:flex;justify-content:space-between;align-items:center;padding:12px;border-bottom:1px solid rgba(255,255,255,0.1)}
-.setting-row:last-child{border:none}
-.toggle{position:relative;width:50px;height:26px;background:#444;border-radius:13px;cursor:pointer;transition:0.3s}
-.toggle.on{background:#5865F2}
-.toggle-dot{position:absolute;top:3px;left:3px;width:20px;height:20px;background:white;border-radius:50%;transition:0.3s}
-.toggle.on .toggle-dot{left:27px}
-.back{color:#5865F2;text-decoration:none;margin-bottom:20px;display:inline-block}
-.warning-item{background:rgba(255,255,255,0.03);padding:12px;margin-bottom:8px;border-radius:8px;border-left:4px solid #f0b132}
-</style></head>
-<body><div class="container">{{ content | safe }}</div></body></html>
+*{margin:0;padding:0;box-sizing:border-box;font-family:'Inter','Segoe UI',sans-serif}
+:root{--primary:#5865F2;--primary-hover:#4752C4;--success:#3ba55c;--danger:#ed4245;--warning:#faa61a;--bg-1:#0a0b14;--bg-2:#13141f;--bg-3:#1a1b2e;--card:rgba(255,255,255,0.04);--card-hover:rgba(255,255,255,0.08);--border:rgba(255,255,255,0.08);--text:#fff;--text-dim:#a0a0b0;--text-faded:#6b6c80}
+body{background:radial-gradient(ellipse at top,#1a1b3e 0%,#0a0b14 50%);min-height:100vh;color:var(--text);overflow-x:hidden}
+.bg-shapes{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;overflow:hidden;pointer-events:none}
+.shape{position:absolute;border-radius:50%;filter:blur(80px);opacity:0.3;animation:float 20s infinite ease-in-out}
+.shape1{width:400px;height:400px;background:#5865F2;top:-100px;left:-100px}
+.shape2{width:500px;height:500px;background:#EB459E;bottom:-200px;right:-100px;animation-delay:-5s}
+.shape3{width:300px;height:300px;background:#3ba55c;top:50%;left:50%;animation-delay:-10s}
+@keyframes float{0%,100%{transform:translate(0,0)}50%{transform:translate(50px,50px)}}
+.container{max-width:1400px;margin:0 auto;padding:20px;position:relative;z-index:1}
+.navbar{display:flex;justify-content:space-between;align-items:center;padding:20px 30px;background:rgba(255,255,255,0.03);backdrop-filter:blur(20px);border:1px solid var(--border);border-radius:20px;margin-bottom:30px;position:sticky;top:20px;z-index:100}
+.logo{display:flex;align-items:center;gap:12px;font-size:24px;font-weight:800}
+.logo-icon{width:40px;height:40px;background:linear-gradient(135deg,#5865F2,#EB459E);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:24px;box-shadow:0 8px 20px rgba(88,101,242,0.4)}
+.logo-text{background:linear-gradient(135deg,#fff 0%,#a0a0b0 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.nav-right{display:flex;align-items:center;gap:15px}
+.user-badge{display:flex;align-items:center;gap:10px;background:var(--card);padding:8px 16px;border-radius:50px;border:1px solid var(--border)}
+.user-badge img{width:32px;height:32px;border-radius:50%;border:2px solid var(--primary)}
+.btn{padding:10px 20px;border-radius:10px;border:none;cursor:pointer;font-weight:600;transition:all 0.3s;text-decoration:none;display:inline-flex;align-items:center;gap:8px;font-size:14px}
+.btn-primary{background:var(--primary);color:#fff}
+.btn-primary:hover{background:var(--primary-hover);transform:translateY(-2px);box-shadow:0 10px 25px rgba(88,101,242,0.4)}
+.btn-danger{background:var(--danger);color:#fff}
+.btn-danger:hover{background:#c93538}
+.btn-success{background:var(--success);color:#fff}
+.btn-secondary{background:var(--card);color:#fff;border:1px solid var(--border)}
+.btn-secondary:hover{background:var(--card-hover)}
+.login-container{min-height:100vh;display:flex;align-items:center;justify-content:center;flex-direction:column;text-align:center}
+.login-hero{max-width:600px;padding:40px}
+.login-hero h1{font-size:80px;font-weight:900;margin-bottom:20px;background:linear-gradient(135deg,#5865F2,#EB459E,#FAA61A);-webkit-background-clip:text;-webkit-text-fill-color:transparent;animation:gradient 5s ease infinite;background-size:200% 200%}
+@keyframes gradient{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}
+.login-hero p{font-size:20px;color:var(--text-dim);margin-bottom:40px;line-height:1.6}
+.login-features{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin:40px 0}
+.login-feature{background:var(--card);padding:20px;border-radius:15px;border:1px solid var(--border)}
+.login-feature-icon{font-size:32px;margin-bottom:10px}
+.login-feature h3{font-size:14px;margin-bottom:5px}
+.login-feature p{font-size:12px;color:var(--text-dim);margin:0}
+.discord-login-btn{display:inline-flex;align-items:center;gap:12px;background:#5865F2;color:#fff;padding:18px 40px;border-radius:14px;font-size:18px;font-weight:700;text-decoration:none;box-shadow:0 15px 40px rgba(88,101,242,0.5);transition:all 0.3s}
+.discord-login-btn:hover{transform:translateY(-3px);box-shadow:0 20px 50px rgba(88,101,242,0.7)}
+.page-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:30px}
+.page-title{font-size:36px;font-weight:800}
+.page-subtitle{color:var(--text-dim);font-size:14px;margin-top:5px}
+.tabs{display:flex;gap:8px;margin-bottom:30px;overflow-x:auto;padding:6px;background:var(--card);border-radius:15px;border:1px solid var(--border)}
+.tab{padding:12px 24px;background:transparent;border:none;color:var(--text-dim);cursor:pointer;border-radius:10px;font-weight:600;white-space:nowrap;transition:all 0.3s}
+.tab.active{background:var(--primary);color:#fff;box-shadow:0 4px 15px rgba(88,101,242,0.4)}
+.tab:hover:not(.active){background:var(--card-hover);color:#fff}
+.tab-content{display:none}
+.tab-content.active{display:block;animation:fadeIn 0.3s}
+@keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:20px;margin-bottom:30px}
+.stat-card{background:linear-gradient(135deg,var(--card) 0%,rgba(88,101,242,0.05) 100%);padding:25px;border-radius:20px;border:1px solid var(--border);position:relative;overflow:hidden;transition:all 0.3s}
+.stat-card:hover{transform:translateY(-5px);border-color:var(--primary);box-shadow:0 15px 35px rgba(88,101,242,0.2)}
+.stat-card::before{content:'';position:absolute;top:0;right:0;width:100px;height:100px;background:linear-gradient(135deg,var(--primary),transparent);border-radius:50%;filter:blur(40px);opacity:0.5}
+.stat-icon{font-size:32px;margin-bottom:10px}
+.stat-number{font-size:42px;font-weight:800;background:linear-gradient(135deg,#fff,#5865F2);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.stat-label{color:var(--text-dim);font-size:13px;text-transform:uppercase;letter-spacing:1px;margin-top:5px}
+.section{background:var(--card);border-radius:20px;border:1px solid var(--border);padding:30px;margin-bottom:25px;backdrop-filter:blur(20px)}
+.section-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;padding-bottom:15px;border-bottom:1px solid var(--border)}
+.section-title{font-size:22px;font-weight:700;display:flex;align-items:center;gap:10px}
+.servers-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:20px}
+.server-card{background:var(--card);padding:25px;border-radius:20px;border:1px solid var(--border);transition:all 0.4s;cursor:pointer;position:relative;overflow:hidden}
+.server-card::before{content:'';position:absolute;top:0;left:0;width:100%;height:4px;background:linear-gradient(90deg,#5865F2,#EB459E);transform:scaleX(0);transition:transform 0.4s;transform-origin:left}
+.server-card:hover::before{transform:scaleX(1)}
+.server-card:hover{transform:translateY(-5px);border-color:var(--primary);box-shadow:0 20px 40px rgba(0,0,0,0.3)}
+.server-header{display:flex;align-items:center;gap:15px;margin-bottom:15px}
+.server-icon-wrap{width:70px;height:70px;border-radius:18px;overflow:hidden;background:linear-gradient(135deg,#5865F2,#EB459E);display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:800;flex-shrink:0}
+.server-icon-wrap img{width:100%;height:100%;object-fit:cover}
+.server-info h3{font-size:18px;font-weight:700;margin-bottom:4px}
+.server-badge{display:inline-block;padding:4px 10px;border-radius:50px;font-size:11px;font-weight:600;text-transform:uppercase}
+.badge-active{background:rgba(59,165,92,0.2);color:#3ba55c}
+.badge-inactive{background:rgba(237,66,69,0.2);color:#ed4245}
+.feature-list{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+.feature-toggle{background:var(--card);padding:18px;border-radius:14px;border:1px solid var(--border);transition:all 0.3s;cursor:pointer}
+.feature-toggle:hover{background:var(--card-hover);border-color:var(--primary)}
+.feature-toggle-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.feature-toggle-name{font-weight:600;font-size:14px}
+.feature-toggle-desc{font-size:12px;color:var(--text-dim)}
+.toggle-switch{position:relative;width:48px;height:26px;background:#333;border-radius:50px;cursor:pointer;transition:0.3s;flex-shrink:0}
+.toggle-switch.on{background:linear-gradient(135deg,#5865F2,#7289DA);box-shadow:0 0 15px rgba(88,101,242,0.5)}
+.toggle-dot{position:absolute;top:3px;left:3px;width:20px;height:20px;background:#fff;border-radius:50%;transition:0.3s;box-shadow:0 2px 6px rgba(0,0,0,0.3)}
+.toggle-switch.on .toggle-dot{left:25px}
+.list-item{display:flex;align-items:center;gap:15px;padding:15px;background:var(--card);border-radius:12px;border:1px solid var(--border);margin-bottom:10px;transition:all 0.3s}
+.list-item:hover{background:var(--card-hover);transform:translateX(5px)}
+.list-avatar{width:42px;height:42px;border-radius:50%;background:linear-gradient(135deg,#5865F2,#EB459E);display:flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0}
+.list-content{flex:1}
+.list-title{font-weight:600;font-size:14px}
+.list-subtitle{font-size:12px;color:var(--text-dim);margin-top:3px}
+.list-meta{font-size:11px;color:var(--text-faded)}
+.severity-tag{padding:3px 10px;border-radius:50px;font-size:10px;font-weight:700;text-transform:uppercase}
+.sev-low{background:rgba(250,166,26,0.2);color:#faa61a}
+.sev-medium{background:rgba(237,140,69,0.2);color:#ed8c45}
+.sev-high{background:rgba(237,66,69,0.2);color:#ed4245}
+.sev-critical{background:rgba(150,0,0,0.3);color:#ff6b6b}
+.form-group{margin-bottom:20px}
+.form-label{display:block;margin-bottom:8px;font-weight:600;font-size:13px;color:var(--text-dim)}
+.form-input,.form-select,.form-textarea{width:100%;padding:12px 16px;background:var(--bg-2);border:1px solid var(--border);border-radius:10px;color:#fff;font-size:14px;transition:all 0.3s}
+.form-input:focus,.form-select:focus,.form-textarea:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px rgba(88,101,242,0.2)}
+.form-textarea{resize:vertical;min-height:80px}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:15px}
+.empty-state{text-align:center;padding:60px 20px;color:var(--text-dim)}
+.empty-state-icon{font-size:64px;margin-bottom:20px;opacity:0.3}
+.back-btn{display:inline-flex;align-items:center;gap:8px;color:var(--primary);text-decoration:none;margin-bottom:20px;font-weight:600;transition:all 0.3s}
+.back-btn:hover{transform:translateX(-5px)}
+.alert{padding:15px 20px;border-radius:12px;margin-bottom:20px;display:flex;align-items:center;gap:12px}
+.alert-success{background:rgba(59,165,92,0.1);border:1px solid #3ba55c;color:#3ba55c}
+.alert-info{background:rgba(88,101,242,0.1);border:1px solid #5865F2;color:#5865F2}
+.modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:1000;align-items:center;justify-content:center;backdrop-filter:blur(5px)}
+.modal.active{display:flex}
+.modal-content{background:var(--bg-2);padding:30px;border-radius:20px;border:1px solid var(--border);max-width:500px;width:90%;max-height:80vh;overflow-y:auto}
+.modal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}
+.close-btn{background:none;border:none;color:#fff;font-size:24px;cursor:pointer;opacity:0.5;transition:opacity 0.3s}
+.close-btn:hover{opacity:1}
+.command-row{display:flex;justify-content:space-between;align-items:center;padding:15px;background:var(--card);border-radius:10px;margin-bottom:10px;border:1px solid var(--border)}
+.command-trigger{font-family:monospace;background:rgba(88,101,242,0.2);padding:4px 10px;border-radius:6px;color:#5865F2;font-size:13px}
+.delete-btn{background:rgba(237,66,69,0.2);color:#ed4245;border:none;padding:6px 12px;border-radius:6px;cursor:pointer;font-size:12px;transition:all 0.3s}
+.delete-btn:hover{background:#ed4245;color:#fff}
+.search-bar{position:relative;margin-bottom:20px}
+.search-input{width:100%;padding:14px 20px 14px 50px;background:var(--card);border:1px solid var(--border);border-radius:14px;color:#fff;font-size:14px}
+.search-icon{position:absolute;left:18px;top:50%;transform:translateY(-50%);opacity:0.5}
+.notification{position:fixed;top:20px;right:20px;padding:15px 25px;background:var(--primary);color:#fff;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,0.3);z-index:2000;animation:slideIn 0.3s;display:none}
+.notification.show{display:block}
+@keyframes slideIn{from{transform:translateX(100%)}to{transform:translateX(0)}}
+.activity-chart{height:200px;background:var(--bg-2);border-radius:12px;padding:20px;display:flex;align-items:flex-end;gap:8px;border:1px solid var(--border)}
+.chart-bar{flex:1;background:linear-gradient(180deg,#5865F2,#EB459E);border-radius:6px 6px 0 0;min-height:5px;transition:all 0.3s;cursor:pointer}
+.chart-bar:hover{opacity:0.8}
+.personality-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;max-height:400px;overflow-y:auto;padding:10px}
+.personality-card{background:var(--card);padding:15px;border-radius:12px;text-align:center;cursor:pointer;border:1px solid var(--border);transition:all 0.3s;font-size:13px}
+.personality-card:hover{background:var(--primary);transform:translateY(-3px);border-color:var(--primary)}
+.personality-card.selected{background:linear-gradient(135deg,#5865F2,#EB459E);border-color:#fff}
+@media (max-width: 768px) {
+.feature-list{grid-template-columns:1fr}
+.form-row{grid-template-columns:1fr}
+.login-features{grid-template-columns:1fr}
+.login-hero h1{font-size:50px}
+.stats-grid{grid-template-columns:repeat(2,1fr)}
+}
+</style>
+"""
+
+DASHBOARD_HTML = """
+<!DOCTYPE html><html><head><title>SentinelMod Dashboard</title>
+""" + DASHBOARD_CSS + """
+</head><body>
+<div class="bg-shapes"><div class="shape shape1"></div><div class="shape shape2"></div><div class="shape shape3"></div></div>
+<div id="notification" class="notification"></div>
+<div class="container">{{ content | safe }}</div>
+<script>
+function showNotification(msg, type) {
+    const n = document.getElementById('notification');
+    n.textContent = msg;
+    n.style.background = type === 'error' ? '#ed4245' : type === 'success' ? '#3ba55c' : '#5865F2';
+    n.classList.add('show');
+    setTimeout(() => n.classList.remove('show'), 3000);
+}
+function switchTab(tabName, element) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    element.classList.add('active');
+    document.getElementById('tab-' + tabName).classList.add('active');
+}
+function toggleFeature(guildId, key, el) {
+    fetch('/api/toggle/' + guildId + '/' + key, { method: 'POST' })
+    .then(r => r.json())
+    .then(d => {
+        if (d.success) {
+            el.classList.toggle('on');
+            showNotification('✅ Setting updated!', 'success');
+        } else {
+            showNotification('❌ Failed to update', 'error');
+        }
+    });
+}
+function updateSetting(guildId, key, value) {
+    fetch('/api/setting/' + guildId + '/' + key, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ value: value })
+    }).then(r => r.json()).then(d => {
+        if (d.success) showNotification('✅ Updated!', 'success');
+    });
+}
+function openModal(id) { document.getElementById(id).classList.add('active'); }
+function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+function addCustomCommand(guildId) {
+    const trigger = document.getElementById('cc-trigger').value;
+    const response = document.getElementById('cc-response').value;
+    if (!trigger || !response) { showNotification('❌ Fill both fields!', 'error'); return; }
+    fetch('/api/custom/' + guildId, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ trigger: trigger, response: response })
+    }).then(r => r.json()).then(d => {
+        if (d.success) { showNotification('✅ Added!', 'success'); setTimeout(() => location.reload(), 1000); }
+    });
+}
+function deleteCustomCommand(guildId, trigger) {
+    if (!confirm('Delete "' + trigger + '"?')) return;
+    fetch('/api/custom/' + guildId + '/' + encodeURIComponent(trigger), { method: 'DELETE' })
+    .then(r => r.json()).then(d => {
+        if (d.success) { showNotification('✅ Deleted!', 'success'); setTimeout(() => location.reload(), 1000); }
+    });
+}
+function addWordFilter(guildId) {
+    const word = document.getElementById('wf-word').value;
+    if (!word) return;
+    fetch('/api/wordfilter/' + guildId, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ word: word })
+    }).then(r => r.json()).then(d => {
+        if (d.success) { showNotification('✅ Added!', 'success'); setTimeout(() => location.reload(), 1000); }
+    });
+}
+function removeWordFilter(guildId, word) {
+    fetch('/api/wordfilter/' + guildId + '/' + encodeURIComponent(word), { method: 'DELETE' })
+    .then(r => r.json()).then(d => {
+        if (d.success) { showNotification('✅ Removed!', 'success'); setTimeout(() => location.reload(), 1000); }
+    });
+}
+function clearUserWarnings(guildId, userId) {
+    if (!confirm('Clear all warnings?')) return;
+    fetch('/api/clearwarnings/' + guildId + '/' + userId, { method: 'POST' })
+    .then(r => r.json()).then(d => {
+        if (d.success) { showNotification('✅ Cleared!', 'success'); setTimeout(() => location.reload(), 1000); }
+    });
+}
+function sendAnnouncement(guildId) {
+    const channel = document.getElementById('ann-channel').value;
+    const message = document.getElementById('ann-message').value;
+    if (!channel || !message) { showNotification('❌ Fill both!', 'error'); return; }
+    fetch('/api/announce/' + guildId, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ channel: channel, message: message })
+    }).then(r => r.json()).then(d => {
+        if (d.success) { showNotification('✅ Sent!', 'success'); document.getElementById('ann-message').value = ''; }
+        else showNotification('❌ ' + (d.error || 'Failed'), 'error');
+    });
+}
+</script>
+</body></html>
 """
 
 def render_page(content):
@@ -1715,12 +1916,20 @@ def render_page(content):
 @app.route("/")
 def index():
     if "user" not in session:
-        return render_page(f"""
-<div class="login-box">
+        return render_page("""
+<div class="login-container">
+<div class="login-hero">
 <h1>🛡️ SentinelMod</h1>
-<p>The ultimate AI-powered Discord moderation bot</p>
-<a href="/login" class="discord-btn">🚀 Login with Discord</a>
+<p>The most powerful AI-driven Discord moderation bot. Manage everything from one beautiful dashboard.</p>
+<div class="login-features">
+<div class="login-feature"><div class="login-feature-icon">🤖</div><h3>AI Moderation</h3><p>Smart toxicity detection</p></div>
+<div class="login-feature"><div class="login-feature-icon">⚡</div><h3>Instant Setup</h3><p>One click activation</p></div>
+<div class="login-feature"><div class="login-feature-icon">🎮</div><h3>50+ Features</h3><p>Fun, mod, AI tools</p></div>
+</div>
+<a href="/login" class="discord-login-btn">🚀 Login with Discord</a>
+</div>
 </div>""")
+
     user = session["user"]
     try:
         headers = {"Authorization": f"Bearer {session['access_token']}"}
@@ -1728,6 +1937,7 @@ def index():
         user_guilds = r.json() if r.status_code == 200 else []
     except:
         user_guilds = []
+
     bot_guild_ids = [g.id for g in bot.guilds]
     managable = []
     for ug in user_guilds:
@@ -1736,26 +1946,66 @@ def index():
                 managable.append({**ug, "has_bot": int(ug["id"]) in bot_guild_ids})
         except:
             pass
+
     cards = ""
-    for g in managable[:30]:
+    for g in managable[:50]:
+        icon_url = f"https://cdn.discordapp.com/icons/{g['id']}/{g['icon']}.png" if g.get('icon') else None
+        icon_html = f'<img src="{icon_url}">' if icon_url else g['name'][0]
         if g["has_bot"]:
-            icon = f"https://cdn.discordapp.com/icons/{g['id']}/{g['icon']}.png" if g.get('icon') else None
-            icon_html = f'<img src="{icon}" style="width:60px;height:60px;border-radius:50%;margin-bottom:10px;">' if icon else f'<div class="server-icon">{g["name"][0]}</div>'
-            cards += f'<div class="server-card" onclick="window.location=\'/server/{g["id"]}\'">{icon_html}<div class="server-name">{g["name"]}</div><div class="server-stat">✅ Bot installed</div><a href="/server/{g["id"]}" class="btn">Manage →</a></div>'
+            cards += f'''
+<div class="server-card" onclick="window.location='/server/{g['id']}'">
+<div class="server-header">
+<div class="server-icon-wrap">{icon_html}</div>
+<div class="server-info">
+<h3>{g['name']}</h3>
+<span class="server-badge badge-active">● Bot Active</span>
+</div>
+</div>
+<a href="/server/{g['id']}" class="btn btn-primary" style="width:100%;justify-content:center;">⚙️ Manage Server</a>
+</div>'''
         else:
             invite = f"https://discord.com/oauth2/authorize?client_id={CLIENT_ID}&permissions=8&scope=bot%20applications.commands&guild_id={g['id']}"
-            cards += f'<div class="server-card"><div class="server-icon">{g["name"][0]}</div><div class="server-name">{g["name"]}</div><div class="server-stat">❌ Bot not added</div><a href="{invite}" target="_blank" class="btn" style="background:#3ba55c;">+ Add Bot</a></div>'
+            cards += f'''
+<div class="server-card">
+<div class="server-header">
+<div class="server-icon-wrap">{icon_html}</div>
+<div class="server-info">
+<h3>{g['name']}</h3>
+<span class="server-badge badge-inactive">○ Not Added</span>
+</div>
+</div>
+<a href="{invite}" target="_blank" class="btn btn-success" style="width:100%;justify-content:center;">➕ Add Bot to Server</a>
+</div>'''
+
     avatar = f"https://cdn.discordapp.com/avatars/{user['id']}/{user['avatar']}.png" if user.get("avatar") else "https://cdn.discordapp.com/embed/avatars/0.png"
+    total_servers = len([m for m in managable if m["has_bot"]])
+
     return render_page(f"""
-<div class="header">
-<div class="logo">🛡️ SentinelMod</div>
-<div class="user-info">
-<img src="{avatar}">
-<span>{user['username']}</span>
-<a href="/logout" class="logout">Logout</a>
-</div></div>
-<h2 style="margin-bottom:20px;">Your Servers</h2>
-<div class="servers-grid">{cards if cards else '<p>No servers found. Be an admin in a server!</p>'}</div>""")
+<div class="navbar">
+<div class="logo"><div class="logo-icon">🛡️</div><span class="logo-text">SentinelMod</span></div>
+<div class="nav-right">
+<div class="user-badge"><img src="{avatar}"><span>{user['username']}</span></div>
+<a href="/logout" class="btn btn-danger">Logout</a>
+</div>
+</div>
+<div class="page-header">
+<div>
+<h1 class="page-title">Welcome back, {user['username']}! 👋</h1>
+<p class="page-subtitle">Managing {total_servers} server(s) with SentinelMod</p>
+</div>
+</div>
+<div class="stats-grid">
+<div class="stat-card"><div class="stat-icon">🏠</div><div class="stat-number">{total_servers}</div><div class="stat-label">Active Servers</div></div>
+<div class="stat-card"><div class="stat-icon">👥</div><div class="stat-number">{sum(bot.get_guild(int(m["id"])).member_count for m in managable if m["has_bot"] and bot.get_guild(int(m["id"])))}</div><div class="stat-label">Total Members</div></div>
+<div class="stat-card"><div class="stat-icon">⚙️</div><div class="stat-number">{len(managable)}</div><div class="stat-label">Manageable Servers</div></div>
+<div class="stat-card"><div class="stat-icon">🤖</div><div class="stat-number">99%</div><div class="stat-label">Uptime</div></div>
+</div>
+<div class="section">
+<div class="section-header">
+<h2 class="section-title">🌐 Your Servers</h2>
+</div>
+<div class="servers-grid">{cards if cards else '<div class="empty-state"><div class="empty-state-icon">🔍</div><h3>No servers found</h3><p>Make sure you have admin permissions in a Discord server.</p></div>'}</div>
+</div>""")
 
 @app.route("/login")
 def login():
@@ -1788,6 +2038,7 @@ def server_page(guild_id):
     guild = bot.get_guild(int(guild_id))
     if not guild:
         return "Bot not in this server!"
+
     s = get_guild_settings(guild_id)
     conn = get_db()
     c = conn.cursor()
@@ -1796,74 +2047,388 @@ def server_page(guild_id):
     c.execute("SELECT COUNT(*) FROM mod_actions WHERE guild_id=?", (guild_id,))
     actions = c.fetchone()[0]
     c.execute("SELECT COUNT(*) FROM custom_commands WHERE guild_id=?", (guild_id,))
-    customs = c.fetchone()[0]
-    c.execute("SELECT * FROM warnings WHERE guild_id=? ORDER BY timestamp DESC LIMIT 10", (guild_id,))
+    customs_count = c.fetchone()[0]
+    c.execute("SELECT * FROM warnings WHERE guild_id=? ORDER BY timestamp DESC LIMIT 20", (guild_id,))
     recent_warns = c.fetchall()
+    c.execute("SELECT * FROM mod_actions WHERE guild_id=? ORDER BY timestamp DESC LIMIT 20", (guild_id,))
+    recent_actions = c.fetchall()
+    c.execute("SELECT * FROM custom_commands WHERE guild_id=?", (guild_id,))
+    customs = c.fetchall()
+    c.execute("SELECT word FROM word_filters WHERE guild_id=?", (guild_id,))
+    words = c.fetchall()
+    c.execute("SELECT user_id, message_count FROM message_stats WHERE guild_id=? ORDER BY message_count DESC LIMIT 10", (guild_id,))
+    top_users = c.fetchall()
+    c.execute("SELECT user_id, rep FROM reputation WHERE guild_id=? ORDER BY rep DESC LIMIT 10", (guild_id,))
+    top_rep = c.fetchall()
+    c.execute("SELECT * FROM giveaways WHERE guild_id=? AND active=1 ORDER BY id DESC", (guild_id,))
+    giveaways = c.fetchall()
+    c.execute("SELECT * FROM reminders WHERE guild_id=? AND active=1 ORDER BY remind_time", (guild_id,))
+    reminders = c.fetchall()
     conn.close()
+
     features = [
-        ("welcome_enabled", "👋 Welcome Messages"),
-        ("anti_nuke_enabled", "💣 Anti-Nuke"),
-        ("invite_block", "🚫 Block Invites"),
-        ("link_scan", "🔗 Link Scanner"),
-        ("slowmode_ai", "🐌 AI Slowmode"),
-        ("pre_conflict", "⚠️ Pre-Conflict Detection"),
-        ("caps_filter", "🔤 Caps Filter"),
-        ("mention_spam", "📢 Mention Spam"),
-        ("emoji_spam", "😂 Emoji Spam"),
-        ("zalgo_filter", "🌀 Zalgo Filter"),
-        ("phone_filter", "📞 Phone Filter"),
-        ("email_filter", "📧 Email Filter"),
-        ("scam_filter", "💸 Scam Filter"),
-        ("fake_nitro_filter", "💎 Fake Nitro Filter"),
-        ("token_filter", "🔑 Token Grabber Filter"),
-        ("anti_advertisement", "📣 Anti-Advertisement"),
-        ("everyone_block", "🔕 @everyone Block")
+        ("welcome_enabled", "👋", "Welcome Messages", "Greet new members"),
+        ("anti_nuke_enabled", "💣", "Anti-Nuke", "Stop mass destruction"),
+        ("invite_block", "🚫", "Block Invites", "Block discord.gg links"),
+        ("link_scan", "🔗", "Link Scanner", "Detect phishing links"),
+        ("slowmode_ai", "🐌", "AI Slowmode", "Auto slow heated chats"),
+        ("pre_conflict", "⚠️", "Pre-Conflict AI", "Detect arguments early"),
+        ("caps_filter", "🔤", "Caps Filter", "Block excessive caps"),
+        ("mention_spam", "📢", "Mention Spam", "Block mass mentions"),
+        ("emoji_spam", "😂", "Emoji Spam", "Block emoji floods"),
+        ("zalgo_filter", "🌀", "Zalgo Filter", "Block weird text"),
+        ("phone_filter", "📞", "Phone Filter", "Block phone numbers"),
+        ("email_filter", "📧", "Email Filter", "Block email addresses"),
+        ("scam_filter", "💸", "Scam Filter", "Detect scam patterns"),
+        ("fake_nitro_filter", "💎", "Fake Nitro", "Block nitro scams"),
+        ("token_filter", "🔑", "Token Grabber", "Block token grabbers"),
+        ("anti_advertisement", "📣", "Anti-Ads", "Block advertisements"),
+        ("everyone_block", "🔕", "@everyone Block", "Block @everyone usage"),
+        ("nsfw_text_filter", "🔞", "NSFW Filter", "Block NSFW text"),
+        ("unicode_filter", "🔠", "Unicode Bypass", "Detect unicode tricks"),
+        ("file_spam_filter", "📁", "File Spam", "Block file spam")
     ]
     feature_html = ""
-    for key, name in features:
+    for key, icon, name, desc in features:
         val = s.get(key, 0)
-        feature_html += f'<div class="setting-row"><span>{name}</span><div class="toggle {"on" if val else ""}" onclick="toggleFeature(\'{key}\', this)"><div class="toggle-dot"></div></div></div>'
+        feature_html += f'''
+<div class="feature-toggle">
+<div class="feature-toggle-header">
+<div><span style="font-size:18px;">{icon}</span> <span class="feature-toggle-name">{name}</span></div>
+<div class="toggle-switch {'on' if val else ''}" onclick="toggleFeature('{guild_id}', '{key}', this)"><div class="toggle-dot"></div></div>
+</div>
+<div class="feature-toggle-desc">{desc}</div>
+</div>'''
+
     warns_html = ""
     for w in recent_warns:
         m = guild.get_member(int(w["user_id"]))
-        name = m.display_name if m else f"User {w['user_id']}"
-        warns_html += f'<div class="warning-item"><strong>{name}</strong> - {w["severity"].upper()}<br><small>{w["reason"]} • {w["timestamp"][:16]}</small></div>'
+        name = m.display_name if m else f"Unknown User"
+        avatar_char = name[0].upper()
+        warns_html += f'''
+<div class="list-item">
+<div class="list-avatar">{avatar_char}</div>
+<div class="list-content">
+<div class="list-title">{name}</div>
+<div class="list-subtitle">{w['reason']}</div>
+<div class="list-meta">{w['timestamp'][:16]}</div>
+</div>
+<span class="severity-tag sev-{w['severity']}">{w['severity']}</span>
+<button class="delete-btn" onclick="clearUserWarnings('{guild_id}', '{w['user_id']}')">Clear</button>
+</div>'''
+
+    actions_html = ""
+    for a in recent_actions:
+        m = guild.get_member(int(a["user_id"]))
+        mod = guild.get_member(int(a["mod_id"]))
+        name = m.display_name if m else "Unknown"
+        mod_name = mod.display_name if mod else ("Bot" if a["mod_id"] == str(bot.user.id) else "Unknown")
+        actions_html += f'''
+<div class="list-item">
+<div class="list-avatar">{name[0].upper()}</div>
+<div class="list-content">
+<div class="list-title">{name} - <span style="color:#5865F2;">{a['action']}</span></div>
+<div class="list-subtitle">{a['reason']} • by {mod_name}</div>
+<div class="list-meta">{a['timestamp'][:16]}</div>
+</div>
+</div>'''
+
+    customs_html = ""
+    for cc in customs:
+        customs_html += f'''
+<div class="command-row">
+<div><span class="command-trigger">{cc['trigger_word']}</span> → {cc['response'][:60]}{'...' if len(cc['response']) > 60 else ''}</div>
+<button class="delete-btn" onclick="deleteCustomCommand('{guild_id}', '{cc['trigger_word']}')">Delete</button>
+</div>'''
+
+    words_html = ""
+    for w in words:
+        words_html += f'''
+<div class="command-row">
+<span class="command-trigger">{w['word']}</span>
+<button class="delete-btn" onclick="removeWordFilter('{guild_id}', '{w['word']}')">Remove</button>
+</div>'''
+
+    top_html = ""
+    for i, r in enumerate(top_users, 1):
+        m = guild.get_member(int(r["user_id"]))
+        name = m.display_name if m else "Unknown"
+        medal = "🥇" if i == 1 else "🥈" if i == 2 else "🥉" if i == 3 else f"#{i}"
+        top_html += f'''
+<div class="list-item">
+<div style="font-size:24px;width:42px;text-align:center;">{medal}</div>
+<div class="list-content">
+<div class="list-title">{name}</div>
+<div class="list-subtitle">{r['message_count']} messages sent</div>
+</div>
+</div>'''
+
+    rep_html = ""
+    for i, r in enumerate(top_rep, 1):
+        m = guild.get_member(int(r["user_id"]))
+        name = m.display_name if m else "Unknown"
+        rep_html += f'''
+<div class="list-item">
+<div class="list-avatar">{name[0].upper()}</div>
+<div class="list-content">
+<div class="list-title">{name}</div>
+<div class="list-subtitle">⭐ {r['rep']} reputation</div>
+</div>
+</div>'''
+
+    channels_options = ""
+    for ch in guild.text_channels[:50]:
+        channels_options += f'<option value="{ch.name}">#{ch.name}</option>'
+
+    giveaways_html = ""
+    for gw in giveaways:
+        giveaways_html += f'''
+<div class="list-item">
+<div style="font-size:24px;">🎉</div>
+<div class="list-content">
+<div class="list-title">{gw['prize']}</div>
+<div class="list-subtitle">{gw['winners']} winner(s) • Ends: {gw['end_time'][:16]}</div>
+</div>
+</div>'''
+
+    reminders_html = ""
+    for r in reminders:
+        m = guild.get_member(int(r["user_id"]))
+        name = m.display_name if m else "?"
+        reminders_html += f'''
+<div class="list-item">
+<div style="font-size:24px;">⏰</div>
+<div class="list-content">
+<div class="list-title">{name}: {r['reminder']}</div>
+<div class="list-subtitle">At: {r['remind_time'][:16]}</div>
+</div>
+</div>'''
+
     avatar = f"https://cdn.discordapp.com/avatars/{session['user']['id']}/{session['user']['avatar']}.png" if session['user'].get("avatar") else ""
+    server_icon = f"https://cdn.discordapp.com/icons/{guild.id}/{guild.icon}.png" if guild.icon else None
+    server_icon_html = f'<img src="{server_icon}">' if server_icon else guild.name[0]
+
     return render_page(f"""
-<div class="header">
-<div class="logo">🛡️ {guild.name}</div>
-<div class="user-info">
-<img src="{avatar}" style="width:40px;height:40px;border-radius:50%;">
-<a href="/logout" class="logout">Logout</a>
-</div></div>
-<a href="/" class="back">← Back to servers</a>
+<div class="navbar">
+<div class="logo"><div class="logo-icon">🛡️</div><span class="logo-text">SentinelMod</span></div>
+<div class="nav-right">
+<div class="user-badge"><img src="{avatar}"><span>{session['user']['username']}</span></div>
+<a href="/logout" class="btn btn-danger">Logout</a>
+</div>
+</div>
+
+<a href="/" class="back-btn">← Back to Servers</a>
+
+<div class="page-header">
+<div style="display:flex;align-items:center;gap:20px;">
+<div class="server-icon-wrap" style="width:80px;height:80px;font-size:32px;">{server_icon_html}</div>
+<div>
+<h1 class="page-title">{guild.name}</h1>
+<p class="page-subtitle">{guild.member_count} members • {len(guild.text_channels)} channels • {len(guild.roles)} roles</p>
+</div>
+</div>
+</div>
+
 <div class="stats-grid">
-<div class="stat-card"><div class="stat-number">{guild.member_count}</div><div class="stat-label">Members</div></div>
-<div class="stat-card"><div class="stat-number">{warns}</div><div class="stat-label">Warnings</div></div>
-<div class="stat-card"><div class="stat-number">{actions}</div><div class="stat-label">Mod Actions</div></div>
-<div class="stat-card"><div class="stat-number">{customs}</div><div class="stat-label">Custom Commands</div></div>
+<div class="stat-card"><div class="stat-icon">👥</div><div class="stat-number">{guild.member_count}</div><div class="stat-label">Members</div></div>
+<div class="stat-card"><div class="stat-icon">⚠️</div><div class="stat-number">{warns}</div><div class="stat-label">Warnings</div></div>
+<div class="stat-card"><div class="stat-icon">🔨</div><div class="stat-number">{actions}</div><div class="stat-label">Mod Actions</div></div>
+<div class="stat-card"><div class="stat-icon">⚡</div><div class="stat-number">{customs_count}</div><div class="stat-label">Custom Commands</div></div>
+</div>
+
+<div class="tabs">
+<button class="tab active" onclick="switchTab('overview', this)">📊 Overview</button>
+<button class="tab" onclick="switchTab('features', this)">⚙️ Features</button>
+<button class="tab" onclick="switchTab('moderation', this)">🛡️ Moderation</button>
+<button class="tab" onclick="switchTab('warnings', this)">⚠️ Warnings</button>
+<button class="tab" onclick="switchTab('commands', this)">⚡ Commands</button>
+<button class="tab" onclick="switchTab('filters', this)">🔤 Filters</button>
+<button class="tab" onclick="switchTab('leaderboard', this)">🏆 Leaderboard</button>
+<button class="tab" onclick="switchTab('events', this)">🎉 Events</button>
+<button class="tab" onclick="switchTab('settings', this)">🔧 Settings</button>
+<button class="tab" onclick="switchTab('announce', this)">📢 Announce</button>
+</div>
+
+<div id="tab-overview" class="tab-content active">
+<div class="section">
+<div class="section-header"><h2 class="section-title">📊 Quick Overview</h2></div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+<div>
+<h3 style="margin-bottom:15px;color:var(--text-dim);font-size:14px;">RECENT WARNINGS</h3>
+{warns_html if warns_html else '<p style="color:var(--text-dim);">No warnings yet!</p>'}
+</div>
+<div>
+<h3 style="margin-bottom:15px;color:var(--text-dim);font-size:14px;">RECENT MOD ACTIONS</h3>
+{actions_html if actions_html else '<p style="color:var(--text-dim);">No actions yet!</p>'}
+</div>
+</div>
+</div>
+</div>
+
+<div id="tab-features" class="tab-content">
+<div class="section">
+<div class="section-header"><h2 class="section-title">⚙️ Bot Features</h2></div>
+<p style="color:var(--text-dim);margin-bottom:20px;">Toggle features on or off. Changes apply instantly.</p>
+<div class="feature-list">{feature_html}</div>
+</div>
+</div>
+
+<div id="tab-moderation" class="tab-content">
+<div class="section">
+<div class="section-header"><h2 class="section-title">🛡️ Moderation Settings</h2></div>
+<div class="form-row">
+<div class="form-group">
+<label class="form-label">Warnings before Mute</label>
+<input type="number" class="form-input" value="{s.get('warn_mute', 3)}" onchange="updateSetting('{guild_id}', 'warn_mute', this.value)">
+</div>
+<div class="form-group">
+<label class="form-label">Warnings before Ban</label>
+<input type="number" class="form-input" value="{s.get('warn_ban', 5)}" onchange="updateSetting('{guild_id}', 'warn_ban', this.value)">
+</div>
+</div>
+<div class="form-row">
+<div class="form-group">
+<label class="form-label">Mute Duration (minutes)</label>
+<input type="number" class="form-input" value="{s.get('mute_duration', 10)}" onchange="updateSetting('{guild_id}', 'mute_duration', this.value)">
+</div>
+<div class="form-group">
+<label class="form-label">AI Sensitivity (0.0 - 1.0)</label>
+<input type="number" step="0.1" min="0" max="1" class="form-input" value="{s.get('ai_sensitivity', 0.7)}" onchange="updateSetting('{guild_id}', 'ai_sensitivity', this.value)">
+</div>
+</div>
+<div class="form-row">
+<div class="form-group">
+<label class="form-label">Spam Limit (msgs)</label>
+<input type="number" class="form-input" value="{s.get('spam_limit', 5)}" onchange="updateSetting('{guild_id}', 'spam_limit', this.value)">
+</div>
+<div class="form-group">
+<label class="form-label">Spam Window (seconds)</label>
+<input type="number" class="form-input" value="{s.get('spam_window', 5)}" onchange="updateSetting('{guild_id}', 'spam_window', this.value)">
+</div>
+</div>
+<div class="form-row">
+<div class="form-group">
+<label class="form-label">Raid Detection Limit</label>
+<input type="number" class="form-input" value="{s.get('raid_limit', 10)}" onchange="updateSetting('{guild_id}', 'raid_limit', this.value)">
+</div>
+<div class="form-group">
+<label class="form-label">Min Account Age (days)</label>
+<input type="number" class="form-input" value="{s.get('min_account_age', 7)}" onchange="updateSetting('{guild_id}', 'min_account_age', this.value)">
+</div>
+</div>
+</div>
+</div>
+
+<div id="tab-warnings" class="tab-content">
+<div class="section">
+<div class="section-header"><h2 class="section-title">⚠️ All Warnings ({warns})</h2></div>
+{warns_html if warns_html else '<div class="empty-state"><div class="empty-state-icon">✅</div><h3>No warnings</h3><p>Your server is squeaky clean!</p></div>'}
+</div>
+</div>
+
+<div id="tab-commands" class="tab-content">
+<div class="section">
+<div class="section-header">
+<h2 class="section-title">⚡ Custom Commands</h2>
+</div>
+<div class="form-row">
+<div class="form-group">
+<label class="form-label">Trigger Word</label>
+<input type="text" id="cc-trigger" class="form-input" placeholder="e.g. hello">
+</div>
+<div class="form-group">
+<label class="form-label">Response</label>
+<input type="text" id="cc-response" class="form-input" placeholder="e.g. Hi there!">
+</div>
+</div>
+<button class="btn btn-primary" onclick="addCustomCommand('{guild_id}')">➕ Add Command</button>
+<div style="margin-top:25px;">
+{customs_html if customs_html else '<div class="empty-state"><div class="empty-state-icon">⚡</div><h3>No custom commands yet</h3><p>Create one above!</p></div>'}
+</div>
+</div>
+</div>
+
+<div id="tab-filters" class="tab-content">
+<div class="section">
+<div class="section-header"><h2 class="section-title">🔤 Word Filters</h2></div>
+<div style="display:flex;gap:10px;margin-bottom:20px;">
+<input type="text" id="wf-word" class="form-input" placeholder="Enter word to block..." style="flex:1;">
+<button class="btn btn-primary" onclick="addWordFilter('{guild_id}')">➕ Add</button>
+</div>
+{words_html if words_html else '<div class="empty-state"><div class="empty-state-icon">🔤</div><h3>No filtered words</h3><p>Add words you want auto-deleted</p></div>'}
+</div>
+</div>
+
+<div id="tab-leaderboard" class="tab-content">
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+<div class="section">
+<div class="section-header"><h2 class="section-title">💬 Most Active</h2></div>
+{top_html if top_html else '<p style="color:var(--text-dim);">No data yet</p>'}
 </div>
 <div class="section">
-<h2>⚙️ Features</h2>
-{feature_html}
+<div class="section-header"><h2 class="section-title">⭐ Top Reputation</h2></div>
+{rep_html if rep_html else '<p style="color:var(--text-dim);">No reputation yet</p>'}
+</div>
+</div>
+</div>
+
+<div id="tab-events" class="tab-content">
+<div class="section">
+<div class="section-header"><h2 class="section-title">🎉 Active Giveaways</h2></div>
+{giveaways_html if giveaways_html else '<div class="empty-state"><div class="empty-state-icon">🎁</div><h3>No active giveaways</h3><p>Start one in Discord: @SentinelMod start a giveaway</p></div>'}
 </div>
 <div class="section">
-<h2>⚠️ Recent Warnings</h2>
-<div>{warns_html if warns_html else '<p>No warnings yet!</p>'}</div>
+<div class="section-header"><h2 class="section-title">⏰ Pending Reminders</h2></div>
+{reminders_html if reminders_html else '<div class="empty-state"><div class="empty-state-icon">⏰</div><h3>No pending reminders</h3></div>'}
 </div>
-<script>
-function toggleFeature(key, el) {{
-fetch('/api/toggle/{guild_id}/' + key, {{ method: 'POST' }})
-.then(r => r.json())
-.then(d => {{ if (d.success) el.classList.toggle('on'); }});
-}}
-</script>""")
+</div>
+
+<div id="tab-settings" class="tab-content">
+<div class="section">
+<div class="section-header"><h2 class="section-title">🔧 General Settings</h2></div>
+<div class="form-group">
+<label class="form-label">Mod Role Name</label>
+<input type="text" class="form-input" value="{s.get('mod_role_name', 'Sentinel-Mod')}" onchange="updateSetting('{guild_id}', 'mod_role_name', this.value)">
+</div>
+<div class="form-row">
+<div class="form-group">
+<label class="form-label">Log Channel</label>
+<input type="text" class="form-input" value="{s.get('log_channel', 'sentinel-logs')}" onchange="updateSetting('{guild_id}', 'log_channel', this.value)">
+</div>
+<div class="form-group">
+<label class="form-label">Raid Alerts Channel</label>
+<input type="text" class="form-input" value="{s.get('raid_channel', 'sentinel-raid-alerts')}" onchange="updateSetting('{guild_id}', 'raid_channel', this.value)">
+</div>
+</div>
+<div class="form-group">
+<label class="form-label">Welcome Channel</label>
+<input type="text" class="form-input" value="{s.get('welcome_channel', 'welcome')}" onchange="updateSetting('{guild_id}', 'welcome_channel', this.value)">
+</div>
+</div>
+</div>
+
+<div id="tab-announce" class="tab-content">
+<div class="section">
+<div class="section-header"><h2 class="section-title">📢 Send Announcement</h2></div>
+<p style="color:var(--text-dim);margin-bottom:20px;">Send a message to any channel as the bot.</p>
+<div class="form-group">
+<label class="form-label">Channel</label>
+<select id="ann-channel" class="form-select">{channels_options}</select>
+</div>
+<div class="form-group">
+<label class="form-label">Message</label>
+<textarea id="ann-message" class="form-textarea" placeholder="Type your announcement..."></textarea>
+</div>
+<button class="btn btn-primary" onclick="sendAnnouncement('{guild_id}')">📤 Send Announcement</button>
+</div>
+</div>
+""")
 
 @app.route("/api/toggle/<guild_id>/<feature>", methods=["POST"])
 def toggle_feature(guild_id, feature):
     if "user" not in session:
         return jsonify({"success": False})
-    valid = ["welcome_enabled","anti_nuke_enabled","invite_block","link_scan","slowmode_ai","pre_conflict","caps_filter","mention_spam","emoji_spam","zalgo_filter","phone_filter","email_filter","scam_filter","fake_nitro_filter","token_filter","anti_advertisement","everyone_block"]
+    valid = ["welcome_enabled","anti_nuke_enabled","invite_block","link_scan","slowmode_ai","pre_conflict","caps_filter","mention_spam","emoji_spam","zalgo_filter","phone_filter","email_filter","scam_filter","fake_nitro_filter","token_filter","anti_advertisement","everyone_block","nsfw_text_filter","unicode_filter","file_spam_filter"]
     if feature not in valid:
         return jsonify({"success": False})
     s = get_guild_settings(guild_id)
@@ -1874,6 +2439,112 @@ def toggle_feature(guild_id, feature):
     conn.commit()
     conn.close()
     return jsonify({"success": True, "new_value": new_val})
+
+@app.route("/api/setting/<guild_id>/<key>", methods=["POST"])
+def update_setting_api(guild_id, key):
+    if "user" not in session:
+        return jsonify({"success": False})
+    valid = ["warn_mute","warn_ban","mute_duration","ai_sensitivity","spam_limit","spam_window","raid_limit","min_account_age","mod_role_name","log_channel","raid_channel","welcome_channel"]
+    if key not in valid:
+        return jsonify({"success": False})
+    data = request.get_json()
+    value = data.get("value")
+    try:
+        if key in ["warn_mute","warn_ban","mute_duration","spam_limit","spam_window","raid_limit","min_account_age"]:
+            value = int(value)
+        elif key == "ai_sensitivity":
+            value = float(value)
+    except:
+        return jsonify({"success": False})
+    conn = get_db()
+    c = conn.cursor()
+    c.execute(f"UPDATE guild_settings SET {key}=? WHERE guild_id=?", (value, guild_id))
+    conn.commit()
+    conn.close()
+    return jsonify({"success": True})
+
+@app.route("/api/custom/<guild_id>", methods=["POST"])
+def add_custom_api(guild_id):
+    if "user" not in session:
+        return jsonify({"success": False})
+    data = request.get_json()
+    trigger = data.get("trigger", "").lower().strip()
+    response = data.get("response", "").strip()
+    if not trigger or not response:
+        return jsonify({"success": False})
+    conn = get_db()
+    c = conn.cursor()
+    c.execute("INSERT OR REPLACE INTO custom_commands (guild_id, trigger_word, response) VALUES (?, ?, ?)", (guild_id, trigger, response))
+    conn.commit()
+    conn.close()
+    return jsonify({"success": True})
+
+@app.route("/api/custom/<guild_id>/<trigger>", methods=["DELETE"])
+def del_custom_api(guild_id, trigger):
+    if "user" not in session:
+        return jsonify({"success": False})
+    conn = get_db()
+    c = conn.cursor()
+    c.execute("DELETE FROM custom_commands WHERE guild_id=? AND trigger_word=?", (guild_id, trigger))
+    conn.commit()
+    conn.close()
+    return jsonify({"success": True})
+
+@app.route("/api/wordfilter/<guild_id>", methods=["POST"])
+def add_word_api(guild_id):
+    if "user" not in session:
+        return jsonify({"success": False})
+    data = request.get_json()
+    word = data.get("word", "").lower().strip()
+    if not word:
+        return jsonify({"success": False})
+    conn = get_db()
+    c = conn.cursor()
+    c.execute("INSERT OR IGNORE INTO word_filters (guild_id, word) VALUES (?, ?)", (guild_id, word))
+    conn.commit()
+    conn.close()
+    return jsonify({"success": True})
+
+@app.route("/api/wordfilter/<guild_id>/<word>", methods=["DELETE"])
+def del_word_api(guild_id, word):
+    if "user" not in session:
+        return jsonify({"success": False})
+    conn = get_db()
+    c = conn.cursor()
+    c.execute("DELETE FROM word_filters WHERE guild_id=? AND word=?", (guild_id, word.lower()))
+    conn.commit()
+    conn.close()
+    return jsonify({"success": True})
+
+@app.route("/api/clearwarnings/<guild_id>/<user_id>", methods=["POST"])
+def clear_warns_api(guild_id, user_id):
+    if "user" not in session:
+        return jsonify({"success": False})
+    clear_warnings(user_id, guild_id)
+    return jsonify({"success": True})
+
+@app.route("/api/announce/<guild_id>", methods=["POST"])
+def announce_api(guild_id):
+    if "user" not in session:
+        return jsonify({"success": False, "error": "Not logged in"})
+    data = request.get_json()
+    channel_name = data.get("channel")
+    message = data.get("message")
+    if not channel_name or not message:
+        return jsonify({"success": False, "error": "Missing fields"})
+    guild = bot.get_guild(int(guild_id))
+    if not guild:
+        return jsonify({"success": False, "error": "Guild not found"})
+    channel = discord.utils.get(guild.text_channels, name=channel_name)
+    if not channel:
+        return jsonify({"success": False, "error": "Channel not found"})
+    try:
+        embed = discord.Embed(title="📢 Announcement", description=message, color=discord.Color.blue(), timestamp=datetime.now())
+        embed.set_footer(text=f"Sent via Dashboard by {session['user']['username']}")
+        asyncio.run_coroutine_threadsafe(channel.send(embed=embed), bot.loop)
+        return jsonify({"success": True})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
 
 def run_flask():
     app.run(host="0.0.0.0", port=8080, debug=False)
