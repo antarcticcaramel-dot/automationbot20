@@ -505,54 +505,76 @@ def login_page():
 </div>""", "Login")
 
 def sidebar_html(user, active_page="home", guild_id=None):
-    avatar = f"https://cdn.discordapp.com/avatars/{user['id']}/{user['avatar']}.png" if user.get('avatar') else "https://cdn.discordapp.com/embed/avatars/0.png"
-    home_active = "active" if active_page == "home" else ""
+    avatar = (
+        f"https://cdn.discordapp.com/avatars/{user['id']}/{user['avatar']}.png"
+        if user.get("avatar")
+        else "https://cdn.discordapp.com/embed/avatars/0.png"
+    )
 
+    home_active = "active" if active_page == "home" else ""
     nav_items = ""
+
     if guild_id:
-        items = [
-            ("overview", "📊", "Overview"),
-            ("features", "⚙️", "Features"),
-            ("moderation", "🛡️", "Moderation"),
-            ("members", "👥", "Members"),
-            ("channels", "💬", "Channels"),
-            ("roles", "🎭", "Roles"),
-            ("warnings", "⚠️", "Warnings"),
-            ("commands", "⚡", "Commands"),
-            ("filters", "🔤", "Word Filters"),
-            ("analytics", "📈", "Analytics"),
-            ("leaderboard", "🏆", "Leaderboards"),
-            ("events", "🎉", "Events"),
-            ("personality", "🎭", "AI Personality"),
-            ("announce", "📢", "Announcements"),
-            ("settings", "🔧", "Settings"),
-        ]
-        for key, icon, label in items:
-            active = "active" if active_page == key else ""
-            nav_items += f'<a class="nav-link {active}" onclick="document.querySelector(\'.tab[data-tab=\\'{key}\\']\').click()"><span class="nav-icon">{icon}</span><span>{label}</span></a>'
+        categories = {
+            "Main": [
+                ("overview", "📊", "Overview"),
+                ("features", "⚙️", "Features"),
+                ("moderation", "🛡️", "Moderation"),
+                ("members", "👥", "Members"),
+                ("channels", "💬", "Channels"),
+                ("roles", "🎭", "Roles"),
+            ],
+            "Management": [
+                ("warnings", "⚠️", "Warnings"),
+                ("commands", "⚡", "Custom Commands"),
+                ("filters", "🔤", "Word Filters"),
+                ("analytics", "📈", "Analytics"),
+                ("leaderboard", "🏆", "Leaderboard"),
+                ("events", "🎉", "Events"),
+                ("announce", "📢", "Announce"),
+                ("settings", "🔧", "Settings"),
+            ]
+        }
+
+        for section, items in categories.items():
+            nav_items += f'<div class="nav-section-title">{section}</div>'
+            for key, icon, label in items:
+                active = "active" if active_page == key else ""
+                nav_items += (
+                    f'<a class="nav-link {active}" '
+                    f'onclick="document.querySelector(\'.tab[data-tab={key}]\').click()">'
+                    f'<span class="nav-icon">{icon}</span>'
+                    f'<span>{label}</span>'
+                    f'</a>'
+                )
 
     return f"""
 <aside class="sidebar">
-<div class="sb-head">
-<div class="sb-logo">🛡️</div>
-<div class="sb-title">SentinelMod</div>
-</div>
-<div class="sb-nav">
-<div class="nav-sec">
-<div class="nav-sec-title">Main</div>
-<a href="/" class="nav-link {home_active}"><span class="nav-icon">🏠</span><span>Home</span></a>
-</div>
-{f'<div class="nav-sec"><div class="nav-sec-title">Server</div>{nav_items}</div>' if guild_id else ''}
-</div>
-<div class="sb-foot">
-<img src="{avatar}" class="sb-avatar">
-<div class="sb-user">
-<div class="sb-username">{user['username']}</div>
-<div class="sb-status">● Online</div>
-</div>
-<a href="/logout" class="sb-logout" title="Logout">⏻</a>
-</div>
-</aside>"""
+    <div class="sidebar-header">
+        <div class="sidebar-logo">🛡️</div>
+        <div class="sidebar-title">SentinelMod</div>
+    </div>
+
+    <div class="sidebar-nav">
+        <div class="nav-section-title">Dashboard</div>
+        <a href="/" class="nav-link {home_active}">
+            <span class="nav-icon">🏠</span>
+            <span>Home</span>
+        </a>
+
+        {nav_items}
+    </div>
+
+    <div class="sidebar-footer">
+        <img src="{avatar}" class="sidebar-avatar">
+        <div class="sidebar-user-info">
+            <div class="sidebar-username">{user['username']}</div>
+            <div class="sidebar-status">Online</div>
+        </div>
+        <a href="/logout" class="logout">⏻</a>
+    </div>
+</aside>
+"""
 
 # ============ ROUTES ============
 @app.route("/")
