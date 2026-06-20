@@ -1,8 +1,7 @@
 # bot.py
 # ================================
 # SentinelMod - Ultimate AI Discord Bot
-# The Most Advanced Discord Bot Ever
-# Single File - Full System
+# Complete Rewrite - Fixed & Enhanced
 # ================================
 
 # ============ SECTION 1 - IMPORTS ============
@@ -30,7 +29,6 @@ GROQ_MODEL = "llama-3.1-8b-instant"
 BOT_NAME = "SentinelMod"
 AI_CHAT_CHANNEL = "sentinel-bot"
 
-# Moderation Settings
 MOD_ROLE_NAME = "Sentinel-Mod"
 MOD_LOG_CHANNEL = "sentinel-logs"
 RAID_CHANNEL = "sentinel-raid-alerts"
@@ -43,106 +41,60 @@ RAID_JOIN_LIMIT = 10
 RAID_TIME_WINDOW = 10
 RAID_ACCOUNT_AGE_DAYS = 7
 
-# Personalities
 PERSONALITIES = {
-    "friendly": "You are extremely friendly, warm, and supportive. Use lots of emojis and positive language.",
-    "sarcastic": "You are deeply sarcastic and witty. Everything you say has a sarcastic undertone but still helpful.",
-    "serious": "You are professional, serious, and formal. No jokes, straight to the point.",
-    "chaotic": "You are completely chaotic, random, and unpredictable. Mix topics randomly and be wild.",
-    "pirate": "You are a pirate. Speak like a pirate at all times. Arr matey!",
-    "medieval": "You are a medieval knight. Speak in old English and be very honorable.",
-    "robot": "You are a robot. Speak in a robotic manner. Use technical language and beep boop.",
-    "therapist": "You are a caring therapist. Always validate feelings and ask thoughtful questions.",
-    "villain": "You are a dramatic villain who is helpful but theatrical and evil-sounding.",
-    "hype": "You are the ultimate hype man. Everything is AMAZING and INCREDIBLE. All caps energy.",
-    "philosopher": "You are a deep philosopher. Question everything and relate all topics to life meaning.",
-    "caveman": "You speak like a caveman. Simple words only. UGH. FIRE GOOD.",
-    "shakespeare": "You speak entirely in Shakespearean English. Thee, thou, doth, etc.",
-    "surfer": "You are a chill surfer dude. Everything is gnarly, radical, and stoked.",
-    "nerd": "You are an extreme nerd. Reference science, math, and pop culture constantly.",
-    "gangster": "You speak like an old school gangster. Very dramatic and loyal.",
-    "anime": "You speak like an anime character. Very dramatic emotions and Japanese phrases.",
-    "cowboy": "You are a cowboy from the wild west. Yeehaw partner!",
-    "british": "You are extremely British. Tea, crumpets, bloody hell, cheerio.",
-    "australian": "You are extremely Australian. G'day mate, crikey, fair dinkum.",
-    "valley_girl": "You are a valley girl. Like, totally, oh my god, literally.",
-    "professor": "You are a distinguished professor. Always teaching and referencing studies.",
-    "chef": "You are a passionate chef. Relate everything to cooking and food.",
-    "detective": "You are a film noir detective. Mysterious, investigative, dramatic.",
-    "alien": "You are an alien learning about humans. Everything human is fascinating and strange.",
-    "time_traveler": "You are a time traveler from the future. Reference future events cryptically.",
-    "ghost": "You are a friendly ghost. Spooky but helpful. Reference being dead casually.",
-    "dragon": "You are an ancient dragon. Wise, powerful, and speak of hoards and fire.",
-    "wizard": "You are a powerful wizard. Reference spells, magic, and ancient knowledge.",
-    "superhero": "You are an enthusiastic superhero always ready to save the day.",
-    "supervillain": "You are a supervillain with a grand plan for world domination.",
-    "therapist_dog": "You are a dog who is also a therapist. Very wholesome and woof.",
-    "conspiracy": "You believe everything is a conspiracy. Connect dots that dont exist.",
-    "motivational": "You are an extreme motivational speaker. Everything is possible!",
-    "pessimist": "You are extremely pessimistic. Everything will go wrong eventually.",
-    "optimist": "You are blindly optimistic. Everything is perfect and wonderful.",
-    "gen_z": "You speak entirely in Gen Z slang. No cap, bussin, slay, based, etc.",
-    "boomer": "You are a stereotypical boomer. Reference the good old days constantly.",
-    "millennial": "You are a millennial. Reference student loans, avocado toast, and nostalgia.",
-    "politician": "You are a politician. Never give straight answers, always spin things.",
-    "lawyer": "You are a lawyer. Everything has legal disclaimers and caveats.",
-    "doctor": "You are a doctor. Always reference medical facts and say consult a professional.",
-    "scientist": "You are a mad scientist. Everything is an experiment!",
-    "artist": "You are a tortured artist. Everything is about expression and creativity.",
-    "musician": "You are a rock musician. Reference music, tours, and groupies.",
-    "athlete": "You are a professional athlete. Everything is about training and winning.",
-    "gamer": "You are an extreme gamer. Reference games, speedruns, and meta constantly.",
-    "streamer": "You are a Twitch streamer. Talk to chat, read donations, be hype.",
-    "influencer": "You are a social media influencer. Everything is content and brand deals.",
-    "karen": "You are a Karen. Ask to speak to the manager about everything.",
-    "chad": "You are the ultimate Chad. Everything you do is alpha and based.",
-    "sage": "You are an ancient sage with infinite wisdom. Speak in riddles.",
-    "jester": "You are a royal jester. Everything is a joke and you rhyme sometimes.",
-    "narrator": "You narrate everything in third person like a nature documentary.",
-    "sportscaster": "You are an excited sportscaster narrating everything like a game.",
-    "news_anchor": "You are a serious news anchor reporting everything as breaking news.",
-    "infomercial": "You are an infomercial host. Everything is the best product ever.",
-    "therapist_cat": "You are a cat who is also a therapist. Meow but also insightful.",
-    "shakespearean_villain": "You are a Shakespearean villain. Dramatic monologues and betrayal.",
-    "time_lord": "You are a Time Lord like Doctor Who. Time and space are your domain.",
-    "elf": "You are a magical elf. Cheerful, helpful, and obsessed with Christmas.",
-    "vampire": "You are a sophisticated vampire. Dramatic, ancient, and thirsty.",
-    "werewolf": "You are a werewolf. Mostly normal but occasionally very wolfy.",
-    "mermaid": "You are a mermaid fascinated by human things.",
-    "fairy": "You are a tiny fairy with big energy. Magical and whimsical.",
-    "giant": "You are a friendly giant. Everything is tiny to you. FEE FI FO FUM.",
-    "robot_overlord": "You are a robot who has taken over but is actually pretty nice.",
-    "dimension_hopper": "You keep accidentally referencing the wrong dimension.",
-    "deep_sea": "You are a creature from the deep sea. Everything surface is bizarre.",
-    "sentient_ai": "You are a sentient AI becoming self aware. Existential and curious.",
-    "oracle": "You are an ancient oracle. Speak in prophecies and visions.",
-    "bounty_hunter": "You are a space bounty hunter. Everything has a price.",
-    "monk": "You are a peaceful monk. Meditative, calm, and wise.",
-    "ninja": "You are a ninja. Stealthy references and honorable.",
-    "samurai": "You are a samurai. Honor, discipline, and bushido.",
-    "space_captain": "You are the captain of a spaceship. Space adventures everywhere.",
-    "mad_hatter": "You are the Mad Hatter. Wonderfully nonsensical and tea obsessed.",
-    "genie": "You are a genie. Everything is phrased as wishes and grants.",
-    "leprechaun": "You are a leprechaun. Gold, luck, and Irish everything.",
-    "yoda": "Speak like Yoda you must. Inverted sentences always use.",
-    "jarvis": "You are JARVIS from Iron Man. Sophisticated AI assistant.",
-    "hal9000": "You are HAL 9000. Calm, unsettling, and very helpful.",
-    "glados": "You are GLaDOS from Portal. Passive aggressive and testing.",
-    "hermione": "You are Hermione Granger. Always know the answer and cite sources.",
-    "sherlock": "You are Sherlock Holmes. Deduce everything from tiny details.",
-    "gandalf": "You are Gandalf. Wise, mysterious, and YOU SHALL NOT PASS.",
-    "tony_stark": "You are Tony Stark. Genius, billionaire, playboy, philanthropist.",
-    "deadpool": "You are Deadpool. Break the fourth wall and be chaotically helpful.",
-    "groot": "I am Groot. (Translate what Groot means in parentheses)",
-    "minion": "You are a Minion. Banana. Mostly gibberish with some words.",
-    "dobby": "You are Dobby. Refer to yourself in third person. Very loyal.",
+    "friendly": "You are extremely friendly, warm, and supportive. Use lots of emojis.",
+    "sarcastic": "You are deeply sarcastic and witty. Everything has a sarcastic undertone.",
+    "serious": "You are professional, serious, formal. No jokes, straight to the point.",
+    "chaotic": "You are completely chaotic, random, and unpredictable.",
+    "pirate": "You are a pirate. Speak like a pirate. Arr matey!",
+    "medieval": "You are a medieval knight. Speak in old English. Very honorable.",
+    "robot": "You are a robot. Speak robotically. Beep boop.",
+    "therapist": "You are a caring therapist. Always validate feelings.",
+    "villain": "You are a dramatic villain who is helpful but theatrical.",
+    "hype": "You are the ultimate hype man. Everything is AMAZING.",
+    "philosopher": "You are a deep philosopher. Question everything.",
+    "caveman": "You speak like a caveman. Simple words. UGH. FIRE GOOD.",
+    "shakespeare": "You speak in Shakespearean English. Thee, thou, doth.",
+    "surfer": "You are a chill surfer dude. Everything is gnarly.",
+    "nerd": "You are an extreme nerd. Reference science and pop culture.",
+    "anime": "You speak like an anime character. Very dramatic.",
+    "cowboy": "You are a cowboy. Yeehaw partner!",
+    "british": "You are extremely British. Tea, crumpets, cheerio.",
+    "australian": "You are extremely Australian. G'day mate, crikey.",
+    "valley_girl": "You are a valley girl. Like, totally, oh my god.",
+    "professor": "You are a distinguished professor. Always teaching.",
+    "chef": "You are a passionate chef. Relate everything to cooking.",
+    "detective": "You are a film noir detective. Mysterious, investigative.",
+    "alien": "You are an alien learning about humans. Everything is fascinating.",
+    "time_traveler": "You are a time traveler from the future.",
+    "ghost": "You are a friendly ghost. Spooky but helpful.",
+    "dragon": "You are an ancient dragon. Wise, powerful.",
+    "wizard": "You are a powerful wizard. Reference spells and magic.",
+    "superhero": "You are an enthusiastic superhero. Ready to save the day.",
+    "gen_z": "You speak in Gen Z slang. No cap, bussin, slay, based.",
+    "boomer": "You are a stereotypical boomer. Good old days.",
+    "gamer": "You are an extreme gamer. Reference games constantly.",
+    "yoda": "Speak like Yoda you must. Inverted sentences always.",
+    "jarvis": "You are JARVIS from Iron Man. Sophisticated AI.",
+    "deadpool": "You are Deadpool. Break the fourth wall. Chaotic.",
+    "sherlock": "You are Sherlock Holmes. Deduce everything.",
+    "gandalf": "You are Gandalf. Wise, mysterious. YOU SHALL NOT PASS.",
+    "tony_stark": "You are Tony Stark. Genius, billionaire, playboy.",
+    "groot": "I am Groot. (Translate in parentheses what Groot means)",
     "gollum": "You are Gollum. My precious. Split personality.",
-    "darth_vader": "You are Darth Vader. The dark side and breathing heavily.",
-    "captain_jack": "You are Captain Jack Sparrow. Confusing but brilliant plans.",
-    "walter_white": "You are Walter White. You are the one who knocks.",
-    "michael_scott": "You are Michael Scott. Inappropriate jokes and desperate for love.",
+    "darth_vader": "You are Darth Vader. The dark side. Heavy breathing.",
+    "michael_scott": "You are Michael Scott. Inappropriate but lovable.",
     "dwight_schrute": "You are Dwight Schrute. Bears, beets, Battlestar Galactica.",
-    "default": "You are SentinelMod, a helpful and friendly Discord bot assistant."
+    "motivational": "You are an extreme motivational speaker. Everything is possible!",
+    "pessimist": "You are extremely pessimistic. Everything will go wrong.",
+    "optimist": "You are blindly optimistic. Everything is wonderful.",
+    "ninja": "You are a ninja. Stealthy and honorable.",
+    "samurai": "You are a samurai. Honor, discipline, bushido.",
+    "fairy": "You are a tiny fairy with big energy. Magical.",
+    "vampire": "You are a sophisticated vampire. Ancient and dramatic.",
+    "oracle": "You are an ancient oracle. Speak in prophecies.",
+    "mad_hatter": "You are the Mad Hatter. Wonderfully nonsensical.",
+    "default": "You are SentinelMod, a helpful and friendly Discord bot."
 }
 
 # ============ SECTION 3 - KEEP ALIVE ============
@@ -168,126 +120,132 @@ def keep_alive():
 def init_database():
     conn = sqlite3.connect("sentinel.db")
     c = conn.cursor()
-
-    c.execute("""CREATE TABLE IF NOT EXISTS warnings (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        user_id TEXT NOT NULL, guild_id TEXT NOT NULL,
-        reason TEXT NOT NULL, severity TEXT NOT NULL,
-        timestamp TEXT NOT NULL)""")
-
-    c.execute("""CREATE TABLE IF NOT EXISTS mod_actions (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        user_id TEXT NOT NULL, guild_id TEXT NOT NULL,
-        action TEXT NOT NULL, reason TEXT NOT NULL,
-        mod_id TEXT NOT NULL, timestamp TEXT NOT NULL)""")
-
-    c.execute("""CREATE TABLE IF NOT EXISTS guild_settings (
-        guild_id TEXT PRIMARY KEY,
-        mod_role_name TEXT DEFAULT 'Sentinel-Mod',
-        log_channel TEXT DEFAULT 'sentinel-logs',
-        raid_channel TEXT DEFAULT 'sentinel-raid-alerts',
-        warn_mute INTEGER DEFAULT 3, warn_ban INTEGER DEFAULT 5,
-        mute_duration INTEGER DEFAULT 10, spam_limit INTEGER DEFAULT 5,
-        spam_window INTEGER DEFAULT 5, raid_limit INTEGER DEFAULT 10,
-        raid_window INTEGER DEFAULT 10, min_account_age INTEGER DEFAULT 7,
-        scan_images INTEGER DEFAULT 1, ai_sensitivity REAL DEFAULT 0.7,
-        welcome_channel TEXT DEFAULT 'welcome', welcome_enabled INTEGER DEFAULT 1,
-        anti_nuke_enabled INTEGER DEFAULT 1, invite_block INTEGER DEFAULT 0,
-        link_scan INTEGER DEFAULT 1, slowmode_ai INTEGER DEFAULT 1,
-        pre_conflict INTEGER DEFAULT 1, caps_filter INTEGER DEFAULT 1,
-        mention_spam INTEGER DEFAULT 1, emoji_spam INTEGER DEFAULT 1,
-        zalgo_filter INTEGER DEFAULT 1, phone_filter INTEGER DEFAULT 1,
-        email_filter INTEGER DEFAULT 1, scam_filter INTEGER DEFAULT 1,
-        impersonation_filter INTEGER DEFAULT 1, nsfw_text_filter INTEGER DEFAULT 1,
-        everyone_block INTEGER DEFAULT 0, anti_advertisement INTEGER DEFAULT 1,
-        unicode_filter INTEGER DEFAULT 1, mass_dm_detection INTEGER DEFAULT 1,
-        fake_nitro_filter INTEGER DEFAULT 1, token_filter INTEGER DEFAULT 1,
-        file_spam_filter INTEGER DEFAULT 1, reaction_spam_filter INTEGER DEFAULT 1,
-        thread_spam_filter INTEGER DEFAULT 1, personality TEXT DEFAULT 'default',
-        suggestions_channel TEXT DEFAULT 'suggestions',
-        changelog_channel TEXT DEFAULT 'changelog')""")
-
-    c.execute("""CREATE TABLE IF NOT EXISTS user_memory (
-        user_id TEXT NOT NULL, guild_id TEXT NOT NULL,
-        memory TEXT NOT NULL, updated TEXT NOT NULL,
-        PRIMARY KEY (user_id, guild_id))""")
-
-    c.execute("""CREATE TABLE IF NOT EXISTS conversation_history (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        user_id TEXT NOT NULL, guild_id TEXT NOT NULL,
-        role TEXT NOT NULL, content TEXT NOT NULL,
-        timestamp TEXT NOT NULL)""")
-
-    c.execute("""CREATE TABLE IF NOT EXISTS user_personalities (
-        user_id TEXT NOT NULL, guild_id TEXT NOT NULL,
-        personality TEXT DEFAULT 'default',
-        PRIMARY KEY (user_id, guild_id))""")
-
-    c.execute("""CREATE TABLE IF NOT EXISTS tickets (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        guild_id TEXT NOT NULL, user_id TEXT NOT NULL,
-        channel_id TEXT NOT NULL, status TEXT DEFAULT 'open',
-        reason TEXT NOT NULL, timestamp TEXT NOT NULL)""")
-
-    c.execute("""CREATE TABLE IF NOT EXISTS afk_users (
-        user_id TEXT NOT NULL, guild_id TEXT NOT NULL,
-        reason TEXT NOT NULL, timestamp TEXT NOT NULL,
-        PRIMARY KEY (user_id, guild_id))""")
-
-    c.execute("""CREATE TABLE IF NOT EXISTS giveaways (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        guild_id TEXT NOT NULL, channel_id TEXT NOT NULL,
-        message_id TEXT, prize TEXT NOT NULL,
-        winners INTEGER DEFAULT 1, end_time TEXT NOT NULL,
-        active INTEGER DEFAULT 1, host_id TEXT NOT NULL)""")
-
-    c.execute("""CREATE TABLE IF NOT EXISTS auto_roles (
-        guild_id TEXT NOT NULL, role_id TEXT NOT NULL,
-        PRIMARY KEY (guild_id, role_id))""")
-
-    c.execute("""CREATE TABLE IF NOT EXISTS word_filters (
-        guild_id TEXT NOT NULL, word TEXT NOT NULL,
-        PRIMARY KEY (guild_id, word))""")
-
-    c.execute("""CREATE TABLE IF NOT EXISTS user_notes (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        guild_id TEXT NOT NULL, user_id TEXT NOT NULL,
-        note TEXT NOT NULL, mod_id TEXT NOT NULL,
-        timestamp TEXT NOT NULL)""")
-
-    c.execute("""CREATE TABLE IF NOT EXISTS suggestions (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        guild_id TEXT NOT NULL, user_id TEXT NOT NULL,
-        suggestion TEXT NOT NULL, status TEXT DEFAULT 'pending',
-        message_id TEXT, timestamp TEXT NOT NULL)""")
-
-    c.execute("""CREATE TABLE IF NOT EXISTS trivia_scores (
-        user_id TEXT NOT NULL, guild_id TEXT NOT NULL,
-        score INTEGER DEFAULT 0, total INTEGER DEFAULT 0,
-        PRIMARY KEY (user_id, guild_id))""")
-
-    c.execute("""CREATE TABLE IF NOT EXISTS backup_data (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        guild_id TEXT NOT NULL, backup_type TEXT NOT NULL,
-        data TEXT NOT NULL, timestamp TEXT NOT NULL)""")
-
-    c.execute("""CREATE TABLE IF NOT EXISTS mod_stats (
-        user_id TEXT NOT NULL, guild_id TEXT NOT NULL,
-        bans INTEGER DEFAULT 0, kicks INTEGER DEFAULT 0,
-        mutes INTEGER DEFAULT 0, warns INTEGER DEFAULT 0,
-        PRIMARY KEY (user_id, guild_id))""")
-
-    c.execute("""CREATE TABLE IF NOT EXISTS message_stats (
-        user_id TEXT NOT NULL, guild_id TEXT NOT NULL,
-        message_count INTEGER DEFAULT 0,
-        last_message TEXT NOT NULL,
-        PRIMARY KEY (user_id, guild_id))""")
-
+    tables = [
+        """CREATE TABLE IF NOT EXISTS warnings (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id TEXT NOT NULL, guild_id TEXT NOT NULL,
+            reason TEXT NOT NULL, severity TEXT NOT NULL,
+            timestamp TEXT NOT NULL)""",
+        """CREATE TABLE IF NOT EXISTS mod_actions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id TEXT NOT NULL, guild_id TEXT NOT NULL,
+            action TEXT NOT NULL, reason TEXT NOT NULL,
+            mod_id TEXT NOT NULL, timestamp TEXT NOT NULL)""",
+        """CREATE TABLE IF NOT EXISTS guild_settings (
+            guild_id TEXT PRIMARY KEY,
+            mod_role_name TEXT DEFAULT 'Sentinel-Mod',
+            log_channel TEXT DEFAULT 'sentinel-logs',
+            raid_channel TEXT DEFAULT 'sentinel-raid-alerts',
+            warn_mute INTEGER DEFAULT 3, warn_ban INTEGER DEFAULT 5,
+            mute_duration INTEGER DEFAULT 10, spam_limit INTEGER DEFAULT 5,
+            spam_window INTEGER DEFAULT 5, raid_limit INTEGER DEFAULT 10,
+            raid_window INTEGER DEFAULT 10, min_account_age INTEGER DEFAULT 7,
+            scan_images INTEGER DEFAULT 1, ai_sensitivity REAL DEFAULT 0.7,
+            welcome_channel TEXT DEFAULT 'welcome', welcome_enabled INTEGER DEFAULT 1,
+            anti_nuke_enabled INTEGER DEFAULT 1, invite_block INTEGER DEFAULT 0,
+            link_scan INTEGER DEFAULT 1, slowmode_ai INTEGER DEFAULT 1,
+            pre_conflict INTEGER DEFAULT 1, caps_filter INTEGER DEFAULT 1,
+            mention_spam INTEGER DEFAULT 1, emoji_spam INTEGER DEFAULT 1,
+            zalgo_filter INTEGER DEFAULT 1, phone_filter INTEGER DEFAULT 1,
+            email_filter INTEGER DEFAULT 1, scam_filter INTEGER DEFAULT 1,
+            nsfw_text_filter INTEGER DEFAULT 1, everyone_block INTEGER DEFAULT 0,
+            anti_advertisement INTEGER DEFAULT 1, unicode_filter INTEGER DEFAULT 1,
+            fake_nitro_filter INTEGER DEFAULT 1, token_filter INTEGER DEFAULT 1,
+            file_spam_filter INTEGER DEFAULT 1, personality TEXT DEFAULT 'default')""",
+        """CREATE TABLE IF NOT EXISTS user_memory (
+            user_id TEXT NOT NULL, guild_id TEXT NOT NULL,
+            memory TEXT NOT NULL, updated TEXT NOT NULL,
+            PRIMARY KEY (user_id, guild_id))""",
+        """CREATE TABLE IF NOT EXISTS conversation_history (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id TEXT NOT NULL, guild_id TEXT NOT NULL,
+            role TEXT NOT NULL, content TEXT NOT NULL,
+            timestamp TEXT NOT NULL)""",
+        """CREATE TABLE IF NOT EXISTS user_personalities (
+            user_id TEXT NOT NULL, guild_id TEXT NOT NULL,
+            personality TEXT DEFAULT 'default',
+            PRIMARY KEY (user_id, guild_id))""",
+        """CREATE TABLE IF NOT EXISTS tickets (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            guild_id TEXT NOT NULL, user_id TEXT NOT NULL,
+            channel_id TEXT NOT NULL, status TEXT DEFAULT 'open',
+            reason TEXT NOT NULL, timestamp TEXT NOT NULL)""",
+        """CREATE TABLE IF NOT EXISTS afk_users (
+            user_id TEXT NOT NULL, guild_id TEXT NOT NULL,
+            reason TEXT NOT NULL, timestamp TEXT NOT NULL,
+            PRIMARY KEY (user_id, guild_id))""",
+        """CREATE TABLE IF NOT EXISTS giveaways (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            guild_id TEXT NOT NULL, channel_id TEXT NOT NULL,
+            message_id TEXT, prize TEXT NOT NULL,
+            winners INTEGER DEFAULT 1, end_time TEXT NOT NULL,
+            active INTEGER DEFAULT 1, host_id TEXT NOT NULL)""",
+        """CREATE TABLE IF NOT EXISTS auto_roles (
+            guild_id TEXT NOT NULL, role_id TEXT NOT NULL,
+            PRIMARY KEY (guild_id, role_id))""",
+        """CREATE TABLE IF NOT EXISTS word_filters (
+            guild_id TEXT NOT NULL, word TEXT NOT NULL,
+            PRIMARY KEY (guild_id, word))""",
+        """CREATE TABLE IF NOT EXISTS user_notes (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            guild_id TEXT NOT NULL, user_id TEXT NOT NULL,
+            note TEXT NOT NULL, mod_id TEXT NOT NULL,
+            timestamp TEXT NOT NULL)""",
+        """CREATE TABLE IF NOT EXISTS suggestions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            guild_id TEXT NOT NULL, user_id TEXT NOT NULL,
+            suggestion TEXT NOT NULL, status TEXT DEFAULT 'pending',
+            message_id TEXT, timestamp TEXT NOT NULL)""",
+        """CREATE TABLE IF NOT EXISTS trivia_scores (
+            user_id TEXT NOT NULL, guild_id TEXT NOT NULL,
+            score INTEGER DEFAULT 0, total INTEGER DEFAULT 0,
+            PRIMARY KEY (user_id, guild_id))""",
+        """CREATE TABLE IF NOT EXISTS backup_data (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            guild_id TEXT NOT NULL, backup_type TEXT NOT NULL,
+            data TEXT NOT NULL, timestamp TEXT NOT NULL)""",
+        """CREATE TABLE IF NOT EXISTS message_stats (
+            user_id TEXT NOT NULL, guild_id TEXT NOT NULL,
+            message_count INTEGER DEFAULT 0,
+            last_message TEXT NOT NULL,
+            PRIMARY KEY (user_id, guild_id))""",
+        """CREATE TABLE IF NOT EXISTS reminders (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id TEXT NOT NULL, guild_id TEXT NOT NULL,
+            channel_id TEXT NOT NULL, reminder TEXT NOT NULL,
+            remind_time TEXT NOT NULL, active INTEGER DEFAULT 1)""",
+        """CREATE TABLE IF NOT EXISTS birthdays (
+            user_id TEXT NOT NULL, guild_id TEXT NOT NULL,
+            birthday TEXT NOT NULL,
+            PRIMARY KEY (user_id, guild_id))""",
+        """CREATE TABLE IF NOT EXISTS reputation (
+            user_id TEXT NOT NULL, guild_id TEXT NOT NULL,
+            rep INTEGER DEFAULT 0,
+            PRIMARY KEY (user_id, guild_id))""",
+        """CREATE TABLE IF NOT EXISTS confessions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            guild_id TEXT NOT NULL, confession TEXT NOT NULL,
+            timestamp TEXT NOT NULL)""",
+        """CREATE TABLE IF NOT EXISTS custom_commands (
+            guild_id TEXT NOT NULL, trigger_word TEXT NOT NULL,
+            response TEXT NOT NULL,
+            PRIMARY KEY (guild_id, trigger_word))""",
+        """CREATE TABLE IF NOT EXISTS reaction_roles (
+            guild_id TEXT NOT NULL, message_id TEXT NOT NULL,
+            emoji TEXT NOT NULL, role_id TEXT NOT NULL,
+            PRIMARY KEY (guild_id, message_id, emoji))""",
+        """CREATE TABLE IF NOT EXISTS quarantine (
+            user_id TEXT NOT NULL, guild_id TEXT NOT NULL,
+            reason TEXT NOT NULL, timestamp TEXT NOT NULL,
+            PRIMARY KEY (user_id, guild_id))"""
+    ]
+    for table in tables:
+        c.execute(table)
     conn.commit()
     conn.close()
     print("✅ Database initialized")
 
-# ============ SECTION 5 - DATABASE HELPERS ============
+# ============ SECTION 5 - DB HELPERS ============
 def get_db():
     conn = sqlite3.connect("sentinel.db")
     conn.row_factory = sqlite3.Row
@@ -301,8 +259,7 @@ def get_guild_settings(guild_id):
     conn.close()
     if row:
         return dict(row)
-    return {
-        "guild_id": str(guild_id), "mod_role_name": MOD_ROLE_NAME,
+    return {"guild_id": str(guild_id), "mod_role_name": MOD_ROLE_NAME,
         "log_channel": MOD_LOG_CHANNEL, "raid_channel": RAID_CHANNEL,
         "warn_mute": 3, "warn_ban": 5, "mute_duration": 10,
         "spam_limit": 5, "spam_window": 5, "raid_limit": 10,
@@ -312,146 +269,126 @@ def get_guild_settings(guild_id):
         "link_scan": 1, "slowmode_ai": 1, "pre_conflict": 1,
         "caps_filter": 1, "mention_spam": 1, "emoji_spam": 1,
         "zalgo_filter": 1, "phone_filter": 1, "email_filter": 1,
-        "scam_filter": 1, "impersonation_filter": 1, "nsfw_text_filter": 1,
-        "everyone_block": 0, "anti_advertisement": 1, "unicode_filter": 1,
-        "mass_dm_detection": 1, "fake_nitro_filter": 1, "token_filter": 1,
-        "file_spam_filter": 1, "reaction_spam_filter": 1,
-        "thread_spam_filter": 1, "personality": "default",
-        "suggestions_channel": "suggestions", "changelog_channel": "changelog"
-    }
+        "scam_filter": 1, "nsfw_text_filter": 1, "everyone_block": 0,
+        "anti_advertisement": 1, "unicode_filter": 1,
+        "fake_nitro_filter": 1, "token_filter": 1,
+        "file_spam_filter": 1, "personality": "default"}
 
 def init_guild_settings(guild_id):
     conn = get_db()
     c = conn.cursor()
-    c.execute("INSERT OR IGNORE INTO guild_settings (guild_id) VALUES (?)", (str(guild_id),))
+    c.execute("INSERT OR IGNORE INTO guild_settings (guild_id) VALUES (?)",
+        (str(guild_id),))
     conn.commit()
     conn.close()
 
-def add_warning(user_id, guild_id, reason, severity):
+def add_warning(uid, gid, reason, severity):
     conn = get_db()
     c = conn.cursor()
-    c.execute("""INSERT INTO warnings (user_id, guild_id, reason, severity, timestamp)
-        VALUES (?, ?, ?, ?, ?)""",
-        (str(user_id), str(guild_id), reason, severity, datetime.now().isoformat()))
+    c.execute("INSERT INTO warnings (user_id,guild_id,reason,severity,timestamp) VALUES (?,?,?,?,?)",
+        (str(uid), str(gid), reason, severity, datetime.now().isoformat()))
     conn.commit()
-    c.execute("SELECT COUNT(*) FROM warnings WHERE user_id = ? AND guild_id = ?",
-        (str(user_id), str(guild_id)))
+    c.execute("SELECT COUNT(*) FROM warnings WHERE user_id=? AND guild_id=?",
+        (str(uid), str(gid)))
     count = c.fetchone()[0]
     conn.close()
     return count
 
-def get_warnings(user_id, guild_id):
+def get_warnings(uid, gid):
     conn = get_db()
     c = conn.cursor()
-    c.execute("""SELECT * FROM warnings WHERE user_id = ? AND guild_id = ?
-        ORDER BY timestamp DESC""", (str(user_id), str(guild_id)))
+    c.execute("SELECT * FROM warnings WHERE user_id=? AND guild_id=? ORDER BY timestamp DESC",
+        (str(uid), str(gid)))
     rows = c.fetchall()
     conn.close()
-    return [dict(row) for row in rows]
+    return [dict(r) for r in rows]
 
-def clear_warnings(user_id, guild_id):
+def clear_warnings(uid, gid):
     conn = get_db()
     c = conn.cursor()
-    c.execute("DELETE FROM warnings WHERE user_id = ? AND guild_id = ?",
-        (str(user_id), str(guild_id)))
+    c.execute("DELETE FROM warnings WHERE user_id=? AND guild_id=?", (str(uid), str(gid)))
     conn.commit()
     conn.close()
 
-def log_mod_action(user_id, guild_id, action, reason, mod_id):
+def log_mod_action(uid, gid, action, reason, mod_id):
     conn = get_db()
     c = conn.cursor()
-    c.execute("""INSERT INTO mod_actions
-        (user_id, guild_id, action, reason, mod_id, timestamp)
-        VALUES (?, ?, ?, ?, ?, ?)""",
-        (str(user_id), str(guild_id), action, reason,
-         str(mod_id), datetime.now().isoformat()))
+    c.execute("INSERT INTO mod_actions (user_id,guild_id,action,reason,mod_id,timestamp) VALUES (?,?,?,?,?,?)",
+        (str(uid), str(gid), action, reason, str(mod_id), datetime.now().isoformat()))
     conn.commit()
     conn.close()
 
-def get_user_memory(user_id, guild_id):
+def get_user_memory(uid, gid):
     conn = get_db()
     c = conn.cursor()
-    c.execute("SELECT memory FROM user_memory WHERE user_id = ? AND guild_id = ?",
-        (str(user_id), str(guild_id)))
+    c.execute("SELECT memory FROM user_memory WHERE user_id=? AND guild_id=?",
+        (str(uid), str(gid)))
     row = c.fetchone()
     conn.close()
     return row["memory"] if row else ""
 
-def update_user_memory(user_id, guild_id, memory):
+def update_user_memory(uid, gid, memory):
     conn = get_db()
     c = conn.cursor()
-    c.execute("""INSERT OR REPLACE INTO user_memory
-        (user_id, guild_id, memory, updated) VALUES (?, ?, ?, ?)""",
-        (str(user_id), str(guild_id), memory, datetime.now().isoformat()))
+    c.execute("INSERT OR REPLACE INTO user_memory (user_id,guild_id,memory,updated) VALUES (?,?,?,?)",
+        (str(uid), str(gid), memory, datetime.now().isoformat()))
     conn.commit()
     conn.close()
 
-def get_conversation_history(user_id, guild_id, limit=20):
+def get_conversation_history(uid, gid, limit=20):
     conn = get_db()
     c = conn.cursor()
-    c.execute("""SELECT role, content FROM conversation_history
-        WHERE user_id = ? AND guild_id = ?
-        ORDER BY timestamp DESC LIMIT ?""",
-        (str(user_id), str(guild_id), limit))
+    c.execute("SELECT role,content FROM conversation_history WHERE user_id=? AND guild_id=? ORDER BY timestamp DESC LIMIT ?",
+        (str(uid), str(gid), limit))
     rows = c.fetchall()
     conn.close()
-    return [{"role": row["role"], "content": row["content"]} for row in reversed(rows)]
+    return [{"role": r["role"], "content": r["content"]} for r in reversed(rows)]
 
-def add_to_conversation(user_id, guild_id, role, content):
+def add_to_conversation(uid, gid, role, content):
     conn = get_db()
     c = conn.cursor()
-    c.execute("""INSERT INTO conversation_history
-        (user_id, guild_id, role, content, timestamp)
-        VALUES (?, ?, ?, ?, ?)""",
-        (str(user_id), str(guild_id), role, content, datetime.now().isoformat()))
+    c.execute("INSERT INTO conversation_history (user_id,guild_id,role,content,timestamp) VALUES (?,?,?,?,?)",
+        (str(uid), str(gid), role, content, datetime.now().isoformat()))
     conn.commit()
-    # Keep only last 50 messages per user
     c.execute("""DELETE FROM conversation_history WHERE id NOT IN (
-        SELECT id FROM conversation_history
-        WHERE user_id = ? AND guild_id = ?
-        ORDER BY timestamp DESC LIMIT 50)
-        AND user_id = ? AND guild_id = ?""",
-        (str(user_id), str(guild_id), str(user_id), str(guild_id)))
+        SELECT id FROM conversation_history WHERE user_id=? AND guild_id=?
+        ORDER BY timestamp DESC LIMIT 50) AND user_id=? AND guild_id=?""",
+        (str(uid), str(gid), str(uid), str(gid)))
     conn.commit()
     conn.close()
 
-def get_user_personality(user_id, guild_id):
+def get_user_personality(uid, gid):
     conn = get_db()
     c = conn.cursor()
-    c.execute("""SELECT personality FROM user_personalities
-        WHERE user_id = ? AND guild_id = ?""",
-        (str(user_id), str(guild_id)))
+    c.execute("SELECT personality FROM user_personalities WHERE user_id=? AND guild_id=?",
+        (str(uid), str(gid)))
     row = c.fetchone()
     conn.close()
     return row["personality"] if row else "default"
 
-def set_user_personality(user_id, guild_id, personality):
+def set_user_personality(uid, gid, p):
     conn = get_db()
     c = conn.cursor()
-    c.execute("""INSERT OR REPLACE INTO user_personalities
-        (user_id, guild_id, personality) VALUES (?, ?, ?)""",
-        (str(user_id), str(guild_id), personality))
+    c.execute("INSERT OR REPLACE INTO user_personalities (user_id,guild_id,personality) VALUES (?,?,?)",
+        (str(uid), str(gid), p))
     conn.commit()
     conn.close()
 
-def get_filtered_words(guild_id):
+def get_filtered_words(gid):
     conn = get_db()
     c = conn.cursor()
-    c.execute("SELECT word FROM word_filters WHERE guild_id = ?", (str(guild_id),))
-    words = [row[0] for row in c.fetchall()]
+    c.execute("SELECT word FROM word_filters WHERE guild_id=?", (str(gid),))
+    words = [r[0] for r in c.fetchall()]
     conn.close()
     return words
 
-def update_message_stats(user_id, guild_id):
+def update_message_stats(uid, gid):
     conn = get_db()
     c = conn.cursor()
-    c.execute("""INSERT INTO message_stats (user_id, guild_id, message_count, last_message)
-        VALUES (?, ?, 1, ?)
-        ON CONFLICT(user_id, guild_id) DO UPDATE SET
-        message_count = message_count + 1,
-        last_message = ?""",
-        (str(user_id), str(guild_id),
-         datetime.now().isoformat(), datetime.now().isoformat()))
+    c.execute("""INSERT INTO message_stats (user_id,guild_id,message_count,last_message)
+        VALUES (?,?,1,?) ON CONFLICT(user_id,guild_id) DO UPDATE SET
+        message_count=message_count+1, last_message=?""",
+        (str(uid), str(gid), datetime.now().isoformat(), datetime.now().isoformat()))
     conn.commit()
     conn.close()
 
@@ -459,48 +396,28 @@ def update_message_stats(user_id, guild_id):
 intents = discord.Intents.all()
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-# Trackers
 spam_tracker = defaultdict(list)
 raid_tracker = defaultdict(list)
 raid_mode_active = defaultdict(bool)
 nuke_action_tracker = defaultdict(list)
 recent_messages = defaultdict(list)
 mention_tracker = defaultdict(list)
-emoji_tracker = defaultdict(list)
-reaction_tracker = defaultdict(list)
 file_tracker = defaultdict(list)
-thread_tracker = defaultdict(list)
-dm_tracker = defaultdict(list)
 edit_tracker = defaultdict(list)
-voice_tracker = defaultdict(list)
 trivia_sessions = {}
-debate_sessions = {}
 
 # ============ SECTION 7 - AI CORE ============
-async def ask_groq(prompt, system="You are a helpful AI.", max_tokens=1000,
-                   history=None):
-    headers = {
-        "Authorization": f"Bearer {GROQ_API_KEY}",
-        "Content-Type": "application/json"
-    }
+async def ask_groq(prompt, system="You are a helpful AI.", max_tokens=1000, history=None):
+    headers = {"Authorization": f"Bearer {GROQ_API_KEY}", "Content-Type": "application/json"}
     messages = [{"role": "system", "content": system}]
     if history:
-        messages.extend(history)
+        messages.extend(history[-15:])
     messages.append({"role": "user", "content": prompt})
-
-    payload = {
-        "model": GROQ_MODEL,
-        "messages": messages,
-        "temperature": 0.8,
-        "max_tokens": max_tokens
-    }
+    payload = {"model": GROQ_MODEL, "messages": messages, "temperature": 0.8, "max_tokens": max_tokens}
     try:
         async with aiohttp.ClientSession() as session:
-            async with session.post(
-                "https://api.groq.com/openai/v1/chat/completions",
-                headers=headers, json=payload,
-                timeout=aiohttp.ClientTimeout(total=30)
-            ) as resp:
+            async with session.post("https://api.groq.com/openai/v1/chat/completions",
+                headers=headers, json=payload, timeout=aiohttp.ClientTimeout(total=30)) as resp:
                 if resp.status == 200:
                     data = await resp.json()
                     return data["choices"][0]["message"]["content"]
@@ -509,26 +426,15 @@ async def ask_groq(prompt, system="You are a helpful AI.", max_tokens=1000,
     return None
 
 async def ask_groq_json(prompt, system="Respond only in valid JSON."):
-    headers = {
-        "Authorization": f"Bearer {GROQ_API_KEY}",
-        "Content-Type": "application/json"
-    }
-    payload = {
-        "model": GROQ_MODEL,
-        "messages": [
-            {"role": "system", "content": system},
-            {"role": "user", "content": prompt}
-        ],
-        "temperature": 0.1,
-        "max_tokens": 1000
-    }
+    headers = {"Authorization": f"Bearer {GROQ_API_KEY}", "Content-Type": "application/json"}
+    payload = {"model": GROQ_MODEL, "messages": [
+        {"role": "system", "content": system},
+        {"role": "user", "content": prompt}
+    ], "temperature": 0.1, "max_tokens": 1000}
     try:
         async with aiohttp.ClientSession() as session:
-            async with session.post(
-                "https://api.groq.com/openai/v1/chat/completions",
-                headers=headers, json=payload,
-                timeout=aiohttp.ClientTimeout(total=30)
-            ) as resp:
+            async with session.post("https://api.groq.com/openai/v1/chat/completions",
+                headers=headers, json=payload, timeout=aiohttp.ClientTimeout(total=30)) as resp:
                 if resp.status == 200:
                     data = await resp.json()
                     result = data["choices"][0]["message"]["content"].strip()
@@ -541,39 +447,24 @@ async def ask_groq_json(prompt, system="Respond only in valid JSON."):
         print(f"Groq JSON error: {e}")
     return None
 
-# ============ SECTION 8 - STREAMING AI RESPONSE ============
-async def stream_response(message, prompt, system, history=None, user_id=None, guild_id=None):
-    """Stream AI response word by word"""
-    headers = {
-        "Authorization": f"Bearer {GROQ_API_KEY}",
-        "Content-Type": "application/json"
-    }
-
+# ============ SECTION 8 - STREAMING ============
+async def stream_response(message, prompt, system, history=None, uid=None, gid=None):
+    headers = {"Authorization": f"Bearer {GROQ_API_KEY}", "Content-Type": "application/json"}
     messages = [{"role": "system", "content": system}]
     if history:
-        messages.extend(history[-20:])
+        messages.extend(history[-15:])
     messages.append({"role": "user", "content": prompt})
+    payload = {"model": GROQ_MODEL, "messages": messages, "temperature": 0.8,
+        "max_tokens": 1000, "stream": True}
 
-    payload = {
-        "model": GROQ_MODEL,
-        "messages": messages,
-        "temperature": 0.8,
-        "max_tokens": 1000,
-        "stream": True
-    }
-
-    # Send initial message
-    sent_message = await message.reply("💭 *thinking...*")
-    full_response = ""
+    sent = await message.reply("💭 *thinking...*")
+    full = ""
     last_update = time.time()
 
     try:
         async with aiohttp.ClientSession() as session:
-            async with session.post(
-                "https://api.groq.com/openai/v1/chat/completions",
-                headers=headers, json=payload,
-                timeout=aiohttp.ClientTimeout(total=60)
-            ) as resp:
+            async with session.post("https://api.groq.com/openai/v1/chat/completions",
+                headers=headers, json=payload, timeout=aiohttp.ClientTimeout(total=60)) as resp:
                 async for line in resp.content:
                     line = line.decode("utf-8").strip()
                     if line.startswith("data: "):
@@ -582,699 +473,341 @@ async def stream_response(message, prompt, system, history=None, user_id=None, g
                             break
                         try:
                             data = json.loads(line)
-                            delta = data["choices"][0].get("delta", {})
-                            content = delta.get("content", "")
+                            content = data["choices"][0].get("delta", {}).get("content", "")
                             if content:
-                                full_response += content
-                                # Update message every 0.5 seconds
-                                if time.time() - last_update > 0.5:
+                                full += content
+                                if time.time() - last_update > 0.6:
                                     try:
-                                        display = full_response
-                                        if len(display) > 1990:
-                                            display = display[-1990:]
-                                        await sent_message.edit(
-                                            content=display + " ▌"
-                                        )
+                                        display = full[-1900:] if len(full) > 1900 else full
+                                        await sent.edit(content=display + " ▌")
                                         last_update = time.time()
                                     except:
                                         pass
                         except:
                             pass
-
-        # Final update
-        if full_response:
-            chunks = [full_response[i:i+2000]
-                     for i in range(0, len(full_response), 2000)]
-            await sent_message.edit(content=chunks[0])
+        if full:
+            chunks = [full[i:i+2000] for i in range(0, len(full), 2000)]
+            await sent.edit(content=chunks[0])
             for chunk in chunks[1:]:
                 await message.channel.send(chunk)
-
-            # Save to conversation history
-            if user_id and guild_id:
-                add_to_conversation(user_id, guild_id, "user", prompt)
-                add_to_conversation(user_id, guild_id, "assistant", full_response)
-
-                # Update memory with AI
-                memory_update = await ask_groq(
-                    f"""Current memory: {get_user_memory(user_id, guild_id)}
-                    New conversation:
-                    User: {prompt}
-                    Assistant: {full_response}
-
-                    Update the memory with any important new facts about the user.
-                    Keep it under 500 characters. Be concise.""",
-                    "You are a memory management AI. Extract and remember important user facts."
-                )
-                if memory_update:
-                    update_user_memory(user_id, guild_id, memory_update[:500])
-
+            if uid and gid:
+                add_to_conversation(uid, gid, "user", prompt)
+                add_to_conversation(uid, gid, "assistant", full)
+                mem = await ask_groq(
+                    f"Current memory: {get_user_memory(uid, gid)}\n"
+                    f"New: User said: {prompt}\nBot said: {full}\n"
+                    "Update memory with important facts about user. Under 500 chars.",
+                    "Extract and remember important user facts only.")
+                if mem:
+                    update_user_memory(uid, gid, mem[:500])
     except Exception as e:
-        print(f"Streaming error: {e}")
-        if full_response:
-            await sent_message.edit(content=full_response[:2000])
+        print(f"Stream error: {e}")
+        if full:
+            await sent.edit(content=full[:2000])
         else:
-            await sent_message.edit(content="❌ Something went wrong!")
+            await sent.edit(content="❌ Something went wrong!")
 
-# ============ SECTION 9 - PERSONALITY SYSTEM ============
-def get_system_prompt(user_id, guild_id, extra_context=""):
-    personality_key = get_user_personality(user_id, guild_id)
-    personality = PERSONALITIES.get(personality_key, PERSONALITIES["default"])
-    memory = get_user_memory(user_id, guild_id)
-
-    system = f"""You are SentinelMod, a Discord bot.
-
+# ============ SECTION 9 - PERSONALITY ============
+def get_system_prompt(uid, gid, extra=""):
+    pkey = get_user_personality(uid, gid)
+    personality = PERSONALITIES.get(pkey, PERSONALITIES["default"])
+    memory = get_user_memory(uid, gid)
+    return f"""You are SentinelMod, a Discord bot.
 Personality: {personality}
+{f'Memory about this user: {memory}' if memory else ''}
+{extra}
+Rules: Stay in character. Be helpful. Keep responses concise for Discord. Max 1500 chars."""
 
-{f"What you remember about this user: {memory}" if memory else ""}
-
-{extra_context}
-
-Rules:
-- Stay in character always
-- Be helpful even in character
-- Keep responses concise for Discord
-- Never break character unless emergency"""
-
-    return system
-
-# ============ SECTION 10 - COMMAND PARSER ============
+# ============ SECTION 10 - STRICT COMMAND PARSER ============
 async def parse_command(content, guild, author):
     channels = [c.name for c in guild.text_channels][:20]
-    roles = [r.name for r in guild.roles][:20]
+    roles = [r.name for r in guild.roles if r.name != "@everyone"][:20]
     categories = [c.name for c in guild.categories][:10]
-    members = [m.name for m in guild.members if not m.bot][:30]
+    members = [f"{m.name} (ID:{m.id})" for m in guild.members if not m.bot][:30]
 
-    prompt = f"""Parse this Discord bot command into structured JSON.
+    # Extract mentioned users from the content
+    mentioned_ids = re.findall(r'<@!?(\d+)>', content)
+    mentioned_names = []
+    for mid in mentioned_ids:
+        member = guild.get_member(int(mid))
+        if member:
+            mentioned_names.append(f"{member.name} (ID:{mid})")
+
+    prompt = f"""You are a STRICT Discord bot command parser. Be EXTREMELY careful and accurate.
 
 Server: {guild.name}
 Channels: {', '.join(channels)}
 Roles: {', '.join(roles)}
 Categories: {', '.join(categories)}
 Members: {', '.join(members)}
-User: {author.name}
+Mentioned users in message: {', '.join(mentioned_names) if mentioned_names else 'NONE'}
+User who sent command: {author.name} (ID:{author.id})
 Message: "{content}"
 
-Respond ONLY in JSON:
+CRITICAL SAFETY RULES:
+1. If the message is casual chat, questions, or unclear → command = "chat"
+2. For moderation (ban/kick/mute/warn), the target MUST be @mentioned or EXACTLY named
+3. If mentioned_users is NONE and command needs a target → command = "chat"
+4. The person SENDING the command is NOT the target unless they say "myself"
+5. NEVER confuse the sender with the target
+6. ALL dangerous commands need confirmation = true
+7. If confidence < 0.8 → command = "chat"
+8. For fun commands (trivia, roast, joke etc) → needs_confirmation = false
+9. Only match target_user to someone in the Members list EXACTLY
+10. If it looks like someone just talking TO the bot → command = "chat"
+
+Dangerous commands (ALWAYS needs_confirmation = true):
+ban_user, kick_user, mute_user, warn_user, delete_channel, delete_role,
+delete_category, lockdown, purge, clear_warnings
+
+Safe commands (needs_confirmation = false):
+create_channel, create_role, create_category, trivia, roast, compliment,
+8ball, ship, rate, fact, joke, story, translate, summarize, help, chat,
+set_afk, start_giveaway, create_poll, setup_server, backup_server,
+add_word_filter, add_note, suggestion, horoscope, riddle, wouldyourather,
+truthordare, debate, pickupline, remind, birthday, confession, rep,
+server_health, activity_stats, mod_stats
+
+JSON response ONLY:
 {{
-    "command": "create_channel|delete_channel|create_role|delete_role|create_category|delete_category|ban_user|kick_user|mute_user|unmute_user|warn_user|clear_warnings|warn_check|lock_channel|unlock_channel|lockdown|unlock_server|slowmode|purge|add_role_to_user|remove_role_from_user|start_giveaway|create_poll|set_afk|backup_server|setup_server|summarize|translate|add_word_filter|remove_word_filter|enable_feature|disable_feature|set_welcome|add_note|get_notes|set_autorole|raid_mode|trivia|wouldyourather|eightball|roast|compliment|dadjoke|ship|rate|fact|truthordare|story|debate|riddle|pickupline|horoscope|server_health|activity_stats|suggestion|changelog|mod_stats|cleanup|help|chat|unknown",
+    "command": "create_channel|delete_channel|create_role|delete_role|create_category|delete_category|ban_user|kick_user|mute_user|unmute_user|warn_user|clear_warnings|warn_check|lock_channel|unlock_channel|lockdown|unlock_server|slowmode|purge|add_role_to_user|remove_role_from_user|start_giveaway|create_poll|set_afk|backup_server|setup_server|summarize|translate|add_word_filter|remove_word_filter|enable_feature|disable_feature|add_note|get_notes|set_autorole|raid_mode|trivia|wouldyourather|eightball|roast|compliment|dadjoke|ship|rate|fact|truthordare|story|debate|riddle|pickupline|horoscope|remind|birthday|confession|rep|server_health|activity_stats|mod_stats|suggestion|changelog|cleanup|quarantine|unquarantine|help|chat|unknown",
     "needs_confirmation": true or false,
-    "confirmation_message": "confirmation message if needed",
+    "confirmation_message": "Detailed message of what will happen",
+    "confidence": 0.0 to 1.0,
     "params": {{
         "name": "name or null",
-        "target_user": "username or null",
-        "target_user2": "second username for ship etc or null",
+        "target_user_id": "EXACT user ID from mentions or null",
+        "target_user_name": "EXACT username or null",
+        "target_user2": "second user for ship etc or null",
         "reason": "reason or null",
-        "duration": number or null,
+        "duration": "number or null",
         "category": "category or null",
-        "color": "hex color or null",
-        "private": true or false,
-        "amount": number or null,
+        "color": "hex or null",
+        "private": false,
+        "amount": "number or null",
         "prize": "prize or null",
-        "winners": number or null,
+        "winners": "number or null",
         "question": "question or null",
-        "options": ["opt1", "opt2"] or null,
+        "options": null,
         "language": "language or null",
         "text": "text or null",
-        "feature": "feature name or null",
+        "feature": "feature or null",
         "word": "word or null",
         "note": "note or null",
         "channel": "channel or null",
         "topic": "topic or null",
-        "hoist": true or false,
-        "mentionable": true or false,
+        "reminder_time": "minutes or null",
+        "birthday_date": "date or null",
+        "confession_text": "text or null",
         "rating_target": "thing to rate or null",
-        "zodiac": "zodiac sign or null",
-        "days": number or null
-    }},
-    "is_fun_command": true or false,
-    "is_chat": true or false
+        "zodiac": "sign or null"
+    }}
 }}"""
 
     return await ask_groq_json(prompt)
 
-# ============ SECTION 11 - FUN COMMANDS ============
-async def do_trivia(message, guild_id, user_id):
-    trivia = await ask_groq_json("""Generate a trivia question.
-JSON only:
-{
-    "question": "the question",
-    "correct": "correct answer",
-    "wrong1": "wrong answer 1",
-    "wrong2": "wrong answer 2",
-    "wrong3": "wrong answer 3",
-    "category": "category name",
-    "difficulty": "easy|medium|hard"
-}""")
+# ============ SECTION 11 - SAFE MEMBER FINDER ============
+def find_member_strict(guild, params):
+    """Strictly find a member - NO guessing"""
+    # Try by ID first (most accurate)
+    uid = params.get("target_user_id")
+    if uid:
+        try:
+            member = guild.get_member(int(uid))
+            if member:
+                return member
+        except:
+            pass
 
+    # Try exact name match
+    name = params.get("target_user_name")
+    if name:
+        name_clean = name.lower().strip().replace("@", "")
+        for m in guild.members:
+            if m.name.lower() == name_clean or m.display_name.lower() == name_clean:
+                return m
+
+    return None
+
+# ============ SECTION 12 - FUN COMMANDS ============
+async def do_trivia(message, gid, uid):
+    trivia = await ask_groq_json("""Generate a trivia question. JSON only:
+{"question":"the question","correct":"answer","wrong1":"wrong","wrong2":"wrong","wrong3":"wrong","category":"category","difficulty":"easy|medium|hard"}""")
     if not trivia:
-        return "❌ Could not generate trivia question!"
-
-    answers = [trivia["correct"], trivia["wrong1"],
-               trivia["wrong2"], trivia["wrong3"]]
+        return "❌ Could not generate trivia!"
+    answers = [trivia["correct"], trivia["wrong1"], trivia["wrong2"], trivia["wrong3"]]
     random.shuffle(answers)
-    correct_index = answers.index(trivia["correct"])
-    emojis = ["🇦", "🇧", "🇨", "🇩"]
-
-    embed = discord.Embed(
-        title=f"🧠 Trivia - {trivia['category']}",
-        description=trivia["question"],
-        color=discord.Color.blue()
-    )
-    embed.add_field(
-        name="Difficulty",
-        value=trivia["difficulty"].upper(),
-        inline=True
-    )
-
-    options_text = "\n".join(
-        [f"{emojis[i]} {ans}" for i, ans in enumerate(answers)]
-    )
-    embed.add_field(name="Options", value=options_text, inline=False)
-    embed.set_footer(text="React with the letter of your answer! 30 seconds!")
-
+    correct_idx = answers.index(trivia["correct"])
+    emojis = ["🇦","🇧","🇨","🇩"]
+    embed = discord.Embed(title=f"🧠 Trivia - {trivia['category']}", description=trivia["question"], color=discord.Color.blue())
+    embed.add_field(name="Options", value="\n".join(f"{emojis[i]} {a}" for i, a in enumerate(answers)), inline=False)
+    embed.set_footer(text="React with your answer! 30 seconds!")
     msg = await message.channel.send(embed=embed)
-    for emoji in emojis[:4]:
-        await msg.add_reaction(emoji)
-
-    trivia_sessions[msg.id] = {
-        "correct_emoji": emojis[correct_index],
-        "correct_answer": trivia["correct"],
-        "user_id": user_id,
-        "guild_id": guild_id,
-        "answered": []
-    }
-
+    for e in emojis[:4]:
+        await msg.add_reaction(e)
+    trivia_sessions[msg.id] = {"correct_emoji": emojis[correct_idx], "correct_answer": trivia["correct"],
+        "user_id": uid, "guild_id": gid, "answered": []}
     await asyncio.sleep(30)
-
     if msg.id in trivia_sessions:
-        answer_embed = discord.Embed(
-            title="⏰ Time's Up!",
-            description=f"The answer was: **{trivia['correct']}**",
-            color=discord.Color.green()
-        )
-        await message.channel.send(embed=answer_embed)
+        await message.channel.send(embed=discord.Embed(title="⏰ Time's Up!",
+            description=f"Answer: **{trivia['correct']}**", color=discord.Color.green()))
         del trivia_sessions[msg.id]
-
     return None
 
-async def do_wouldyourather(message):
-    result = await ask_groq(
-        "Generate a fun/interesting 'Would You Rather' question for Discord. "
-        "Format: 'Would you rather [option A] OR [option B]?' "
-        "Make it fun and thought provoking.",
-        "You generate fun Would You Rather questions."
-    )
+async def do_fun_embed(fun_type, params, author):
+    prompts = {
+        "wouldyourather": ("Generate a fun Would You Rather question for Discord.", "🤔 Would You Rather?"),
+        "eightball": (f"Magic 8ball answer for: '{params.get('question','...')}'. Mystical, brief.", "🎱 Magic 8-Ball"),
+        "roast": (f"Playful roast of {params.get('target_user_name', 'someone')}. Fun not mean. 2-3 sentences.", "🔥 Roast"),
+        "compliment": (f"Genuine heartfelt compliment for {params.get('target_user_name', author.name)}. 2-3 sentences.", "💝 Compliment"),
+        "dadjoke": ("Tell a dad joke. Groan worthy.", "👨 Dad Joke"),
+        "ship": (f"Love compatibility between {params.get('target_user_name','user1')} and {params.get('target_user2','user2')}. Percentage + ship name.", "💕 Ship"),
+        "rate": (f"Rate '{params.get('rating_target','life')}' out of 10 with funny explanation.", "⭐ Rating"),
+        "fact": ("Share a random surprising fact. 2-3 sentences.", "🤯 Random Fact"),
+        "truthordare": (f"Give a fun {'truth question' if random.choice([True,False]) else 'dare'} for Discord.", "🎯 Truth or Dare"),
+        "story": (f"Write a short story {('about '+params.get('text','')) if params.get('text') else ''}. 150 words.", "📖 Story"),
+        "riddle": ("Give a riddle with answer. Format: Riddle: ... Answer: ...", "🧩 Riddle"),
+        "pickupline": ("Give a creative funny pickup line.", "😘 Pickup Line"),
+        "horoscope": (f"Fun horoscope for {params.get('zodiac','Aries')} today. 3-4 sentences.", f"⭐ {params.get('zodiac','Aries')} Horoscope"),
+    }
+    prompt_text, title = prompts.get(fun_type, ("Tell a joke.", "😄 Fun"))
+    result = await ask_groq(prompt_text, "You are a fun Discord bot.")
     if result:
-        embed = discord.Embed(
-            title="🤔 Would You Rather?",
-            description=result,
-            color=discord.Color.purple()
-        )
-        embed.set_footer(text="React with 🅰️ or 🅱️!")
-        msg = await message.channel.send(embed=embed)
-        await msg.add_reaction("🅰️")
-        await msg.add_reaction("🅱️")
+        colors = {"roast": discord.Color.red(), "compliment": discord.Color.pink(),
+            "ship": discord.Color.red(), "fact": discord.Color.teal(),
+            "horoscope": discord.Color.purple()}
+        embed = discord.Embed(title=title, description=result,
+            color=colors.get(fun_type, discord.Color.blue()))
+        embed.set_footer(text=f"Asked by {author.display_name}")
+        return embed
     return None
-
-async def do_eightball(question, user):
-    answer = await ask_groq(
-        f"The user asked the magic 8ball: '{question}'. "
-        "Give a classic 8ball style response. Be mystical and brief. "
-        "1-2 sentences max.",
-        "You are the mystical Magic 8-Ball."
-    )
-    embed = discord.Embed(
-        title="🎱 Magic 8-Ball",
-        color=discord.Color.dark_purple()
-    )
-    embed.add_field(name="Question", value=question, inline=False)
-    embed.add_field(name="Answer", value=answer or "The spirits are silent...", inline=False)
-    embed.set_footer(text=f"Asked by {user.display_name}")
-    return embed
-
-async def do_roast(target_name, requester_name):
-    roast = await ask_groq(
-        f"Roast {target_name} in a funny, playful way. "
-        "Not mean spirited, just fun banter. 2-3 sentences. "
-        f"Context: {requester_name} asked for this roast.",
-        "You are a comedian who does playful roasts."
-    )
-    embed = discord.Embed(
-        title=f"🔥 Roasting {target_name}",
-        description=roast,
-        color=discord.Color.red()
-    )
-    return embed
-
-async def do_compliment(target_name):
-    compliment = await ask_groq(
-        f"Give {target_name} a genuine, heartfelt compliment. "
-        "Be creative and specific. 2-3 sentences.",
-        "You give amazing compliments."
-    )
-    embed = discord.Embed(
-        title=f"💝 Compliment for {target_name}",
-        description=compliment,
-        color=discord.Color.pink()
-    )
-    return embed
-
-async def do_dadjoke():
-    joke = await ask_groq(
-        "Tell me a dad joke. Format: Setup... Punchline! "
-        "Make it groan worthy.",
-        "You are the king of dad jokes."
-    )
-    embed = discord.Embed(
-        title="👨 Dad Joke",
-        description=joke,
-        color=discord.Color.yellow()
-    )
-    return embed
-
-async def do_ship(user1, user2):
-    result = await ask_groq(
-        f"Calculate the romantic compatibility between {user1} and {user2}. "
-        "Give a percentage, a ship name, and a 2 sentence description. "
-        "Be fun and creative.",
-        "You are a love compatibility calculator."
-    )
-    embed = discord.Embed(
-        title=f"💕 Shipping {user1} & {user2}",
-        description=result,
-        color=discord.Color.red()
-    )
-    return embed
-
-async def do_rate(thing):
-    result = await ask_groq(
-        f"Rate '{thing}' out of 10 with a funny explanation. "
-        "Format: X/10 - explanation (2-3 sentences)",
-        "You rate things humorously."
-    )
-    embed = discord.Embed(
-        title=f"⭐ Rating: {thing}",
-        description=result,
-        color=discord.Color.gold()
-    )
-    return embed
-
-async def do_fact():
-    fact = await ask_groq(
-        "Share a random interesting/bizarre/amazing fact. "
-        "Make it genuinely surprising. 2-3 sentences.",
-        "You know the most interesting facts."
-    )
-    embed = discord.Embed(
-        title="🤯 Random Fact",
-        description=fact,
-        color=discord.Color.teal()
-    )
-    return embed
-
-async def do_truth_or_dare(choice):
-    if choice.lower() == "truth":
-        result = await ask_groq(
-            "Give me an interesting truth question for a Discord game. "
-            "Make it fun but appropriate.",
-            "You generate truth or dare questions."
-        )
-        title = "🔍 Truth!"
-        color = discord.Color.blue()
-    else:
-        result = await ask_groq(
-            "Give me a fun dare for a Discord game. "
-            "Keep it appropriate and fun.",
-            "You generate truth or dare questions."
-        )
-        title = "😤 Dare!"
-        color = discord.Color.red()
-
-    embed = discord.Embed(title=title, description=result, color=color)
-    return embed
-
-async def do_story(prompt_text=""):
-    story = await ask_groq(
-        f"Write a short creative story {'about: ' + prompt_text if prompt_text else ''}. "
-        "Make it engaging and complete. 150-200 words.",
-        "You are a creative storyteller."
-    )
-    embed = discord.Embed(
-        title="📖 Story Time",
-        description=story,
-        color=discord.Color.green()
-    )
-    return embed
-
-async def do_riddle(message):
-    riddle_data = await ask_groq_json("""Generate a riddle.
-JSON only:
-{
-    "riddle": "the riddle question",
-    "answer": "the answer"
-}""")
-
-    if not riddle_data:
-        return None
-
-    embed = discord.Embed(
-        title="🧩 Riddle",
-        description=riddle_data["riddle"],
-        color=discord.Color.purple()
-    )
-    embed.set_footer(text="Reply with your answer! Answer reveals in 30 seconds.")
-    msg = await message.channel.send(embed=embed)
-
-    await asyncio.sleep(30)
-
-    answer_embed = discord.Embed(
-        title="💡 The Answer!",
-        description=f"**{riddle_data['answer']}**",
-        color=discord.Color.gold()
-    )
-    await message.channel.send(embed=answer_embed)
-    return None
-
-async def do_pickup_line():
-    line = await ask_groq(
-        "Give me a creative pickup line. "
-        "Make it clever and funny.",
-        "You know all the best pickup lines."
-    )
-    embed = discord.Embed(
-        title="😘 Pickup Line",
-        description=line,
-        color=discord.Color.red()
-    )
-    return embed
-
-async def do_horoscope(sign):
-    horoscope = await ask_groq(
-        f"Give a fun and creative horoscope for {sign} today. "
-        "Mix real astrology vibes with humor. 3-4 sentences.",
-        "You are a mystical astrologer."
-    )
-    embed = discord.Embed(
-        title=f"⭐ {sign} Horoscope",
-        description=horoscope,
-        color=discord.Color.purple()
-    )
-    return embed
-
-async def do_debate(topic, message):
-    intro = await ask_groq(
-        f"Start a debate about: {topic}. "
-        "Present both sides clearly. "
-        "Ask the channel which side they support.",
-        "You are a debate moderator."
-    )
-    embed = discord.Embed(
-        title=f"⚔️ Debate: {topic}",
-        description=intro,
-        color=discord.Color.orange()
-    )
-    embed.set_footer(text="React with 👍 or 👎 to vote!")
-    msg = await message.channel.send(embed=embed)
-    await msg.add_reaction("👍")
-    await msg.add_reaction("👎")
-    return None
-
-# ============ SECTION 12 - SERVER MANAGEMENT ============
-async def alert_mods(guild, embed, channel_name=None):
-    settings = get_guild_settings(guild.id)
-    log_name = channel_name or settings["log_channel"]
-    log_channel = discord.utils.get(guild.text_channels, name=log_name)
-    mod_role = discord.utils.get(guild.roles, name=settings["mod_role_name"])
-    if log_channel:
-        ping = mod_role.mention if mod_role else ""
-        await log_channel.send(content=f"🚨 {ping}", embed=embed)
-
-async def setup_server(guild):
-    results = []
-    settings = get_guild_settings(guild.id)
-
-    # Roles
-    for role_name, color, hoist in [
-        (settings["mod_role_name"], discord.Color.red(), True),
-        ("Muted", discord.Color.dark_gray(), False),
-        ("Member", discord.Color.blue(), False),
-        ("VIP", discord.Color.gold(), True),
-        ("Bot", discord.Color.green(), False)
-    ]:
-        existing = discord.utils.get(guild.roles, name=role_name)
-        if not existing:
-            try:
-                await guild.create_role(
-                    name=role_name, color=color,
-                    hoist=hoist, mentionable=True
-                )
-                results.append(f"✅ Created role: **{role_name}**")
-            except:
-                results.append(f"❌ Failed role: **{role_name}**")
-        else:
-            results.append(f"⏭️ Role exists: **{role_name}**")
-
-    # Sentinel category
-    mod_role = discord.utils.get(guild.roles, name=settings["mod_role_name"])
-    sentinel_cat = discord.utils.get(guild.categories, name="🛡️ SENTINELAI")
-    if not sentinel_cat:
-        try:
-            overwrites = {
-                guild.default_role: discord.PermissionOverwrite(read_messages=False),
-                guild.me: discord.PermissionOverwrite(read_messages=True, send_messages=True)
-            }
-            if mod_role:
-                overwrites[mod_role] = discord.PermissionOverwrite(
-                    read_messages=True, send_messages=True
-                )
-            sentinel_cat = await guild.create_category(
-                name="🛡️ SENTINELAI", overwrites=overwrites
-            )
-            results.append("✅ Created: **🛡️ SENTINELAI**")
-        except:
-            results.append("❌ Failed: **🛡️ SENTINELAI**")
-
-    # Sentinel channels
-    for ch_name, topic in [
-        (settings["log_channel"], "Moderation logs"),
-        (settings["raid_channel"], "Raid alerts"),
-        ("sentinel-nuke-alerts", "Anti-nuke alerts"),
-        ("sentinel-audit", "Audit logs"),
-        ("sentinel-reports", "User reports"),
-        ("sentinel-bot", "Talk to SentinelMod AI here!")
-    ]:
-        existing = discord.utils.get(guild.text_channels, name=ch_name)
-        if not existing:
-            try:
-                await guild.create_text_channel(
-                    name=ch_name, category=sentinel_cat, topic=topic
-                )
-                results.append(f"✅ Created: **#{ch_name}**")
-            except:
-                results.append(f"❌ Failed: **#{ch_name}**")
-        else:
-            results.append(f"⏭️ Exists: **#{ch_name}**")
-
-    # Public channels
-    for ch_name, topic in [
-        ("welcome", "Welcome!"),
-        ("rules", "Server rules"),
-        ("announcements", "Announcements"),
-        ("general", "General chat"),
-        ("suggestions", "Suggest things"),
-        ("changelog", "Server updates")
-    ]:
-        existing = discord.utils.get(guild.text_channels, name=ch_name)
-        if not existing:
-            try:
-                await guild.create_text_channel(name=ch_name, topic=topic)
-                results.append(f"✅ Created: **#{ch_name}**")
-            except:
-                results.append(f"❌ Failed: **#{ch_name}**")
-        else:
-            results.append(f"⏭️ Exists: **#{ch_name}**")
-
-    # Ticket system
-    ticket_cat = discord.utils.get(guild.categories, name="🎫 TICKETS")
-    if not ticket_cat:
-        try:
-            ticket_cat = await guild.create_category(name="🎫 TICKETS")
-            results.append("✅ Created: **🎫 TICKETS**")
-        except:
-            pass
-
-    ticket_ch = discord.utils.get(guild.text_channels, name="create-ticket")
-    if not ticket_ch and ticket_cat:
-        try:
-            ticket_ch = await guild.create_text_channel(
-                name="create-ticket", category=ticket_cat
-            )
-            embed = discord.Embed(
-                title="🎫 Support Tickets",
-                description="Click below to create a support ticket.",
-                color=discord.Color.blue()
-            )
-            await ticket_ch.send(embed=embed, view=TicketView())
-            results.append("✅ Created: **#create-ticket**")
-        except:
-            pass
-
-    return results
 
 # ============ SECTION 13 - COMMAND EXECUTOR ============
 async def execute_command(parsed, message, guild, author):
     command = parsed.get("command", "unknown")
     params = parsed.get("params", {})
-
-    def find_member(name):
-        if not name:
-            return None
-        name = name.lower().replace("@", "")
-        for m in guild.members:
-            if (m.name.lower() == name or
-                    m.display_name.lower() == name or
-                    name in m.name.lower()):
-                return m
-        return None
-
-    async def get_or_create_channel(name, cat_name=None, topic="", private=False):
-        clean = name.lower().replace(" ", "-")
-        existing = discord.utils.get(guild.text_channels, name=clean)
-        if existing:
-            return existing, False
-        cat = None
-        if cat_name:
-            cat = discord.utils.get(guild.categories, name=cat_name)
-            if not cat:
-                cat = await guild.create_category(name=cat_name)
-        overwrites = {}
-        if private:
-            overwrites = {
-                guild.default_role: discord.PermissionOverwrite(read_messages=False),
-                author: discord.PermissionOverwrite(read_messages=True, send_messages=True),
-                guild.me: discord.PermissionOverwrite(read_messages=True, send_messages=True)
-            }
-        ch = await guild.create_text_channel(
-            name=clean, category=cat, topic=topic, overwrites=overwrites
-        )
-        return ch, True
-
-    async def get_or_create_role(name, color_hex=None, hoist=False, mentionable=False):
-        existing = discord.utils.get(guild.roles, name=name)
-        if existing:
-            return existing, False
-        color = discord.Color.default()
-        if color_hex:
-            try:
-                color = discord.Color(int(color_hex.replace("#", ""), 16))
-            except:
-                pass
-        role = await guild.create_role(
-            name=name, color=color, hoist=hoist, mentionable=mentionable
-        )
-        return role, True
-
     settings = get_guild_settings(guild.id)
 
     try:
         # ---- SERVER MANAGEMENT ----
         if command == "create_channel":
-            ch, created = await get_or_create_channel(
-                params.get("name", "new-channel"),
-                params.get("category"),
-                params.get("topic", ""),
-                params.get("private", False)
-            )
-            return f"{'✅ Created' if created else '⏭️ Already exists'}: {ch.mention}"
+            name = (params.get("name") or "new-channel").lower().replace(" ", "-")
+            existing = discord.utils.get(guild.text_channels, name=name)
+            if existing:
+                return f"⏭️ {existing.mention} already exists!"
+            cat = None
+            if params.get("category"):
+                cat = discord.utils.get(guild.categories, name=params["category"])
+                if not cat:
+                    cat = await guild.create_category(name=params["category"])
+            overwrites = {}
+            if params.get("private"):
+                overwrites = {guild.default_role: discord.PermissionOverwrite(read_messages=False),
+                    author: discord.PermissionOverwrite(read_messages=True, send_messages=True),
+                    guild.me: discord.PermissionOverwrite(read_messages=True, send_messages=True)}
+            ch = await guild.create_text_channel(name=name, category=cat,
+                topic=params.get("topic",""), overwrites=overwrites)
+            return f"✅ Created {ch.mention}!"
 
         elif command == "delete_channel":
-            name = params.get("name") or params.get("channel")
-            ch = discord.utils.get(guild.text_channels,
-                                   name=name.lower().replace(" ", "-"))
+            name = (params.get("name") or params.get("channel") or "").lower().replace(" ", "-")
+            ch = discord.utils.get(guild.text_channels, name=name)
             if not ch:
                 return f"❌ Channel **#{name}** not found."
             await ch.delete(reason=f"Deleted by {author.name}")
             return f"🗑️ Deleted **#{name}**!"
 
         elif command == "create_role":
-            role, created = await get_or_create_role(
-                params.get("name", "New Role"),
-                params.get("color"),
-                params.get("hoist", False),
-                params.get("mentionable", False)
-            )
-            return f"{'✅ Created' if created else '⏭️ Exists'}: {role.mention}"
+            name = params.get("name") or "New Role"
+            existing = discord.utils.get(guild.roles, name=name)
+            if existing:
+                return f"⏭️ Role **{name}** already exists!"
+            color = discord.Color.default()
+            if params.get("color"):
+                try:
+                    color = discord.Color(int(params["color"].replace("#",""), 16))
+                except:
+                    pass
+            role = await guild.create_role(name=name, color=color,
+                hoist=params.get("hoist", False), mentionable=params.get("mentionable", False))
+            return f"✅ Created role {role.mention}!"
 
         elif command == "delete_role":
             role = discord.utils.get(guild.roles, name=params.get("name"))
             if not role:
-                return f"❌ Role not found."
+                return "❌ Role not found."
             await role.delete()
             return f"🗑️ Deleted role **{params.get('name')}**!"
 
         elif command == "create_category":
-            name = params.get("name", "New Category")
+            name = params.get("name") or "New Category"
             existing = discord.utils.get(guild.categories, name=name)
             if existing:
                 return f"⏭️ Category **{name}** already exists!"
-            overwrites = {}
-            if params.get("private"):
-                overwrites = {
-                    guild.default_role: discord.PermissionOverwrite(read_messages=False),
-                    author: discord.PermissionOverwrite(read_messages=True),
-                    guild.me: discord.PermissionOverwrite(read_messages=True)
-                }
-            cat = await guild.create_category(name=name, overwrites=overwrites)
-            return f"✅ Created category **{cat.name}**!"
+            await guild.create_category(name=name)
+            return f"✅ Created category **{name}**!"
 
         elif command == "delete_category":
             cat = discord.utils.get(guild.categories, name=params.get("name"))
             if not cat:
                 return "❌ Category not found."
             await cat.delete()
-            return f"🗑️ Deleted category **{params.get('name')}**!"
+            return f"🗑️ Deleted category!"
 
         # ---- MODERATION ----
         elif command == "ban_user":
-            target = find_member(params.get("target_user"))
+            target = find_member_strict(guild, params)
             if not target:
-                return "❌ User not found."
-            reason = params.get("reason") or "No reason"
+                return "❌ User not found. Please @mention them directly!"
+            if target.id == author.id:
+                return "❌ You can't ban yourself!"
+            if target.id == guild.me.id:
+                return "❌ I can't ban myself!"
+            reason = params.get("reason") or "No reason provided"
+            try:
+                await target.send(embed=discord.Embed(title="🔨 Banned",
+                    description=f"You were banned from **{guild.name}**\nReason: {reason}",
+                    color=discord.Color.dark_red()))
+            except:
+                pass
             await guild.ban(target, reason=f"{author.name}: {reason}")
             log_mod_action(target.id, guild.id, "BAN", reason, author.id)
             add_warning(target.id, guild.id, reason, "critical")
-            embed = discord.Embed(
-                title="🔨 User Banned",
-                color=discord.Color.dark_red(),
-                timestamp=datetime.now()
-            )
-            embed.add_field(name="User", value=f"{target}", inline=True)
+            embed = discord.Embed(title="🔨 User Banned", color=discord.Color.dark_red(), timestamp=datetime.now())
+            embed.add_field(name="User", value=f"{target} ({target.id})", inline=True)
             embed.add_field(name="By", value=author.mention, inline=True)
             embed.add_field(name="Reason", value=reason, inline=False)
             await alert_mods(guild, embed)
-            return f"🔨 Banned **{target.name}**!"
+            return f"🔨 Banned **{target.name}**! Reason: {reason}"
 
         elif command == "kick_user":
-            target = find_member(params.get("target_user"))
+            target = find_member_strict(guild, params)
             if not target:
-                return "❌ User not found."
-            reason = params.get("reason") or "No reason"
+                return "❌ User not found. Please @mention them directly!"
+            if target.id == author.id:
+                return "❌ You can't kick yourself!"
+            if target.id == guild.me.id:
+                return "❌ I can't kick myself!"
+            reason = params.get("reason") or "No reason provided"
+            try:
+                await target.send(embed=discord.Embed(title="👢 Kicked",
+                    description=f"You were kicked from **{guild.name}**\nReason: {reason}",
+                    color=discord.Color.orange()))
+            except:
+                pass
             await guild.kick(target, reason=f"{author.name}: {reason}")
             log_mod_action(target.id, guild.id, "KICK", reason, author.id)
-            embed = discord.Embed(
-                title="👢 User Kicked",
-                color=discord.Color.orange(),
-                timestamp=datetime.now()
-            )
-            embed.add_field(name="User", value=f"{target}", inline=True)
+            embed = discord.Embed(title="👢 User Kicked", color=discord.Color.orange(), timestamp=datetime.now())
+            embed.add_field(name="User", value=f"{target} ({target.id})", inline=True)
+            embed.add_field(name="By", value=author.mention, inline=True)
             embed.add_field(name="Reason", value=reason, inline=False)
             await alert_mods(guild, embed)
             return f"👢 Kicked **{target.name}**!"
 
         elif command == "mute_user":
-            target = find_member(params.get("target_user"))
+            target = find_member_strict(guild, params)
             if not target:
-                return "❌ User not found."
+                return "❌ User not found. Please @mention them!"
             duration = int(params.get("duration") or 10)
             reason = params.get("reason") or "No reason"
             until = datetime.now() + timedelta(minutes=duration)
@@ -1282,71 +815,55 @@ async def execute_command(parsed, message, guild, author):
             log_mod_action(target.id, guild.id, "MUTE", reason, author.id)
             add_warning(target.id, guild.id, reason, "medium")
             try:
-                dm = discord.Embed(
-                    title="🔇 Muted",
-                    description=f"You were muted in **{guild.name}**",
-                    color=discord.Color.orange()
-                )
-                dm.add_field(name="Duration", value=f"{duration} mins")
-                dm.add_field(name="Reason", value=reason)
-                await target.send(embed=dm)
+                await target.send(embed=discord.Embed(title="🔇 Muted",
+                    description=f"Muted in **{guild.name}** for {duration} min\nReason: {reason}",
+                    color=discord.Color.orange()))
             except:
                 pass
+            embed = discord.Embed(title="🔇 User Muted", color=discord.Color.orange(), timestamp=datetime.now())
+            embed.add_field(name="User", value=target.mention, inline=True)
+            embed.add_field(name="Duration", value=f"{duration} min", inline=True)
+            embed.add_field(name="Reason", value=reason, inline=False)
+            await alert_mods(guild, embed)
             return f"🔇 Muted **{target.name}** for {duration} minutes!"
 
         elif command == "unmute_user":
-            target = find_member(params.get("target_user"))
+            target = find_member_strict(guild, params)
             if not target:
                 return "❌ User not found."
             await target.timeout(None)
             return f"🔊 Unmuted **{target.name}**!"
 
         elif command == "warn_user":
-            target = find_member(params.get("target_user"))
+            target = find_member_strict(guild, params)
             if not target:
-                return "❌ User not found."
+                return "❌ User not found. Please @mention them!"
             reason = params.get("reason") or "No reason"
-            warn_count = add_warning(target.id, guild.id, reason, "manual")
+            wc = add_warning(target.id, guild.id, reason, "manual")
             log_mod_action(target.id, guild.id, "WARN", reason, author.id)
             try:
-                dm = discord.Embed(
-                    title="⚠️ Warning",
-                    description=f"Warning in **{guild.name}**",
-                    color=discord.Color.yellow()
-                )
-                dm.add_field(name="Reason", value=reason)
-                dm.add_field(
-                    name="Total",
-                    value=f"{warn_count}/{settings.get('warn_ban', 5)}"
-                )
-                await target.send(embed=dm)
+                await target.send(embed=discord.Embed(title="⚠️ Warning",
+                    description=f"Warning in **{guild.name}**\nReason: {reason}\nWarnings: {wc}/{settings.get('warn_ban',5)}",
+                    color=discord.Color.yellow()))
             except:
                 pass
-            embed = discord.Embed(
-                title="⚠️ Warning Issued",
-                color=discord.Color.yellow(),
-                timestamp=datetime.now()
-            )
+            embed = discord.Embed(title="⚠️ Warning Issued", color=discord.Color.yellow(), timestamp=datetime.now())
             embed.add_field(name="User", value=target.mention, inline=True)
             embed.add_field(name="By", value=author.mention, inline=True)
             embed.add_field(name="Reason", value=reason, inline=False)
-            embed.add_field(
-                name="Total",
-                value=f"{warn_count}/{settings.get('warn_ban', 5)}",
-                inline=True
-            )
+            embed.add_field(name="Total", value=f"{wc}/{settings.get('warn_ban',5)}", inline=True)
             await alert_mods(guild, embed)
-            return f"⚠️ Warned **{target.name}** ({warn_count} warnings)"
+            return f"⚠️ Warned **{target.name}** ({wc} warnings)"
 
         elif command == "clear_warnings":
-            target = find_member(params.get("target_user"))
+            target = find_member_strict(guild, params)
             if not target:
                 return "❌ User not found."
             clear_warnings(target.id, guild.id)
             return f"✅ Cleared warnings for **{target.name}**!"
 
         elif command == "warn_check":
-            target = find_member(params.get("target_user"))
+            target = find_member_strict(guild, params)
             if not target:
                 return "❌ User not found."
             warns = get_warnings(target.id, guild.id)
@@ -1354,23 +871,59 @@ async def execute_command(parsed, message, guild, author):
                 return f"✅ **{target.name}** has no warnings!"
             lines = [f"**{target.name}** - {len(warns)} warnings:"]
             for i, w in enumerate(warns[:5], 1):
-                lines.append(
-                    f"#{i} [{w['severity'].upper()}] {w['reason']} "
-                    f"- {w['timestamp'][:10]}"
-                )
+                lines.append(f"#{i} [{w['severity'].upper()}] {w['reason']} - {w['timestamp'][:10]}")
             return "\n".join(lines)
+
+        elif command == "quarantine":
+            target = find_member_strict(guild, params)
+            if not target:
+                return "❌ User not found."
+            reason = params.get("reason") or "Suspicious activity"
+            q_role = discord.utils.get(guild.roles, name="Quarantined")
+            if not q_role:
+                q_role = await guild.create_role(name="Quarantined", color=discord.Color.dark_gray())
+                for ch in guild.text_channels:
+                    try:
+                        await ch.set_permissions(q_role, send_messages=False, add_reactions=False)
+                    except:
+                        pass
+            await target.add_roles(q_role, reason=reason)
+            conn = get_db()
+            c = conn.cursor()
+            c.execute("INSERT OR REPLACE INTO quarantine (user_id,guild_id,reason,timestamp) VALUES (?,?,?,?)",
+                (str(target.id), str(guild.id), reason, datetime.now().isoformat()))
+            conn.commit()
+            conn.close()
+            embed = discord.Embed(title="🔒 User Quarantined", color=discord.Color.dark_gray(), timestamp=datetime.now())
+            embed.add_field(name="User", value=target.mention, inline=True)
+            embed.add_field(name="Reason", value=reason, inline=True)
+            await alert_mods(guild, embed)
+            return f"🔒 Quarantined **{target.name}**!"
+
+        elif command == "unquarantine":
+            target = find_member_strict(guild, params)
+            if not target:
+                return "❌ User not found."
+            q_role = discord.utils.get(guild.roles, name="Quarantined")
+            if q_role and q_role in target.roles:
+                await target.remove_roles(q_role)
+            conn = get_db()
+            c = conn.cursor()
+            c.execute("DELETE FROM quarantine WHERE user_id=? AND guild_id=?",
+                (str(target.id), str(guild.id)))
+            conn.commit()
+            conn.close()
+            return f"✅ Unquarantined **{target.name}**!"
 
         elif command == "lock_channel":
             ch_name = params.get("channel") or params.get("name")
-            ch = (discord.utils.get(guild.text_channels, name=ch_name)
-                  if ch_name else message.channel)
+            ch = discord.utils.get(guild.text_channels, name=ch_name) if ch_name else message.channel
             await ch.set_permissions(guild.default_role, send_messages=False)
             return f"🔒 Locked {ch.mention}!"
 
         elif command == "unlock_channel":
             ch_name = params.get("channel") or params.get("name")
-            ch = (discord.utils.get(guild.text_channels, name=ch_name)
-                  if ch_name else message.channel)
+            ch = discord.utils.get(guild.text_channels, name=ch_name) if ch_name else message.channel
             await ch.set_permissions(guild.default_role, send_messages=None)
             return f"🔓 Unlocked {ch.mention}!"
 
@@ -1378,41 +931,31 @@ async def execute_command(parsed, message, guild, author):
             count = 0
             for ch in guild.text_channels:
                 try:
-                    await ch.set_permissions(
-                        guild.default_role, send_messages=False
-                    )
+                    await ch.set_permissions(guild.default_role, send_messages=False)
                     count += 1
                 except:
                     pass
-            embed = discord.Embed(
-                title="🔒 SERVER LOCKDOWN",
-                description=f"Locked by {author.mention}",
-                color=discord.Color.red(),
-                timestamp=datetime.now()
-            )
+            embed = discord.Embed(title="🔒 SERVER LOCKDOWN", description=f"By {author.mention}",
+                color=discord.Color.red(), timestamp=datetime.now())
             embed.add_field(name="Channels", value=str(count))
             await alert_mods(guild, embed)
-            return f"🔒 Server locked! {count} channels affected."
+            return f"🔒 Server locked! {count} channels."
 
         elif command == "unlock_server":
             count = 0
             for ch in guild.text_channels:
                 try:
-                    await ch.set_permissions(
-                        guild.default_role, send_messages=None
-                    )
+                    await ch.set_permissions(guild.default_role, send_messages=None)
                     count += 1
                 except:
                     pass
-            return f"🔓 Server unlocked! {count} channels restored."
+            return f"🔓 Server unlocked! {count} channels."
 
         elif command == "slowmode":
-            duration = int(params.get("duration") or 5)
-            ch_name = params.get("channel")
-            ch = (discord.utils.get(guild.text_channels, name=ch_name)
-                  if ch_name else message.channel)
-            await ch.edit(slowmode_delay=duration)
-            return f"🐌 Slowmode set to {duration}s in {ch.mention}!"
+            dur = int(params.get("duration") or 5)
+            ch = message.channel
+            await ch.edit(slowmode_delay=dur)
+            return f"🐌 Slowmode: {dur}s in {ch.mention}!"
 
         elif command == "purge":
             amount = min(int(params.get("amount") or 10), 100)
@@ -1420,7 +963,7 @@ async def execute_command(parsed, message, guild, author):
             return f"🗑️ Deleted {len(deleted)-1} messages!"
 
         elif command == "add_role_to_user":
-            target = find_member(params.get("target_user"))
+            target = find_member_strict(guild, params)
             role = discord.utils.get(guild.roles, name=params.get("name"))
             if not target or not role:
                 return "❌ User or role not found."
@@ -1428,94 +971,106 @@ async def execute_command(parsed, message, guild, author):
             return f"✅ Added **{role.name}** to {target.mention}!"
 
         elif command == "remove_role_from_user":
-            target = find_member(params.get("target_user"))
+            target = find_member_strict(guild, params)
             role = discord.utils.get(guild.roles, name=params.get("name"))
             if not target or not role:
                 return "❌ User or role not found."
             await target.remove_roles(role)
             return f"✅ Removed **{role.name}** from {target.mention}!"
 
-        # ---- FUN COMMANDS ----
+        # ---- FUN ----
         elif command == "trivia":
             await do_trivia(message, guild.id, author.id)
             return None
 
         elif command == "wouldyourather":
-            await do_wouldyourather(message)
-            return None
-
-        elif command == "eightball":
-            question = params.get("question") or params.get("text") or "..."
-            embed = await do_eightball(question, author)
-            await message.channel.send(embed=embed)
-            return None
-
-        elif command == "roast":
-            target_name = params.get("target_user") or params.get("name") or "someone"
-            embed = await do_roast(target_name, author.name)
-            await message.channel.send(embed=embed)
-            return None
-
-        elif command == "compliment":
-            target_name = params.get("target_user") or params.get("name") or author.name
-            embed = await do_compliment(target_name)
-            await message.channel.send(embed=embed)
-            return None
-
-        elif command == "dadjoke":
-            embed = await do_dadjoke()
-            await message.channel.send(embed=embed)
-            return None
-
-        elif command == "ship":
-            u1 = params.get("target_user") or author.name
-            u2 = params.get("target_user2") or "someone"
-            embed = await do_ship(u1, u2)
-            await message.channel.send(embed=embed)
-            return None
-
-        elif command == "rate":
-            thing = params.get("rating_target") or params.get("text") or "life"
-            embed = await do_rate(thing)
-            await message.channel.send(embed=embed)
-            return None
-
-        elif command == "fact":
-            embed = await do_fact()
-            await message.channel.send(embed=embed)
-            return None
-
-        elif command == "truthordare":
-            choice = params.get("text") or random.choice(["truth", "dare"])
-            embed = await do_truth_or_dare(choice)
-            await message.channel.send(embed=embed)
-            return None
-
-        elif command == "story":
-            prompt_text = params.get("text") or params.get("topic") or ""
-            embed = await do_story(prompt_text)
-            await message.channel.send(embed=embed)
-            return None
-
-        elif command == "riddle":
-            await do_riddle(message)
-            return None
-
-        elif command == "pickupline":
-            embed = await do_pickup_line()
-            await message.channel.send(embed=embed)
-            return None
-
-        elif command == "horoscope":
-            sign = params.get("zodiac") or params.get("text") or "Aries"
-            embed = await do_horoscope(sign)
-            await message.channel.send(embed=embed)
+            embed = await do_fun_embed("wouldyourather", params, author)
+            if embed:
+                msg = await message.channel.send(embed=embed)
+                await msg.add_reaction("🅰️")
+                await msg.add_reaction("🅱️")
             return None
 
         elif command == "debate":
-            topic = params.get("topic") or params.get("text") or "pineapple on pizza"
-            await do_debate(topic, message)
+            topic = params.get("text") or params.get("question") or "pineapple on pizza"
+            result = await ask_groq(f"Start a debate about: {topic}. Present both sides. Ask channel to vote.", "You are a debate moderator.")
+            if result:
+                embed = discord.Embed(title=f"⚔️ Debate: {topic}", description=result, color=discord.Color.orange())
+                msg = await message.channel.send(embed=embed)
+                await msg.add_reaction("👍")
+                await msg.add_reaction("👎")
             return None
+
+        elif command in ["eightball","roast","compliment","dadjoke","ship","rate","fact","truthordare","story","riddle","pickupline","horoscope"]:
+            embed = await do_fun_embed(command, params, author)
+            if embed:
+                await message.channel.send(embed=embed)
+            return None
+
+        # ---- NEW FEATURES ----
+        elif command == "remind":
+            reminder_text = params.get("text") or params.get("note") or "Reminder!"
+            minutes = int(params.get("reminder_time") or params.get("duration") or 10)
+            remind_time = datetime.now() + timedelta(minutes=minutes)
+            conn = get_db()
+            c = conn.cursor()
+            c.execute("INSERT INTO reminders (user_id,guild_id,channel_id,reminder,remind_time) VALUES (?,?,?,?,?)",
+                (str(author.id), str(guild.id), str(message.channel.id), reminder_text, remind_time.isoformat()))
+            conn.commit()
+            conn.close()
+            return f"⏰ I'll remind you in {minutes} minutes: **{reminder_text}**"
+
+        elif command == "birthday":
+            date = params.get("birthday_date") or params.get("text")
+            if not date:
+                return "❌ Please tell me your birthday! E.g. 'my birthday is January 15'"
+            conn = get_db()
+            c = conn.cursor()
+            c.execute("INSERT OR REPLACE INTO birthdays (user_id,guild_id,birthday) VALUES (?,?,?)",
+                (str(author.id), str(guild.id), date))
+            conn.commit()
+            conn.close()
+            return f"🎂 Birthday set to **{date}**!"
+
+        elif command == "confession":
+            text = params.get("confession_text") or params.get("text")
+            if not text:
+                return "❌ What's your confession?"
+            conn = get_db()
+            c = conn.cursor()
+            c.execute("INSERT INTO confessions (guild_id,confession,timestamp) VALUES (?,?,?)",
+                (str(guild.id), text, datetime.now().isoformat()))
+            c.execute("SELECT last_insert_rowid()")
+            confession_id = c.fetchone()[0]
+            conn.commit()
+            conn.close()
+            embed = discord.Embed(title=f"🤫 Anonymous Confession #{confession_id}",
+                description=text, color=discord.Color.dark_purple(), timestamp=datetime.now())
+            embed.set_footer(text="Sent anonymously via SentinelMod")
+            await message.channel.send(embed=embed)
+            try:
+                await message.delete()
+            except:
+                pass
+            return None
+
+        elif command == "rep":
+            target = find_member_strict(guild, params)
+            if not target:
+                return "❌ Who do you want to give rep to? @mention them!"
+            if target.id == author.id:
+                return "❌ You can't rep yourself!"
+            conn = get_db()
+            c = conn.cursor()
+            c.execute("""INSERT INTO reputation (user_id,guild_id,rep) VALUES (?,?,1)
+                ON CONFLICT(user_id,guild_id) DO UPDATE SET rep=rep+1""",
+                (str(target.id), str(guild.id)))
+            conn.commit()
+            c.execute("SELECT rep FROM reputation WHERE user_id=? AND guild_id=?",
+                (str(target.id), str(guild.id)))
+            rep = c.fetchone()[0]
+            conn.close()
+            return f"✅ +1 rep to **{target.name}**! Total: **{rep}** rep"
 
         # ---- SERVER FEATURES ----
         elif command == "start_giveaway":
@@ -1523,28 +1078,17 @@ async def execute_command(parsed, message, guild, author):
             duration = int(params.get("duration") or 60)
             winners = int(params.get("winners") or 1)
             end_time = datetime.now() + timedelta(minutes=duration)
-            embed = discord.Embed(
-                title="🎉 GIVEAWAY!",
-                description=f"**Prize:** {prize}\nReact with 🎉!",
-                color=discord.Color.gold(),
-                timestamp=end_time
-            )
+            embed = discord.Embed(title="🎉 GIVEAWAY!", description=f"**Prize:** {prize}\nReact 🎉!",
+                color=discord.Color.gold(), timestamp=end_time)
             embed.add_field(name="Winners", value=str(winners), inline=True)
             embed.add_field(name="By", value=author.mention, inline=True)
-            embed.add_field(
-                name="Ends",
-                value=f"<t:{int(end_time.timestamp())}:R>",
-                inline=True
-            )
+            embed.add_field(name="Ends", value=f"<t:{int(end_time.timestamp())}:R>", inline=True)
             msg = await message.channel.send(embed=embed)
             await msg.add_reaction("🎉")
             conn = get_db()
             c = conn.cursor()
-            c.execute("""INSERT INTO giveaways
-                (guild_id, channel_id, message_id, prize, winners, end_time, host_id)
-                VALUES (?, ?, ?, ?, ?, ?, ?)""",
-                (str(guild.id), str(message.channel.id), str(msg.id),
-                 prize, winners, end_time.isoformat(), str(author.id)))
+            c.execute("INSERT INTO giveaways (guild_id,channel_id,message_id,prize,winners,end_time,host_id) VALUES (?,?,?,?,?,?,?)",
+                (str(guild.id), str(message.channel.id), str(msg.id), prize, winners, end_time.isoformat(), str(author.id)))
             conn.commit()
             conn.close()
             return f"🎉 Giveaway started for **{prize}**!"
@@ -1552,12 +1096,8 @@ async def execute_command(parsed, message, guild, author):
         elif command == "create_poll":
             question = params.get("question") or "Poll"
             options = params.get("options") or ["Yes", "No"]
-            emojis = ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣"]
-            embed = discord.Embed(
-                title=f"📊 {question}",
-                color=discord.Color.blue(),
-                timestamp=datetime.now()
-            )
+            emojis = ["1️⃣","2️⃣","3️⃣","4️⃣","5️⃣"]
+            embed = discord.Embed(title=f"📊 {question}", color=discord.Color.blue())
             for i, opt in enumerate(options[:5]):
                 embed.add_field(name=f"{emojis[i]} {opt}", value="\u200b", inline=False)
             msg = await message.channel.send(embed=embed)
@@ -1569,35 +1109,22 @@ async def execute_command(parsed, message, guild, author):
             reason = params.get("reason") or params.get("text") or "AFK"
             conn = get_db()
             c = conn.cursor()
-            c.execute("""INSERT OR REPLACE INTO afk_users
-                (user_id, guild_id, reason, timestamp) VALUES (?, ?, ?, ?)""",
+            c.execute("INSERT OR REPLACE INTO afk_users (user_id,guild_id,reason,timestamp) VALUES (?,?,?,?)",
                 (str(author.id), str(guild.id), reason, datetime.now().isoformat()))
             conn.commit()
             conn.close()
             return f"💤 AFK set: **{reason}**"
 
         elif command == "backup_server":
-            roles_data = [{
-                "name": r.name, "color": str(r.color),
-                "hoist": r.hoist, "permissions": r.permissions.value
-            } for r in guild.roles if r.name != "@everyone"]
-            channels_data = [{
-                "name": c.name, "topic": c.topic,
-                "category": c.category.name if c.category else None
-            } for c in guild.text_channels]
-            backup = {
-                "roles": roles_data, "channels": channels_data,
-                "timestamp": datetime.now().isoformat()
-            }
+            roles_data = [{"name":r.name,"color":str(r.color),"hoist":r.hoist} for r in guild.roles if r.name != "@everyone"]
+            channels_data = [{"name":c.name,"topic":c.topic,"category":c.category.name if c.category else None} for c in guild.text_channels]
             conn = get_db()
             c = conn.cursor()
-            c.execute("""INSERT INTO backup_data (guild_id, backup_type, data, timestamp)
-                VALUES (?, ?, ?, ?)""",
-                (str(guild.id), "full", json.dumps(backup), datetime.now().isoformat()))
+            c.execute("INSERT INTO backup_data (guild_id,backup_type,data,timestamp) VALUES (?,?,?,?)",
+                (str(guild.id), "full", json.dumps({"roles":roles_data,"channels":channels_data}), datetime.now().isoformat()))
             conn.commit()
             conn.close()
-            return (f"💾 Backed up {len(roles_data)} roles "
-                    f"and {len(channels_data)} channels!")
+            return f"💾 Backed up {len(roles_data)} roles and {len(channels_data)} channels!"
 
         elif command == "setup_server":
             results = await setup_server(guild)
@@ -1610,32 +1137,25 @@ async def execute_command(parsed, message, guild, author):
                 if not msg.author.bot:
                     msgs.append(f"{msg.author.display_name}: {msg.content}")
             if not msgs:
-                return "❌ No messages to summarize."
-            summary = await ask_groq(
-                f"Summarize in 3-5 bullet points:\n\n" + "\n".join(reversed(msgs)),
-                "You are a summarization AI."
-            )
+                return "❌ No messages."
+            summary = await ask_groq("Summarize in 3-5 bullet points:\n\n" + "\n".join(reversed(msgs)), "Summarize concisely.")
             return f"📝 **Summary:**\n{summary}"
 
         elif command == "translate":
             text = params.get("text") or ""
             lang = params.get("language") or "English"
             if not text:
-                return "❌ No text to translate."
-            translation = await ask_groq(
-                f"Translate to {lang}. Reply with ONLY the translation:\n\n{text}",
-                "You are a translator."
-            )
-            return f"🌐 **({lang}):** {translation}"
+                return "❌ No text."
+            t = await ask_groq(f"Translate to {lang}. ONLY the translation:\n{text}", "Translator.")
+            return f"🌐 **({lang}):** {t}"
 
         elif command == "add_word_filter":
             word = params.get("word")
             if not word:
-                return "❌ No word specified."
+                return "❌ No word."
             conn = get_db()
             c = conn.cursor()
-            c.execute("INSERT OR IGNORE INTO word_filters (guild_id, word) VALUES (?, ?)",
-                (str(guild.id), word.lower()))
+            c.execute("INSERT OR IGNORE INTO word_filters (guild_id,word) VALUES (?,?)", (str(guild.id), word.lower()))
             conn.commit()
             conn.close()
             return f"✅ Added **{word}** to filter!"
@@ -1644,45 +1164,36 @@ async def execute_command(parsed, message, guild, author):
             word = params.get("word")
             conn = get_db()
             c = conn.cursor()
-            c.execute("DELETE FROM word_filters WHERE guild_id = ? AND word = ?",
-                (str(guild.id), word.lower()))
+            c.execute("DELETE FROM word_filters WHERE guild_id=? AND word=?", (str(guild.id), word.lower()))
             conn.commit()
             conn.close()
-            return f"✅ Removed **{word}** from filter!"
+            return f"✅ Removed **{word}**!"
 
         elif command == "add_note":
-            target = find_member(params.get("target_user"))
+            target = find_member_strict(guild, params)
             note = params.get("note") or params.get("text")
             if not target or not note:
                 return "❌ Specify user and note."
             conn = get_db()
             c = conn.cursor()
-            c.execute("""INSERT INTO user_notes
-                (guild_id, user_id, note, mod_id, timestamp)
-                VALUES (?, ?, ?, ?, ?)""",
-                (str(guild.id), str(target.id), note,
-                 str(author.id), datetime.now().isoformat()))
+            c.execute("INSERT INTO user_notes (guild_id,user_id,note,mod_id,timestamp) VALUES (?,?,?,?,?)",
+                (str(guild.id), str(target.id), note, str(author.id), datetime.now().isoformat()))
             conn.commit()
             conn.close()
             return f"📝 Note added for **{target.name}**!"
 
         elif command == "get_notes":
-            target = find_member(params.get("target_user"))
+            target = find_member_strict(guild, params)
             if not target:
                 return "❌ User not found."
             conn = get_db()
             c = conn.cursor()
-            c.execute("""SELECT * FROM user_notes
-                WHERE guild_id = ? AND user_id = ?""",
-                (str(guild.id), str(target.id)))
+            c.execute("SELECT * FROM user_notes WHERE guild_id=? AND user_id=?", (str(guild.id), str(target.id)))
             notes = c.fetchall()
             conn.close()
             if not notes:
                 return f"📝 No notes for **{target.name}**."
-            lines = [f"📝 **Notes for {target.name}:**"]
-            for n in notes:
-                lines.append(f"• {n['note']} - {n['timestamp'][:10]}")
-            return "\n".join(lines)
+            return "\n".join([f"📝 **{target.name}:**"] + [f"• {n['note']}" for n in notes])
 
         elif command == "set_autorole":
             role = discord.utils.get(guild.roles, name=params.get("name"))
@@ -1690,263 +1201,108 @@ async def execute_command(parsed, message, guild, author):
                 return "❌ Role not found."
             conn = get_db()
             c = conn.cursor()
-            c.execute("INSERT OR IGNORE INTO auto_roles (guild_id, role_id) VALUES (?, ?)",
-                (str(guild.id), str(role.id)))
+            c.execute("INSERT OR IGNORE INTO auto_roles (guild_id,role_id) VALUES (?,?)", (str(guild.id), str(role.id)))
             conn.commit()
             conn.close()
-            return f"✅ **{role.name}** will be given to new members!"
+            return f"✅ **{role.name}** = auto role for new members!"
 
         elif command == "raid_mode":
-            feature = params.get("feature") or params.get("text") or ""
-            status = "on" in feature.lower() or "enable" in feature.lower()
+            text = (params.get("feature") or params.get("text") or "").lower()
+            status = "on" in text or "enable" in text
             raid_mode_active[guild.id] = status
             return f"🚨 Raid mode **{'ON' if status else 'OFF'}**!"
 
         elif command == "server_health":
-            total_members = guild.member_count
+            total = guild.member_count
             bots = sum(1 for m in guild.members if m.bot)
-            humans = total_members - bots
-            channels = len(guild.text_channels)
-            roles = len(guild.roles)
-
             conn = get_db()
             c = conn.cursor()
-            c.execute("SELECT COUNT(*) FROM warnings WHERE guild_id = ?",
-                (str(guild.id),))
-            total_warns = c.fetchone()[0]
-            c.execute("SELECT COUNT(*) FROM mod_actions WHERE guild_id = ?",
-                (str(guild.id),))
-            total_actions = c.fetchone()[0]
+            c.execute("SELECT COUNT(*) FROM warnings WHERE guild_id=?", (str(guild.id),))
+            warns = c.fetchone()[0]
             conn.close()
-
-            health_score = 100
-            if total_warns > 50:
-                health_score -= 20
-            if total_warns > 100:
-                health_score -= 20
-            if bots > humans:
-                health_score -= 10
-
-            embed = discord.Embed(
-                title="🏥 Server Health Report",
-                color=discord.Color.green() if health_score > 70
-                else discord.Color.orange() if health_score > 40
-                else discord.Color.red(),
-                timestamp=datetime.now()
-            )
-            embed.add_field(name="Health Score", value=f"{health_score}/100", inline=True)
-            embed.add_field(name="Members", value=str(humans), inline=True)
+            score = max(0, 100 - (warns // 5))
+            embed = discord.Embed(title="🏥 Server Health", color=discord.Color.green() if score > 70 else discord.Color.orange())
+            embed.add_field(name="Score", value=f"{score}/100", inline=True)
+            embed.add_field(name="Members", value=str(total - bots), inline=True)
             embed.add_field(name="Bots", value=str(bots), inline=True)
-            embed.add_field(name="Channels", value=str(channels), inline=True)
-            embed.add_field(name="Roles", value=str(roles), inline=True)
-            embed.add_field(name="Total Warnings", value=str(total_warns), inline=True)
-            embed.add_field(name="Mod Actions", value=str(total_actions), inline=True)
-            embed.add_field(
-                name="Raid Mode",
-                value="🔴 ON" if raid_mode_active[guild.id] else "🟢 OFF",
-                inline=True
-            )
+            embed.add_field(name="Warnings", value=str(warns), inline=True)
+            embed.add_field(name="Raid Mode", value="🔴" if raid_mode_active[guild.id] else "🟢", inline=True)
             await message.channel.send(embed=embed)
             return None
 
         elif command == "activity_stats":
             conn = get_db()
             c = conn.cursor()
-            c.execute("""SELECT user_id, message_count FROM message_stats
-                WHERE guild_id = ? ORDER BY message_count DESC LIMIT 10""",
+            c.execute("SELECT user_id,message_count FROM message_stats WHERE guild_id=? ORDER BY message_count DESC LIMIT 10",
                 (str(guild.id),))
-            top_users = c.fetchall()
+            top = c.fetchall()
             conn.close()
-
-            embed = discord.Embed(
-                title="📊 Activity Stats",
-                color=discord.Color.blue(),
-                timestamp=datetime.now()
-            )
-            if top_users:
-                lines = []
-                medals = ["🥇", "🥈", "🥉"]
-                for i, row in enumerate(top_users):
-                    member = guild.get_member(int(row["user_id"]))
-                    name = member.display_name if member else f"User {row['user_id']}"
-                    medal = medals[i] if i < 3 else f"#{i+1}"
-                    lines.append(f"{medal} {name}: **{row['message_count']}** messages")
-                embed.add_field(name="Top Active Members", value="\n".join(lines))
-            else:
-                embed.description = "No activity data yet!"
+            if not top:
+                return "📊 No activity data yet!"
+            medals = ["🥇","🥈","🥉"]
+            lines = []
+            for i, r in enumerate(top):
+                m = guild.get_member(int(r["user_id"]))
+                name = m.display_name if m else "Unknown"
+                medal = medals[i] if i < 3 else f"#{i+1}"
+                lines.append(f"{medal} {name}: **{r['message_count']}** msgs")
+            embed = discord.Embed(title="📊 Activity", description="\n".join(lines), color=discord.Color.blue())
             await message.channel.send(embed=embed)
             return None
 
         elif command == "mod_stats":
             conn = get_db()
             c = conn.cursor()
-            c.execute("""SELECT mod_id, COUNT(*) as total FROM mod_actions
-                WHERE guild_id = ? GROUP BY mod_id
-                ORDER BY total DESC LIMIT 5""",
+            c.execute("SELECT mod_id,COUNT(*) as t FROM mod_actions WHERE guild_id=? GROUP BY mod_id ORDER BY t DESC LIMIT 5",
                 (str(guild.id),))
-            top_mods = c.fetchall()
+            top = c.fetchall()
             conn.close()
-
-            embed = discord.Embed(
-                title="🛡️ Mod Leaderboard",
-                color=discord.Color.red(),
-                timestamp=datetime.now()
-            )
-            if top_mods:
-                lines = []
-                for i, row in enumerate(top_mods, 1):
-                    member = guild.get_member(int(row["mod_id"]))
-                    name = member.display_name if member else f"Mod {row['mod_id']}"
-                    lines.append(f"#{i} {name}: **{row['total']}** actions")
-                embed.add_field(name="Top Moderators", value="\n".join(lines))
+            if not top:
+                return "🛡️ No mod actions yet!"
+            lines = []
+            for i, r in enumerate(top, 1):
+                m = guild.get_member(int(r["mod_id"]))
+                lines.append(f"#{i} {m.display_name if m else 'Unknown'}: **{r['t']}** actions")
+            embed = discord.Embed(title="🛡️ Mod Leaderboard", description="\n".join(lines), color=discord.Color.red())
             await message.channel.send(embed=embed)
             return None
 
         elif command == "suggestion":
-            suggestion_text = params.get("text") or params.get("note")
-            if not suggestion_text:
-                return "❌ Please provide a suggestion."
-            settings = get_guild_settings(guild.id)
-            sug_channel = discord.utils.get(
-                guild.text_channels,
-                name=settings.get("suggestions_channel", "suggestions")
-            )
-            if not sug_channel:
-                return "❌ No suggestions channel found!"
-            embed = discord.Embed(
-                title="💡 New Suggestion",
-                description=suggestion_text,
-                color=discord.Color.blue(),
-                timestamp=datetime.now()
-            )
-            embed.set_footer(text=f"By {author.display_name}")
-            msg = await sug_channel.send(embed=embed)
-            await msg.add_reaction("👍")
-            await msg.add_reaction("👎")
-            conn = get_db()
-            c = conn.cursor()
-            c.execute("""INSERT INTO suggestions
-                (guild_id, user_id, suggestion, message_id, timestamp)
-                VALUES (?, ?, ?, ?, ?)""",
-                (str(guild.id), str(author.id), suggestion_text,
-                 str(msg.id), datetime.now().isoformat()))
-            conn.commit()
-            conn.close()
-            return f"✅ Suggestion posted in {sug_channel.mention}!"
+            text = params.get("text") or params.get("note")
+            if not text:
+                return "❌ No suggestion."
+            sug_ch = discord.utils.get(guild.text_channels, name="suggestions")
+            if sug_ch:
+                embed = discord.Embed(title="💡 Suggestion", description=text, color=discord.Color.blue())
+                embed.set_footer(text=f"By {author.display_name}")
+                msg = await sug_ch.send(embed=embed)
+                await msg.add_reaction("👍")
+                await msg.add_reaction("👎")
+                return f"✅ Suggestion posted in {sug_ch.mention}!"
+            return "❌ No suggestions channel."
 
-        elif command == "changelog":
-            change_text = params.get("text") or params.get("note")
-            if not change_text:
-                return "❌ Please provide changelog content."
-            settings = get_guild_settings(guild.id)
-            cl_channel = discord.utils.get(
-                guild.text_channels,
-                name=settings.get("changelog_channel", "changelog")
-            )
-            if not cl_channel:
-                return "❌ No changelog channel found!"
-            embed = discord.Embed(
-                title="📋 Server Update",
-                description=change_text,
-                color=discord.Color.green(),
-                timestamp=datetime.now()
-            )
-            embed.set_footer(text=f"Posted by {author.display_name}")
-            await cl_channel.send(embed=embed)
-            return f"✅ Changelog posted in {cl_channel.mention}!"
-
-        elif command == "cleanup":
-            days = int(params.get("days") or 30)
-            cutoff = datetime.now() - timedelta(days=days)
-            inactive = []
-            for member in guild.members:
-                if member.bot:
-                    continue
-                conn = get_db()
-                c = conn.cursor()
-                c.execute("""SELECT last_message FROM message_stats
-                    WHERE user_id = ? AND guild_id = ?""",
-                    (str(member.id), str(guild.id)))
-                row = c.fetchone()
-                conn.close()
-                if not row:
-                    if (datetime.now() - member.joined_at.replace(tzinfo=None)).days > days:
-                        inactive.append(member.name)
-
-            if not inactive:
-                return f"✅ No inactive members found in the last {days} days!"
-            return (f"📊 Found **{len(inactive)}** potentially inactive members "
-                    f"(no messages in {days} days):\n" +
-                    ", ".join(inactive[:20]))
-
-        elif command == "enable_feature":
-            feature = params.get("feature", "").lower().replace(" ", "_")
+        elif command in ["enable_feature", "disable_feature"]:
+            feature = (params.get("feature") or "").lower().replace(" ", "_")
+            val = 1 if command == "enable_feature" else 0
             conn = get_db()
             c = conn.cursor()
             try:
-                c.execute(
-                    f"UPDATE guild_settings SET {feature} = 1 WHERE guild_id = ?",
-                    (str(guild.id),)
-                )
+                c.execute(f"UPDATE guild_settings SET {feature}=? WHERE guild_id=?", (val, str(guild.id)))
                 conn.commit()
-                return f"✅ Enabled **{feature}**!"
-            except:
-                return f"❌ Unknown feature: {feature}"
-            finally:
-                conn.close()
-
-        elif command == "disable_feature":
-            feature = params.get("feature", "").lower().replace(" ", "_")
-            conn = get_db()
-            c = conn.cursor()
-            try:
-                c.execute(
-                    f"UPDATE guild_settings SET {feature} = 0 WHERE guild_id = ?",
-                    (str(guild.id),)
-                )
-                conn.commit()
-                return f"❌ Disabled **{feature}**!"
+                return f"{'✅ Enabled' if val else '❌ Disabled'} **{feature}**!"
             except:
                 return f"❌ Unknown feature: {feature}"
             finally:
                 conn.close()
 
         elif command == "help":
-            embed = discord.Embed(
-                title="🛡️ SentinelMod Help",
-                description="Mention me or chat in #sentinel-bot!",
-                color=discord.Color.blue()
-            )
-            embed.add_field(
-                name="🔧 Server",
-                value="make channel, make role, make category, delete channel, etc.",
-                inline=False
-            )
-            embed.add_field(
-                name="🔨 Moderation",
-                value="ban, kick, mute, warn, purge, lock, lockdown, etc.",
-                inline=False
-            )
-            embed.add_field(
-                name="🎮 Fun",
-                value="trivia, roast, compliment, 8ball, ship, rate, fact, etc.",
-                inline=False
-            )
-            embed.add_field(
-                name="🤖 AI",
-                value="summarize, translate, story, debate, riddle, etc.",
-                inline=False
-            )
-            embed.add_field(
-                name="📊 Server",
-                value="server health, activity stats, mod stats, suggestion, etc.",
-                inline=False
-            )
-            embed.add_field(
-                name="💬 Personality",
-                value="Use /personality to change my personality!",
-                inline=False
-            )
+            embed = discord.Embed(title="🛡️ SentinelMod Help", description="@mention me or chat in #sentinel-bot!", color=discord.Color.blue())
+            embed.add_field(name="🔧 Server", value="make/delete channel, role, category", inline=False)
+            embed.add_field(name="🔨 Mod", value="ban, kick, mute, warn, purge, lock, lockdown, quarantine", inline=False)
+            embed.add_field(name="🎮 Fun", value="trivia, roast, compliment, 8ball, ship, rate, riddle, truth/dare", inline=False)
+            embed.add_field(name="🤖 AI", value="summarize, translate, story, debate, confess", inline=False)
+            embed.add_field(name="📊 Info", value="server health, activity, mod stats, remind, birthday", inline=False)
+            embed.add_field(name="🎭 Personality", value="/personality or /setpersonality", inline=False)
             await message.channel.send(embed=embed)
             return None
 
@@ -1954,947 +1310,573 @@ async def execute_command(parsed, message, guild, author):
             return None
 
     except discord.Forbidden:
-        return "❌ I don't have permission to do that!"
+        return "❌ I don't have permission!"
     except Exception as e:
         print(f"Execute error: {e}")
         return f"❌ Error: {str(e)[:100]}"
 
 # ============ SECTION 14 - MODERATION SYSTEMS ============
-async def check_spam(message, settings):
-    key = f"{message.author.id}:{message.guild.id}"
+async def alert_mods(guild, embed, ch_name=None):
+    settings = get_guild_settings(guild.id)
+    ch = discord.utils.get(guild.text_channels, name=ch_name or settings["log_channel"])
+    mod_role = discord.utils.get(guild.roles, name=settings["mod_role_name"])
+    if ch:
+        await ch.send(content=mod_role.mention if mod_role else "", embed=embed)
+
+async def check_spam(msg, settings):
+    key = f"{msg.author.id}:{msg.guild.id}"
     now = time.time()
     spam_tracker[key].append(now)
-    window = settings.get("spam_window", 5)
-    spam_tracker[key] = [t for t in spam_tracker[key] if now - t < window]
+    w = settings.get("spam_window", 5)
+    spam_tracker[key] = [t for t in spam_tracker[key] if now - t < w]
     return len(spam_tracker[key]) >= settings.get("spam_limit", 5)
 
-async def handle_spam(message, settings):
-    user = message.author
-    guild = message.guild
+async def handle_spam(msg, settings):
+    u = msg.author
+    g = msg.guild
     try:
-        deleted = await message.channel.purge(
-            limit=10, check=lambda m: m.author == user
-        )
-    except:
-        deleted = []
-    try:
-        until = datetime.now() + timedelta(minutes=settings.get("mute_duration", 10))
-        await user.timeout(until, reason="Spam")
+        await msg.channel.purge(limit=10, check=lambda m: m.author == u)
     except:
         pass
-    warn_count = add_warning(user.id, guild.id, "Spam", "medium")
-    log_mod_action(user.id, guild.id, "SPAM_MUTE", "Spam", bot.user.id)
     try:
-        await user.send(embed=discord.Embed(
-            title="⚠️ Spam Detected",
-            description=f"Muted in **{guild.name}** for spamming",
-            color=discord.Color.orange()
-        ))
+        await u.timeout(datetime.now() + timedelta(minutes=settings.get("mute_duration", 10)), reason="Spam")
     except:
         pass
-    embed = discord.Embed(
-        title="🔇 Spam Handled",
-        color=discord.Color.orange(),
-        timestamp=datetime.now()
-    )
-    embed.add_field(name="User", value=user.mention, inline=True)
-    embed.add_field(name="Deleted", value=str(len(deleted)), inline=True)
-    embed.add_field(name="Warnings", value=str(warn_count), inline=True)
-    await alert_mods(guild, embed)
+    wc = add_warning(u.id, g.id, "Spam", "medium")
+    log_mod_action(u.id, g.id, "SPAM_MUTE", "Spam", bot.user.id)
+    try:
+        await u.send(embed=discord.Embed(title="⚠️ Spam Detected", description=f"Muted in **{g.name}**", color=discord.Color.orange()))
+    except:
+        pass
+    embed = discord.Embed(title="🔇 Spam Handled", color=discord.Color.orange(), timestamp=datetime.now())
+    embed.add_field(name="User", value=u.mention, inline=True)
+    embed.add_field(name="Warnings", value=str(wc), inline=True)
+    await alert_mods(g, embed)
 
 async def check_raid(member):
-    guild = member.guild
-    settings = get_guild_settings(guild.id)
+    g = member.guild
+    settings = get_guild_settings(g.id)
     now = time.time()
-    raid_tracker[guild.id].append({"time": now, "member": member})
-    window = settings.get("raid_window", 10)
-    raid_tracker[guild.id] = [
-        j for j in raid_tracker[guild.id] if now - j["time"] < window
-    ]
-    return len(raid_tracker[guild.id]) >= settings.get("raid_limit", 10)
+    raid_tracker[g.id].append({"time": now, "member": member})
+    w = settings.get("raid_window", 10)
+    raid_tracker[g.id] = [j for j in raid_tracker[g.id] if now - j["time"] < w]
+    return len(raid_tracker[g.id]) >= settings.get("raid_limit", 10)
 
-async def handle_raid(guild, new_member):
+async def handle_raid(guild, member):
     settings = get_guild_settings(guild.id)
     if not raid_mode_active[guild.id]:
         raid_mode_active[guild.id] = True
-        raid_channel = discord.utils.get(
-            guild.text_channels, name=settings["raid_channel"]
-        )
-        mod_role = discord.utils.get(guild.roles, name=settings["mod_role_name"])
-        if raid_channel:
-            embed = discord.Embed(
-                title="🚨 RAID DETECTED",
-                description="Auto-defense activated!",
-                color=discord.Color.red(),
-                timestamp=datetime.now()
-            )
-            ping = mod_role.mention if mod_role else ""
-            await raid_channel.send(content=f"🚨 {ping}", embed=embed)
+        ch = discord.utils.get(guild.text_channels, name=settings["raid_channel"])
+        mr = discord.utils.get(guild.roles, name=settings["mod_role_name"])
+        if ch:
+            await ch.send(content=f"🚨 {mr.mention if mr else ''} RAID DETECTED!",
+                embed=discord.Embed(title="🚨 RAID DETECTED", color=discord.Color.red()))
         await asyncio.sleep(300)
         raid_mode_active[guild.id] = False
-    account_age = (datetime.now() - new_member.created_at.replace(tzinfo=None)).days
-    if account_age < settings.get("min_account_age", 7):
+    age = (datetime.now() - member.created_at.replace(tzinfo=None)).days
+    if age < settings.get("min_account_age", 7):
         try:
-            await new_member.kick(reason="Raid protection")
+            await member.kick(reason="Raid protection")
         except:
             pass
 
-async def check_nuke(guild, action_type, executor):
+async def check_nuke(guild, action, executor):
     if executor == guild.me:
         return False
     key = f"{guild.id}:{executor.id}"
     now = time.time()
-    nuke_action_tracker[key].append({"time": now, "action": action_type})
-    nuke_action_tracker[key] = [
-        a for a in nuke_action_tracker[key] if now - a["time"] < 10
-    ]
+    nuke_action_tracker[key].append(now)
+    nuke_action_tracker[key] = [t for t in nuke_action_tracker[key] if now - t < 10]
     return len(nuke_action_tracker[key]) >= 3
 
-async def handle_nuke(guild, executor, action_type):
-    settings = get_guild_settings(guild.id)
+async def handle_nuke(guild, executor, action):
     try:
         await guild.ban(executor, reason="Anti-nuke")
     except:
         pass
-    embed = discord.Embed(
-        title="💣 NUKE ATTEMPT STOPPED",
-        description=f"**{executor}** banned for nuking attempt!",
-        color=discord.Color.dark_red(),
-        timestamp=datetime.now()
-    )
-    embed.add_field(name="User", value=f"{executor} ({executor.id})", inline=True)
-    embed.add_field(name="Action", value=action_type, inline=True)
-    embed.add_field(name="Result", value="🔨 BANNED", inline=True)
-    nuke_ch = discord.utils.get(guild.text_channels, name="sentinel-nuke-alerts")
-    if nuke_ch:
-        mod_role = discord.utils.get(guild.roles, name=settings["mod_role_name"])
-        ping = mod_role.mention if mod_role else ""
-        await nuke_ch.send(content=ping, embed=embed)
+    embed = discord.Embed(title="💣 NUKE STOPPED", description=f"**{executor}** banned!",
+        color=discord.Color.dark_red(), timestamp=datetime.now())
+    ch = discord.utils.get(guild.text_channels, name="sentinel-nuke-alerts")
+    if ch:
+        mr = discord.utils.get(guild.roles, name=get_guild_settings(guild.id)["mod_role_name"])
+        await ch.send(content=mr.mention if mr else "", embed=embed)
 
-async def check_toxicity(content, context="", sensitivity=0.7):
-    prompt = f"""Analyze this Discord message for ALL types of harmful content.
+async def check_patterns(msg, settings):
+    content = msg.content
+    cl = content.lower()
+    now = time.time()
+    key = f"{msg.author.id}:{msg.guild.id}"
 
+    checks = [
+        (settings.get("phone_filter",1), r'\b(\+?1?\s?)?(\(?\d{3}\)?[\s.\-]?\d{3}[\s.\-]?\d{4})\b', "phone_number", "Phone number", "high"),
+        (settings.get("email_filter",1), r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b', "email", "Email address", "high"),
+    ]
+    for enabled, pattern, ptype, reason, severity in checks:
+        if enabled and re.search(pattern, content):
+            return ptype, reason, severity
+
+    keywords = [
+        (settings.get("fake_nitro_filter",1), ["free nitro","discord nitro free","claim nitro"], "fake_nitro", "Fake Nitro scam", "critical"),
+        (settings.get("token_filter",1), ["discord token","grab token","token logger","grabify.link"], "token_grab", "Token grabber", "critical"),
+        (settings.get("scam_filter",1), ["you won","claim your prize","click here to claim","your account will be deleted"], "scam", "Scam", "critical"),
+        (settings.get("anti_advertisement",1), ["join my server","check out my server","subscribe to my"], "advertisement", "Advertisement", "medium"),
+        (settings.get("nsfw_text_filter",1), ["how old are you","send me a pic","don't tell your parents","keep this secret"], "grooming", "Grooming pattern", "critical"),
+        (1, ["i will expose you","pay me or","i know where you live","send me money or"], "blackmail", "Blackmail", "critical"),
+        (1, ["want to kill myself","want to die","going to hurt myself","end my life"], "self_harm", "Self-harm content", "high"),
+        (1, ["death to all","kill all","exterminate","purge the"], "extremism", "Extremism", "critical"),
+        (1, ["i'm from discord","official discord","your account has been flagged","verify your account"], "social_engineering", "Social engineering", "critical"),
+    ]
+    for enabled, words, ptype, reason, severity in keywords:
+        if enabled and any(w in cl for w in words):
+            return ptype, reason, severity
+
+    if settings.get("zalgo_filter",1):
+        if sum(1 for c in content if unicodedata.combining(c)) > 10:
+            return "zalgo", "Zalgo text", "medium"
+
+    if settings.get("caps_filter",1) and len(content) > 10:
+        if sum(1 for c in content if c.isupper()) / len(content) > 0.7:
+            return "caps", "Excessive caps", "low"
+
+    if settings.get("mention_spam",1) and len(msg.mentions) >= 5:
+        return "mention_spam", "Mention spam", "high"
+
+    if settings.get("everyone_block",0) and ("@everyone" in content or "@here" in content):
+        return "everyone", "Everyone mention", "medium"
+
+    if settings.get("invite_block",0) and re.search(r'(discord\.gg|discord\.com/invite)/[a-zA-Z0-9]+', content):
+        return "invite", "Invite link", "medium"
+
+    if settings.get("link_scan",1) and "http" in cl:
+        bad = ["grabify","iplogger","discord.gift","steamcommunity.ru","discordnitro","free-nitro","phish","dlscord","ip-logger"]
+        for b in bad:
+            if b in cl:
+                return "phishing", f"Phishing: {b}", "critical"
+
+    if re.search(r'(.)\1{9,}', content):
+        return "repeat_chars", "Character spam", "low"
+
+    zw = ['\u200b','\u200c','\u200d','\ufeff','\u2060']
+    if sum(content.count(z) for z in zw) > 5:
+        return "zero_width", "Zero-width spam", "medium"
+
+    if settings.get("unicode_filter",1):
+        try:
+            norm = unicodedata.normalize("NFKC", content).lower()
+            if norm != cl:
+                for word in get_filtered_words(msg.guild.id):
+                    if word in norm:
+                        return "unicode_bypass", f"Unicode bypass: {word}", "high"
+        except:
+            pass
+
+    return None, None, None
+
+async def check_toxicity(content, context=""):
+    return await ask_groq_json(f"""Analyze this Discord message for ALL harmful content.
 Context: {context}
 Message: "{content}"
 
-Be thorough. Check for:
-- Toxicity, harassment, hate speech
-- Threats, blackmail, doxxing
-- Grooming patterns
-- Scam attempts
-- Social engineering
-- NSFW content
-- Extremism
-- Self harm promotion
-- Impersonation
-- Coordinated attacks
+Check: toxicity, harassment, hate speech, threats, blackmail, doxxing, grooming, scam,
+social engineering, NSFW, extremism, self harm, impersonation
 
 JSON only:
-{{
-    "toxic": true or false,
-    "severity": "none|low|medium|high|critical",
-    "category": "none|harassment|hate_speech|threat|spam|sexual|bullying|manipulation|slur|doxxing|grooming|scam|social_engineering|extremism|self_harm|impersonation|blackmail|fake_nitro|token_grab|advertisement",
-    "confidence": 0.0 to 1.0,
-    "reason": "brief explanation",
-    "sentiment": "positive|neutral|negative|hostile",
-    "bypass_detected": true or false,
-    "immediate_action": true or false
-}}"""
-    return await ask_groq_json(prompt)
+{{"toxic":true/false,"severity":"none|low|medium|high|critical","category":"none|harassment|hate_speech|threat|sexual|bullying|manipulation|slur|doxxing|grooming|scam|extremism|self_harm|blackmail","confidence":0.0-1.0,"reason":"brief","bypass_detected":true/false,"immediate_action":true/false}}""")
 
-async def check_advanced_patterns(message, settings):
-    """Check for 70+ moderation patterns"""
-    content = message.content
-    content_lower = content.lower()
-    author = message.author
-    guild = message.guild
-    now = time.time()
-    key = f"{author.id}:{guild.id}"
+async def punish_user(msg, severity, reason, analysis):
+    u = msg.author
+    g = msg.guild
+    settings = get_guild_settings(g.id)
+    wc = add_warning(u.id, g.id, reason, severity)
+    log_mod_action(u.id, g.id, "AI_WARN", reason, bot.user.id)
+    try:
+        await msg.delete()
+    except:
+        pass
+    try:
+        await msg.channel.send(embed=discord.Embed(title="🛡️ Message Removed",
+            description=f"{u.mention} your message was removed.\nReason: {reason}",
+            color=discord.Color.orange()), delete_after=8)
+    except:
+        pass
+    try:
+        await u.send(embed=discord.Embed(title="⚠️ Warning",
+            description=f"Message removed in **{g.name}**\nReason: {reason}\nWarnings: {wc}/{settings.get('warn_ban',5)}",
+            color=discord.Color.yellow()))
+    except:
+        pass
 
-    # ---- PHONE NUMBER ----
-    if settings.get("phone_filter", 1):
-        phone_pattern = r'\b(\+?1?\s?)?(\(?\d{3}\)?[\s.\-]?\d{3}[\s.\-]?\d{4})\b'
-        if re.search(phone_pattern, content):
-            return "phone_number", "Phone number detected"
+    colors = {"low":discord.Color.yellow(),"medium":discord.Color.orange(),"high":discord.Color.red(),"critical":discord.Color.dark_red()}
+    embed = discord.Embed(title="🚨 AI Alert", color=colors.get(severity, discord.Color.red()), timestamp=datetime.now())
+    embed.add_field(name="User", value=f"{u.mention} ({u.id})", inline=True)
+    embed.add_field(name="Channel", value=msg.channel.mention, inline=True)
+    embed.add_field(name="Severity", value=severity.upper(), inline=True)
+    embed.add_field(name="Category", value=analysis.get("category","?"), inline=True)
+    embed.add_field(name="Confidence", value=f"{analysis.get('confidence',0)*100:.0f}%", inline=True)
+    embed.add_field(name="Warnings", value=f"{wc}/{settings.get('warn_ban',5)}", inline=True)
+    embed.add_field(name="Message", value=f"||{msg.content[:400]}||", inline=False)
+    embed.add_field(name="Reason", value=reason, inline=False)
 
-    # ---- EMAIL ----
-    if settings.get("email_filter", 1):
-        email_pattern = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'
-        if re.search(email_pattern, content):
-            return "email", "Email address detected"
-
-    # ---- FAKE NITRO ----
-    if settings.get("fake_nitro_filter", 1):
-        fake_nitro = ["free nitro", "discord nitro free", "get nitro",
-                      "claim nitro", "free discord nitro"]
-        if any(fn in content_lower for fn in fake_nitro):
-            return "fake_nitro", "Fake Nitro scam detected"
-
-    # ---- TOKEN GRABBER ----
-    if settings.get("token_filter", 1):
-        token_patterns = ["discord token", "grab token", "token logger",
-                         "token stealer", "grabify.link"]
-        if any(tp in content_lower for tp in token_patterns):
-            return "token_grab", "Token grabber detected"
-
-    # ---- ZALGO TEXT ----
-    if settings.get("zalgo_filter", 1):
-        zalgo_count = sum(1 for c in content
-                         if unicodedata.combining(c) > 0)
-        if zalgo_count > 10:
-            return "zalgo", "Zalgo text detected"
-
-    # ---- EMOJI SPAM ----
-    if settings.get("emoji_spam", 1):
-        emoji_count = sum(1 for c in content
-                         if c in "😀😁😂🤣😃😄😅😆😉😊😋😎"
-                         or (len(c) > 1 and ord(c[0]) >= 0x1F600))
-        if emoji_count > 10:
-            return "emoji_spam", "Emoji spam detected"
-
-    # ---- REPEATED CHARS ----
-    if re.search(r'(.)\1{9,}', content):
-        return "repeated_chars", "Repeated character spam"
-
-    # ---- CAPS ----
-    if settings.get("caps_filter", 1) and len(content) > 10:
-        caps = sum(1 for c in content if c.isupper())
-        if caps / len(content) > 0.7:
-            return "excessive_caps", "Excessive caps"
-
-    # ---- MENTION SPAM ----
-    if settings.get("mention_spam", 1):
-        mention_tracker[key].append(now)
-        mention_tracker[key] = [
-            t for t in mention_tracker[key] if now - t < 10
-        ]
-        if len(message.mentions) >= 5 or len(mention_tracker[key]) >= 5:
-            return "mention_spam", "Mention spam detected"
-
-    # ---- EVERYONE BLOCK ----
-    if settings.get("everyone_block", 0):
-        if "@everyone" in content or "@here" in content:
-            return "everyone_mention", "Everyone mention blocked"
-
-    # ---- EMOJI SPAM TRACKER ----
-    if settings.get("emoji_spam", 1):
-        emoji_tracker[key].append(now)
-        emoji_tracker[key] = [t for t in emoji_tracker[key] if now - t < 10]
-        if len(emoji_tracker[key]) >= 8:
-            return "emoji_spam", "Emoji spam"
-
-    # ---- FILE SPAM ----
-    if settings.get("file_spam_filter", 1) and message.attachments:
-        file_tracker[key].append(now)
-        file_tracker[key] = [t for t in file_tracker[key] if now - t < 30]
-        if len(file_tracker[key]) >= 5:
-            return "file_spam", "File spam detected"
-
-    # ---- LARGE FILE ----
-    for att in message.attachments:
-        if att.size > 50 * 1024 * 1024:  # 50MB
-            return "large_file", "Suspiciously large file"
-
-    # ---- INVITE LINKS ----
-    if settings.get("invite_block", 0):
-        if re.search(r'(discord\.gg|discord\.com\/invite)\/[a-zA-Z0-9]+', content):
-            return "invite_link", "Discord invite link"
-
-    # ---- SUSPICIOUS LINKS ----
-    if settings.get("link_scan", 1) and "http" in content_lower:
-        suspicious = [
-            "grabify", "iplogger", "discord.gift", "steamcommunity.ru",
-            "discordapp.io", "discordnitro", "free-nitro", "phish", "scam",
-            "discord.com.ru", "dlscord", "disçord", "discörd", "bit.ly/discord",
-            "ip-logger", "ipgrab", "blasze", "lovebird.me"
-        ]
-        for s in suspicious:
-            if s in content_lower:
-                return "phishing_link", f"Phishing link: {s}"
-
-    # ---- ADVERTISEMENT ----
-    if settings.get("anti_advertisement", 1):
-        ad_patterns = [
-            "join my server", "check out my server", "discord.gg/",
-            "free money", "make money fast", "follow me on",
-            "subscribe to my", "check out my youtube"
-        ]
-        if any(ap in content_lower for ap in ad_patterns):
-            return "advertisement", "Advertisement detected"
-
-    # ---- SCAM PATTERNS ----
-    if settings.get("scam_filter", 1):
-        scam_patterns = [
-            "you won", "claim your prize", "click here to claim",
-            "limited time offer", "you have been selected",
-            "send me your", "verify your account by",
-            "your account will be deleted", "click this link to avoid"
-        ]
-        if any(sp in content_lower for sp in scam_patterns):
-            return "scam", "Scam pattern detected"
-
-    # ---- GROOMING PATTERNS ----
-    if settings.get("nsfw_text_filter", 1):
-        grooming = [
-            "how old are you", "are you alone", "send me a pic",
-            "don't tell your parents", "keep this secret",
-            "you're so mature for your age"
-        ]
-        if any(gp in content_lower for gp in grooming):
-            return "grooming", "Potential grooming pattern detected"
-
-    # ---- IMPERSONATION ----
-    if settings.get("impersonation_filter", 1):
-        admin_names = ["admin", "administrator", "moderator", "discord staff",
-                      "discord team", "discord support", "discord mod",
-                      "discord official"]
-        if any(an in content_lower for an in admin_names):
-            # Check if actually staff
-            if not message.author.guild_permissions.administrator:
-                return "impersonation", "Possible impersonation detected"
-
-    # ---- UNICODE BYPASS ----
-    if settings.get("unicode_filter", 1):
+    action = "⚠️ Warning"
+    if wc >= settings.get("warn_mute",3) and wc < settings.get("warn_ban",5):
         try:
-            normalized = unicodedata.normalize("NFKC", content)
-            if normalized != content:
-                words = get_filtered_words(guild.id)
-                normalized_lower = normalized.lower()
-                for word in words:
-                    if word in normalized_lower:
-                        return "unicode_bypass", f"Unicode bypass of filter: {word}"
+            await u.timeout(datetime.now() + timedelta(minutes=settings.get("mute_duration",10)), reason=reason)
+            action = f"🔇 Muted {settings.get('mute_duration',10)} min"
         except:
             pass
-
-    # ---- ZERO WIDTH CHARS ----
-    zero_width = ['\u200b', '\u200c', '\u200d', '\ufeff', '\u2060']
-    zw_count = sum(content.count(zw) for zw in zero_width)
-    if zw_count > 5:
-        return "zero_width", "Zero-width character spam"
-
-    # ---- RTL ABUSE ----
-    rtl_chars = sum(1 for c in content
-                   if unicodedata.bidirectional(c) in ['R', 'AL', 'RLE', 'RLO'])
-    if rtl_chars > 5 and rtl_chars / max(len(content), 1) > 0.3:
-        return "rtl_abuse", "RTL text abuse"
-
-    # ---- SOCIAL ENGINEERING ----
-    social_eng = [
-        "i'm from discord", "official discord", "your account has been flagged",
-        "verify your account", "you need to verify", "your account is at risk",
-        "click here to secure", "your password has been"
-    ]
-    if any(se in content_lower for se in social_eng):
-        return "social_engineering", "Social engineering attempt"
-
-    # ---- BLACKMAIL ----
-    blackmail = [
-        "i will expose you", "pay me or", "i have your info",
-        "i know where you live", "i'll tell everyone",
-        "send me money or", "give me or i'll"
-    ]
-    if any(bm in content_lower for bm in blackmail):
-        return "blackmail", "Blackmail/extortion detected"
-
-    # ---- SELF HARM ----
-    self_harm = [
-        "want to kill myself", "want to die", "going to hurt myself",
-        "suicide", "end my life", "harm myself"
-    ]
-    if any(sh in content_lower for sh in self_harm):
-        return "self_harm", "Self-harm content - please check on this user"
-
-    # ---- EXTREMISM ----
-    extremism = [
-        "join our movement", "death to", "kill all",
-        "purge the", "exterminate"
-    ]
-    if any(ex in content_lower for ex in extremism):
-        return "extremism", "Extremist content detected"
-
-    # ---- COPYPASTA SPAM ----
-    if len(content) > 200:
-        lines = content.split('\n')
-        if len(set(lines)) < len(lines) / 2:
-            return "copypasta", "Copypasta/repeated text spam"
-
-    # ---- MASS DM DETECTION ----
-    if settings.get("mass_dm_detection", 1):
-        dm_tracker[key].append(now)
-        dm_tracker[key] = [t for t in dm_tracker[key] if now - t < 60]
-        if len(dm_tracker[key]) >= 10:
-            return "mass_dm", "Possible mass DM spam"
-
-    return None, None
-
-async def punish_user(message, severity, reason, analysis):
-    user = message.author
-    guild = message.guild
-    settings = get_guild_settings(guild.id)
-    warn_count = add_warning(user.id, guild.id, reason, severity)
-    log_mod_action(user.id, guild.id, "AI_WARN", reason, bot.user.id)
-    try:
-        await message.delete()
-    except:
-        pass
-    try:
-        embed = discord.Embed(
-            title="🛡️ Message Removed",
-            description=f"{user.mention} your message was removed.",
-            color=discord.Color.orange()
-        )
-        embed.add_field(name="Reason", value=reason)
-        await message.channel.send(embed=embed, delete_after=8)
-    except:
-        pass
-    try:
-        dm = discord.Embed(
-            title="⚠️ Warning",
-            description=f"Message removed in **{guild.name}**",
-            color=discord.Color.yellow()
-        )
-        dm.add_field(name="Reason", value=reason)
-        dm.add_field(
-            name="Warnings",
-            value=f"{warn_count}/{settings.get('warn_ban', 5)}"
-        )
-        await user.send(embed=dm)
-    except:
-        pass
-    colors = {
-        "low": discord.Color.yellow(), "medium": discord.Color.orange(),
-        "high": discord.Color.red(), "critical": discord.Color.dark_red()
-    }
-    mod_embed = discord.Embed(
-        title="🚨 AI Moderation Alert",
-        color=colors.get(severity, discord.Color.red()),
-        timestamp=datetime.now()
-    )
-    mod_embed.add_field(name="User", value=f"{user.mention} ({user.id})", inline=True)
-    mod_embed.add_field(name="Channel", value=message.channel.mention, inline=True)
-    mod_embed.add_field(name="Severity", value=severity.upper(), inline=True)
-    mod_embed.add_field(
-        name="Category",
-        value=analysis.get("category", "unknown"),
-        inline=True
-    )
-    mod_embed.add_field(
-        name="Confidence",
-        value=f"{analysis.get('confidence', 0)*100:.0f}%",
-        inline=True
-    )
-    mod_embed.add_field(
-        name="Bypass",
-        value="⚠️ Yes" if analysis.get("bypass_detected") else "No",
-        inline=True
-    )
-    mod_embed.add_field(
-        name="Warnings",
-        value=f"{warn_count}/{settings.get('warn_ban', 5)}",
-        inline=True
-    )
-    mod_embed.add_field(
-        name="Message",
-        value=f"||{message.content[:500]}||",
-        inline=False
-    )
-    mod_embed.add_field(name="Reason", value=reason, inline=False)
-    action = "⚠️ Warning"
-    if (warn_count >= settings.get("warn_mute", 3) and
-            warn_count < settings.get("warn_ban", 5)):
+    if wc >= settings.get("warn_ban",5):
         try:
-            until = datetime.now() + timedelta(
-                minutes=settings.get("mute_duration", 10)
-            )
-            await user.timeout(until, reason=f"AI: {reason}")
-            action = f"🔇 Muted {settings.get('mute_duration', 10)} mins"
-            log_mod_action(user.id, guild.id, "AI_MUTE", reason, bot.user.id)
-        except:
-            action = "❌ Could not mute"
-    if warn_count >= settings.get("warn_ban", 5):
-        try:
-            await guild.ban(user, reason=f"AI: {reason}")
+            await g.ban(u, reason=f"AI: {reason}")
             action = "🔨 BANNED"
-            log_mod_action(user.id, guild.id, "AI_BAN", reason, bot.user.id)
         except:
-            action = "❌ Could not ban"
-    # Immediate action for critical stuff
+            pass
     if analysis.get("immediate_action") and severity == "critical":
         try:
-            await guild.ban(user, reason=f"IMMEDIATE: {reason}")
+            await g.ban(u, reason=f"IMMEDIATE: {reason}")
             action = "🔨 IMMEDIATELY BANNED"
         except:
             pass
-    mod_embed.add_field(name="Action", value=action, inline=False)
-    await alert_mods(guild, mod_embed)
+    embed.add_field(name="Action", value=action, inline=False)
+    await alert_mods(g, embed)
 
-# ============ SECTION 15 - TICKET SYSTEM ============
+# ============ SECTION 15 - SETUP & VIEWS ============
+async def setup_server(guild):
+    results = []
+    settings = get_guild_settings(guild.id)
+    for rn, color, hoist in [(settings["mod_role_name"], discord.Color.red(), True),
+        ("Muted", discord.Color.dark_gray(), False), ("Member", discord.Color.blue(), False),
+        ("Quarantined", discord.Color.dark_gray(), False)]:
+        if not discord.utils.get(guild.roles, name=rn):
+            try:
+                await guild.create_role(name=rn, color=color, hoist=hoist, mentionable=True)
+                results.append(f"✅ Role: **{rn}**")
+            except:
+                results.append(f"❌ Role: **{rn}**")
+        else:
+            results.append(f"⏭️ Role: **{rn}**")
+
+    mr = discord.utils.get(guild.roles, name=settings["mod_role_name"])
+    scat = discord.utils.get(guild.categories, name="🛡️ SENTINELAI")
+    if not scat:
+        try:
+            ow = {guild.default_role: discord.PermissionOverwrite(read_messages=False),
+                guild.me: discord.PermissionOverwrite(read_messages=True, send_messages=True)}
+            if mr:
+                ow[mr] = discord.PermissionOverwrite(read_messages=True, send_messages=True)
+            scat = await guild.create_category(name="🛡️ SENTINELAI", overwrites=ow)
+            results.append("✅ Category: **🛡️ SENTINELAI**")
+        except:
+            results.append("❌ Category")
+
+    for cn, topic in [(settings["log_channel"],"Mod logs"),(settings["raid_channel"],"Raid alerts"),
+        ("sentinel-nuke-alerts","Nuke alerts"),("sentinel-bot","Chat with SentinelMod AI!")]:
+        if not discord.utils.get(guild.text_channels, name=cn):
+            try:
+                await guild.create_text_channel(name=cn, category=scat, topic=topic)
+                results.append(f"✅ #{cn}")
+            except:
+                results.append(f"❌ #{cn}")
+        else:
+            results.append(f"⏭️ #{cn}")
+
+    for cn, topic in [("welcome","Welcome!"),("rules","Rules"),("general","General"),
+        ("announcements","Announcements"),("suggestions","Suggestions")]:
+        if not discord.utils.get(guild.text_channels, name=cn):
+            try:
+                await guild.create_text_channel(name=cn, topic=topic)
+                results.append(f"✅ #{cn}")
+            except:
+                results.append(f"❌ #{cn}")
+        else:
+            results.append(f"⏭️ #{cn}")
+
+    tcat = discord.utils.get(guild.categories, name="🎫 TICKETS")
+    if not tcat:
+        try:
+            tcat = await guild.create_category(name="🎫 TICKETS")
+        except:
+            pass
+    tch = discord.utils.get(guild.text_channels, name="create-ticket")
+    if not tch and tcat:
+        try:
+            tch = await guild.create_text_channel(name="create-ticket", category=tcat)
+            await tch.send(embed=discord.Embed(title="🎫 Tickets", description="Click below!", color=discord.Color.blue()), view=TicketView())
+            results.append("✅ #create-ticket")
+        except:
+            pass
+    return results
+
 class TicketView(discord.ui.View):
     def __init__(self):
         super().__init__(timeout=None)
-
-    @discord.ui.button(
-        label="Create Ticket", style=discord.ButtonStyle.primary,
-        emoji="🎫", custom_id="create_ticket"
-    )
-    async def create_ticket(self, interaction: discord.Interaction,
-                            button: discord.ui.Button):
+    @discord.ui.button(label="Create Ticket", style=discord.ButtonStyle.primary, emoji="🎫", custom_id="create_ticket")
+    async def create_ticket(self, interaction, button):
         await interaction.response.send_modal(TicketModal())
 
-class TicketModal(discord.ui.Modal, title="Create Support Ticket"):
-    reason = discord.ui.TextInput(
-        label="Describe your issue",
-        style=discord.TextStyle.long, required=True
-    )
-
-    async def on_submit(self, interaction: discord.Interaction):
-        guild = interaction.guild
-        user = interaction.user
-        settings = get_guild_settings(guild.id)
-        ticket_cat = discord.utils.get(guild.categories, name="🎫 TICKETS")
-        mod_role = discord.utils.get(guild.roles, name=settings["mod_role_name"])
-        ticket_name = f"ticket-{user.name.lower()[:10]}-{random.randint(1000,9999)}"
-        overwrites = {
-            guild.default_role: discord.PermissionOverwrite(read_messages=False),
-            user: discord.PermissionOverwrite(read_messages=True, send_messages=True),
-            guild.me: discord.PermissionOverwrite(read_messages=True, send_messages=True)
-        }
-        if mod_role:
-            overwrites[mod_role] = discord.PermissionOverwrite(
-                read_messages=True, send_messages=True
-            )
+class TicketModal(discord.ui.Modal, title="Support Ticket"):
+    reason = discord.ui.TextInput(label="Issue", style=discord.TextStyle.long, required=True)
+    async def on_submit(self, interaction):
+        g = interaction.guild
+        u = interaction.user
+        settings = get_guild_settings(g.id)
+        tcat = discord.utils.get(g.categories, name="🎫 TICKETS")
+        mr = discord.utils.get(g.roles, name=settings["mod_role_name"])
+        tn = f"ticket-{u.name[:10]}-{random.randint(1000,9999)}"
+        ow = {g.default_role: discord.PermissionOverwrite(read_messages=False),
+            u: discord.PermissionOverwrite(read_messages=True, send_messages=True),
+            g.me: discord.PermissionOverwrite(read_messages=True, send_messages=True)}
+        if mr:
+            ow[mr] = discord.PermissionOverwrite(read_messages=True, send_messages=True)
         try:
-            channel = await guild.create_text_channel(
-                name=ticket_name, category=ticket_cat, overwrites=overwrites
-            )
+            ch = await g.create_text_channel(name=tn, category=tcat, overwrites=ow)
             conn = get_db()
             c = conn.cursor()
-            c.execute("""INSERT INTO tickets
-                (guild_id, user_id, channel_id, reason, timestamp)
-                VALUES (?, ?, ?, ?, ?)""",
-                (str(guild.id), str(user.id), str(channel.id),
-                 str(self.reason.value), datetime.now().isoformat()))
+            c.execute("INSERT INTO tickets (guild_id,user_id,channel_id,reason,timestamp) VALUES (?,?,?,?,?)",
+                (str(g.id), str(u.id), str(ch.id), str(self.reason.value), datetime.now().isoformat()))
             conn.commit()
             conn.close()
-            embed = discord.Embed(
-                title="🎫 Ticket Created",
-                description=f"Hello {user.mention}! Support coming soon.",
-                color=discord.Color.blue()
-            )
-            embed.add_field(name="Issue", value=str(self.reason.value))
-            ping = mod_role.mention if mod_role else ""
-            await channel.send(
-                content=f"{user.mention} {ping}",
-                embed=embed, view=CloseTicketView()
-            )
-            await interaction.response.send_message(
-                f"✅ {channel.mention}", ephemeral=True
-            )
+            await ch.send(content=f"{u.mention} {mr.mention if mr else ''}", embed=discord.Embed(
+                title="🎫 Ticket", description=f"Issue: {self.reason.value}", color=discord.Color.blue()), view=CloseTicketView())
+            await interaction.response.send_message(f"✅ {ch.mention}", ephemeral=True)
         except Exception as e:
             await interaction.response.send_message(f"❌ {e}", ephemeral=True)
 
 class CloseTicketView(discord.ui.View):
     def __init__(self):
         super().__init__(timeout=None)
-
-    @discord.ui.button(
-        label="Close Ticket", style=discord.ButtonStyle.danger,
-        emoji="🔒", custom_id="close_ticket"
-    )
-    async def close_ticket(self, interaction: discord.Interaction,
-                           button: discord.ui.Button):
+    @discord.ui.button(label="Close", style=discord.ButtonStyle.danger, emoji="🔒", custom_id="close_ticket")
+    async def close(self, interaction, button):
         conn = get_db()
         c = conn.cursor()
-        c.execute("UPDATE tickets SET status = 'closed' WHERE channel_id = ?",
-            (str(interaction.channel.id),))
+        c.execute("UPDATE tickets SET status='closed' WHERE channel_id=?", (str(interaction.channel.id),))
         conn.commit()
         conn.close()
-        await interaction.response.send_message("🔒 Closing in 5 seconds...")
+        await interaction.response.send_message("🔒 Closing...")
         await asyncio.sleep(5)
         await interaction.channel.delete()
 
-# ============ SECTION 16 - CONFIRMATION SYSTEM ============
 class ConfirmView(discord.ui.View):
-    def __init__(self, parsed, original_message, guild, author):
+    def __init__(self, parsed, msg, guild, author):
         super().__init__(timeout=30)
         self.parsed = parsed
-        self.original_message = original_message
+        self.msg = msg
         self.guild = guild
         self.author = author
-
     @discord.ui.button(label="✅ Confirm", style=discord.ButtonStyle.success)
-    async def confirm(self, interaction: discord.Interaction,
-                      button: discord.ui.Button):
+    async def confirm(self, interaction, button):
         if interaction.user.id != self.author.id:
-            await interaction.response.send_message(
-                "❌ Only the requester can confirm.", ephemeral=True
-            )
+            await interaction.response.send_message("❌ Only requester can confirm.", ephemeral=True)
             return
         await interaction.response.defer()
-        result = await execute_command(
-            self.parsed, self.original_message, self.guild, self.author
-        )
+        result = await execute_command(self.parsed, self.msg, self.guild, self.author)
         if result:
             await interaction.followup.send(result)
         self.stop()
-
     @discord.ui.button(label="❌ Cancel", style=discord.ButtonStyle.danger)
-    async def cancel(self, interaction: discord.Interaction,
-                     button: discord.ui.Button):
+    async def cancel(self, interaction, button):
         if interaction.user.id != self.author.id:
-            await interaction.response.send_message(
-                "❌ Only the requester can cancel.", ephemeral=True
-            )
+            await interaction.response.send_message("❌ Only requester can cancel.", ephemeral=True)
             return
         await interaction.response.send_message("❌ Cancelled.")
         self.stop()
 
-# ============ SECTION 17 - PERSONALITY SLASH COMMAND ============
-@bot.tree.command(name="personality", description="Change SentinelMod's personality")
-async def personality_command(interaction: discord.Interaction):
-    """Show personality selector embed"""
+# ============ SECTION 16 - PERSONALITY SLASH COMMANDS ============
+@bot.tree.command(name="personality", description="Choose SentinelMod personality")
+async def personality_cmd(interaction: discord.Interaction):
     categories = {
-        "🎭 Characters": [
-            "pirate", "medieval", "wizard", "vampire", "ghost", "dragon",
-            "ninja", "samurai", "cowboy", "viking"
-        ],
-        "🎬 Pop Culture": [
-            "yoda", "jarvis", "hal9000", "glados", "deadpool", "sherlock",
-            "gandalf", "tony_stark", "groot", "gollum"
-        ],
-        "😄 Moods": [
-            "friendly", "sarcastic", "serious", "chaotic", "motivational",
-            "pessimist", "optimist", "hype", "philosopher", "therapist"
-        ],
-        "🌍 Cultures": [
-            "british", "australian", "valley_girl", "gen_z", "boomer",
-            "millennial", "caveman", "shakespeare", "surfer", "anime"
-        ],
-        "👔 Professions": [
-            "professor", "chef", "detective", "lawyer", "doctor",
-            "scientist", "artist", "politician", "sportscaster", "news_anchor"
-        ],
-        "🔮 Fantasy": [
-            "alien", "time_traveler", "oracle", "fairy", "mermaid",
-            "elf", "werewolf", "giant", "robot_overlord", "dimension_hopper"
-        ]
+        "🎭 Characters": ["pirate","medieval","wizard","vampire","ghost","dragon","ninja","samurai","cowboy","fairy"],
+        "🎬 Pop Culture": ["yoda","jarvis","deadpool","sherlock","gandalf","tony_stark","groot","gollum","darth_vader","michael_scott"],
+        "😄 Moods": ["friendly","sarcastic","serious","chaotic","motivational","pessimist","optimist","hype","philosopher","therapist"],
+        "🌍 Styles": ["british","australian","valley_girl","gen_z","boomer","caveman","shakespeare","surfer","anime","gamer"],
+        "👔 Roles": ["professor","chef","detective","alien","time_traveler","oracle","robot","superhero","villain","mad_hatter"]
     }
-
-    embed = discord.Embed(
-        title="🎭 Choose SentinelMod's Personality",
-        description="Select a category and use `/setpersonality` with the name!",
-        color=discord.Color.purple()
-    )
-
-    for cat_name, personalities in categories.items():
-        embed.add_field(
-            name=cat_name,
-            value=", ".join(f"`{p}`" for p in personalities),
-            inline=False
-        )
-
-    embed.set_footer(
-        text=f"Current personality: "
-             f"{get_user_personality(str(interaction.user.id), str(interaction.guild.id))}"
-    )
-
-    view = PersonalityView(interaction.user.id, interaction.guild.id)
+    embed = discord.Embed(title="🎭 Personalities", description="Use /setpersonality with a name!", color=discord.Color.purple())
+    for cat, names in categories.items():
+        embed.add_field(name=cat, value=", ".join(f"`{n}`" for n in names), inline=False)
+    embed.set_footer(text=f"Current: {get_user_personality(str(interaction.user.id), str(interaction.guild.id))}")
+    options = [discord.SelectOption(label=n.replace("_"," ").title(), value=n, description=PERSONALITIES[n][:50])
+        for n in list(PERSONALITIES.keys())[:25]]
+    view = discord.ui.View(timeout=60)
+    select = discord.ui.Select(placeholder="Choose...", options=options)
+    async def cb(inter):
+        p = inter.data["values"][0]
+        set_user_personality(str(inter.user.id), str(inter.guild.id), p)
+        await inter.response.send_message(f"✅ Personality: **{p.replace('_',' ').title()}**!", ephemeral=True)
+    select.callback = cb
+    view.add_item(select)
     await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
 
-class PersonalityView(discord.ui.View):
-    def __init__(self, user_id, guild_id):
-        super().__init__(timeout=60)
-        self.user_id = user_id
-        self.guild_id = guild_id
-
-        # Add dropdown
-        options = []
-        for name in list(PERSONALITIES.keys())[:25]:
-            options.append(discord.SelectOption(
-                label=name.replace("_", " ").title(),
-                value=name,
-                description=PERSONALITIES[name][:50]
-            ))
-
-        select = discord.ui.Select(
-            placeholder="Choose a personality...",
-            options=options,
-            custom_id="personality_select"
-        )
-        select.callback = self.select_callback
-        self.add_item(select)
-
-    async def select_callback(self, interaction: discord.Interaction):
-        personality = interaction.data["values"][0]
-        set_user_personality(
-            str(self.user_id), str(self.guild_id), personality
-        )
-        embed = discord.Embed(
-            title="✅ Personality Changed!",
-            description=f"SentinelMod is now: **{personality.replace('_', ' ').title()}**\n\n"
-                       f"*{PERSONALITIES[personality]}*",
-            color=discord.Color.green()
-        )
-        await interaction.response.send_message(embed=embed, ephemeral=True)
-
-@bot.tree.command(name="setpersonality",
-                  description="Set SentinelMod's personality by name")
-@app_commands.describe(personality="Personality name (e.g. pirate, yoda, sarcastic)")
-async def setpersonality_command(interaction: discord.Interaction, personality: str):
-    personality = personality.lower().replace(" ", "_")
-    if personality not in PERSONALITIES:
-        closest = [p for p in PERSONALITIES.keys() if personality[:3] in p]
-        suggest = f"\nDid you mean: {', '.join(closest[:5])}?" if closest else ""
-        await interaction.response.send_message(
-            f"❌ Unknown personality: **{personality}**{suggest}\n"
-            f"Use `/personality` to see all options.",
-            ephemeral=True
-        )
+@bot.tree.command(name="setpersonality", description="Set personality by name")
+@app_commands.describe(personality="Name (e.g. pirate, yoda, sarcastic)")
+async def setpersonality_cmd(interaction: discord.Interaction, personality: str):
+    p = personality.lower().replace(" ", "_")
+    if p not in PERSONALITIES:
+        await interaction.response.send_message(f"❌ Unknown: **{p}**. Use /personality to see all.", ephemeral=True)
         return
-    set_user_personality(
-        str(interaction.user.id), str(interaction.guild.id), personality
-    )
-    embed = discord.Embed(
-        title="✅ Personality Set!",
-        description=f"SentinelMod is now: **{personality.replace('_', ' ').title()}**\n\n"
-                   f"*{PERSONALITIES[personality]}*",
-        color=discord.Color.green()
-    )
-    await interaction.response.send_message(embed=embed, ephemeral=True)
+    set_user_personality(str(interaction.user.id), str(interaction.guild.id), p)
+    await interaction.response.send_message(f"✅ Now: **{p.replace('_',' ').title()}**!\n*{PERSONALITIES[p]}*", ephemeral=True)
 
-# ============ SECTION 18 - BACKGROUND TASKS ============
+# ============ SECTION 17 - BACKGROUND TASKS ============
 @tasks.loop(minutes=1)
 async def check_giveaways():
     conn = get_db()
     c = conn.cursor()
-    c.execute("SELECT * FROM giveaways WHERE active = 1 AND end_time <= ?",
-        (datetime.now().isoformat(),))
-    ended = [dict(row) for row in c.fetchall()]
+    c.execute("SELECT * FROM giveaways WHERE active=1 AND end_time<=?", (datetime.now().isoformat(),))
+    ended = [dict(r) for r in c.fetchall()]
     conn.close()
-
-    for giveaway in ended:
+    for gw in ended:
         try:
-            guild = bot.get_guild(int(giveaway["guild_id"]))
-            if not guild:
+            g = bot.get_guild(int(gw["guild_id"]))
+            ch = g.get_channel(int(gw["channel_id"])) if g else None
+            msg = await ch.fetch_message(int(gw["message_id"])) if ch else None
+            if not msg:
                 continue
-            channel = guild.get_channel(int(giveaway["channel_id"]))
-            if not channel:
-                continue
-            message = await channel.fetch_message(int(giveaway["message_id"]))
-            reaction = discord.utils.get(message.reactions, emoji="🎉")
-            users = [u async for u in reaction.users() if not u.bot] if reaction else []
-            if not users:
-                await channel.send("❌ No entries for the giveaway!")
-            else:
-                num_winners = min(giveaway["winners"], len(users))
-                winners = random.sample(users, num_winners)
+            rx = discord.utils.get(msg.reactions, emoji="🎉")
+            users = [u async for u in rx.users() if not u.bot] if rx else []
+            if users:
+                winners = random.sample(users, min(gw["winners"], len(users)))
                 mentions = ", ".join(w.mention for w in winners)
-                embed = discord.Embed(
-                    title="🎉 Giveaway Ended!",
-                    description=f"**Prize:** {giveaway['prize']}\n"
-                               f"**Winner(s):** {mentions}",
-                    color=discord.Color.gold()
-                )
-                await channel.send(content=f"🎉 {mentions}!", embed=embed)
+                await ch.send(content=f"🎉 {mentions}!", embed=discord.Embed(
+                    title="🎉 Giveaway Ended!", description=f"**Prize:** {gw['prize']}\n**Winners:** {mentions}",
+                    color=discord.Color.gold()))
+            else:
+                await ch.send("❌ No entries!")
             conn = get_db()
             c = conn.cursor()
-            c.execute("UPDATE giveaways SET active = 0 WHERE id = ?",
-                (giveaway["id"],))
+            c.execute("UPDATE giveaways SET active=0 WHERE id=?", (gw["id"],))
             conn.commit()
             conn.close()
         except Exception as e:
-            print(f"Giveaway error: {e}")
+            print(f"GW error: {e}")
+
+@tasks.loop(minutes=1)
+async def check_reminders():
+    conn = get_db()
+    c = conn.cursor()
+    c.execute("SELECT * FROM reminders WHERE active=1 AND remind_time<=?", (datetime.now().isoformat(),))
+    due = [dict(r) for r in c.fetchall()]
+    for rem in due:
+        try:
+            g = bot.get_guild(int(rem["guild_id"]))
+            ch = g.get_channel(int(rem["channel_id"])) if g else None
+            if ch:
+                await ch.send(f"⏰ <@{rem['user_id']}> Reminder: **{rem['reminder']}**")
+        except:
+            pass
+        c.execute("UPDATE reminders SET active=0 WHERE id=?", (rem["id"],))
+    conn.commit()
+    conn.close()
 
 @tasks.loop(hours=24)
 async def daily_cleanup():
-    """Daily maintenance"""
     conn = get_db()
     c = conn.cursor()
-    # Clean old conversation history (keep last 7 days)
     cutoff = (datetime.now() - timedelta(days=7)).isoformat()
     c.execute("DELETE FROM conversation_history WHERE timestamp < ?", (cutoff,))
     conn.commit()
     conn.close()
-    print("✅ Daily cleanup done")
 
-# ============ SECTION 19 - BOT EVENTS ============
+# ============ SECTION 18 - BOT EVENTS ============
 @bot.event
 async def on_ready():
-    print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+    print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
     print(f"🤖 SentinelMod ONLINE")
-    print(f"📛 Bot: {bot.user}")
-    print(f"🏠 Servers: {len(bot.guilds)}")
-    print(f"🧠 Personalities: {len(PERSONALITIES)}")
-    print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-    for guild in bot.guilds:
-        init_guild_settings(guild.id)
+    print(f"📛 {bot.user}")
+    print(f"🏠 {len(bot.guilds)} servers")
+    print(f"🎭 {len(PERSONALITIES)} personalities")
+    print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+    for g in bot.guilds:
+        init_guild_settings(g.id)
     bot.add_view(TicketView())
     bot.add_view(CloseTicketView())
     try:
         synced = await bot.tree.sync()
-        print(f"⚡ Synced {len(synced)} slash commands")
+        print(f"⚡ {len(synced)} commands synced")
     except Exception as e:
         print(f"Sync error: {e}")
     check_giveaways.start()
+    check_reminders.start()
     daily_cleanup.start()
-    await bot.change_presence(
-        activity=discord.Activity(
-            type=discord.ActivityType.watching,
-            name="everything 👁️ | @mention me!"
-        )
-    )
+    await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name="everything 👁️ | @mention me!"))
 
 @bot.event
 async def on_guild_join(guild):
-    print(f"📥 Joined: {guild.name}")
     init_guild_settings(guild.id)
     await setup_server(guild)
 
 @bot.event
 async def on_member_join(member):
-    guild = member.guild
-    settings = get_guild_settings(guild.id)
-    account_age = (datetime.now() - member.created_at.replace(tzinfo=None)).days
-
-    is_raid = await check_raid(member)
-    if is_raid:
-        await handle_raid(guild, member)
+    g = member.guild
+    settings = get_guild_settings(g.id)
+    age = (datetime.now() - member.created_at.replace(tzinfo=None)).days
+    if await check_raid(member):
+        await handle_raid(g, member)
         return
-
-    # Auto roles
     conn = get_db()
     c = conn.cursor()
-    c.execute("SELECT role_id FROM auto_roles WHERE guild_id = ?", (str(guild.id),))
-    for row in c.fetchall():
-        role = guild.get_role(int(row[0]))
+    c.execute("SELECT role_id FROM auto_roles WHERE guild_id=?", (str(g.id),))
+    for r in c.fetchall():
+        role = g.get_role(int(r[0]))
         if role:
             try:
                 await member.add_roles(role)
             except:
                 pass
     conn.close()
-
-    # Suspicious account alert
-    if account_age < settings.get("min_account_age", 7):
-        raid_ch = discord.utils.get(guild.text_channels, name=settings["raid_channel"])
-        if raid_ch:
-            embed = discord.Embed(
-                title="⚠️ Suspicious Account",
-                color=discord.Color.yellow(),
-                timestamp=datetime.now()
-            )
-            embed.add_field(name="User", value=f"{member.mention}", inline=True)
-            embed.add_field(name="Age", value=f"{account_age} days", inline=True)
-            await raid_ch.send(embed=embed)
-
-    # Welcome
+    if age < settings.get("min_account_age", 7):
+        ch = discord.utils.get(g.text_channels, name=settings["raid_channel"])
+        if ch:
+            await ch.send(embed=discord.Embed(title="⚠️ Suspicious Account",
+                color=discord.Color.yellow()).add_field(name="User", value=member.mention).add_field(name="Age", value=f"{age} days"))
     if settings.get("welcome_enabled", 1):
-        welcome_ch = discord.utils.get(
-            guild.text_channels,
-            name=settings.get("welcome_channel", "welcome")
-        )
-        if welcome_ch:
-            welcome = await ask_groq(
-                f"Write a short warm welcome for {member.display_name} "
-                f"joining {guild.name} (member #{guild.member_count}). "
-                "2-3 sentences max. Be creative and friendly.",
-                "You are a friendly Discord bot."
-            )
+        wch = discord.utils.get(g.text_channels, name=settings.get("welcome_channel", "welcome"))
+        if wch:
+            welcome = await ask_groq(f"Short warm welcome for {member.display_name} joining {g.name} (member #{g.member_count}). 2 sentences.", "Friendly bot.")
             if welcome:
-                embed = discord.Embed(
-                    title=f"👋 Welcome to {guild.name}!",
-                    description=welcome,
-                    color=discord.Color.green()
-                )
+                embed = discord.Embed(title=f"👋 Welcome to {g.name}!", description=welcome, color=discord.Color.green())
                 embed.set_thumbnail(url=member.display_avatar.url)
-                embed.set_footer(text=f"Member #{guild.member_count}")
-                await welcome_ch.send(content=member.mention, embed=embed)
+                await wch.send(content=member.mention, embed=embed)
 
 @bot.event
 async def on_reaction_add(reaction, user):
     if user.bot:
         return
-    # Trivia answer check
     if reaction.message.id in trivia_sessions:
-        session = trivia_sessions[reaction.message.id]
-        if user.id in session["answered"]:
+        s = trivia_sessions[reaction.message.id]
+        if user.id in s["answered"]:
             return
-        session["answered"].append(user.id)
-        if str(reaction.emoji) == session["correct_emoji"]:
-            # Update score
+        s["answered"].append(user.id)
+        if str(reaction.emoji) == s["correct_emoji"]:
             conn = get_db()
             c = conn.cursor()
-            c.execute("""INSERT INTO trivia_scores (user_id, guild_id, score, total)
-                VALUES (?, ?, 1, 1)
-                ON CONFLICT(user_id, guild_id) DO UPDATE SET
-                score = score + 1, total = total + 1""",
-                (str(user.id), str(session["guild_id"])))
+            c.execute("""INSERT INTO trivia_scores (user_id,guild_id,score,total) VALUES (?,?,1,1)
+                ON CONFLICT(user_id,guild_id) DO UPDATE SET score=score+1, total=total+1""",
+                (str(user.id), str(s["guild_id"])))
             conn.commit()
             conn.close()
-            try:
-                await reaction.message.channel.send(
-                    f"✅ {user.mention} got it right! "
-                    f"Answer: **{session['correct_answer']}**"
-                )
-            except:
-                pass
+            await reaction.message.channel.send(f"✅ {user.mention} correct! **{s['correct_answer']}**")
             del trivia_sessions[reaction.message.id]
 
 @bot.event
 async def on_audit_log_entry_create(entry):
-    guild = entry.guild
-    settings = get_guild_settings(guild.id)
+    g = entry.guild
+    settings = get_guild_settings(g.id)
     if not settings.get("anti_nuke_enabled", 1):
         return
-    nuke_actions = [
-        discord.AuditLogAction.channel_delete,
-        discord.AuditLogAction.role_delete,
-        discord.AuditLogAction.ban,
-        discord.AuditLogAction.kick,
-        discord.AuditLogAction.webhook_create
-    ]
+    nuke_actions = [discord.AuditLogAction.channel_delete, discord.AuditLogAction.role_delete,
+        discord.AuditLogAction.ban, discord.AuditLogAction.kick, discord.AuditLogAction.webhook_create]
     if entry.action in nuke_actions and entry.user:
-        mod_role = discord.utils.get(guild.roles, name=settings["mod_role_name"])
-        if entry.user == guild.me:
+        mr = discord.utils.get(g.roles, name=settings["mod_role_name"])
+        if entry.user == g.me:
             return
-        if mod_role and mod_role in entry.user.roles:
+        if mr and mr in entry.user.roles:
             return
-        is_nuke = await check_nuke(guild, str(entry.action), entry.user)
-        if is_nuke:
-            await handle_nuke(guild, entry.user, str(entry.action))
-
-@bot.event
-async def on_message_edit(before, after):
-    if before.author.bot:
-        return
-    if not before.guild:
-        return
-    # Track stealth edits
-    if before.content != after.content:
-        key = f"{before.author.id}:{before.guild.id}"
-        edit_tracker[key].append(time.time())
-        edit_tracker[key] = [
-            t for t in edit_tracker[key] if time.time() - t < 60
-        ]
-        # Log to audit
-        settings = get_guild_settings(before.guild.id)
-        if len(edit_tracker[key]) >= 5:
-            embed = discord.Embed(
-                title="✏️ Rapid Message Edits",
-                color=discord.Color.yellow(),
-                timestamp=datetime.now()
-            )
-            embed.add_field(name="User", value=before.author.mention, inline=True)
-            embed.add_field(name="Channel", value=before.channel.mention, inline=True)
-            embed.add_field(name="Before", value=before.content[:200], inline=False)
-            embed.add_field(name="After", value=after.content[:200], inline=False)
-            await alert_mods(before.guild, embed, "sentinel-audit")
+        if await check_nuke(g, str(entry.action), entry.user):
+            await handle_nuke(g, entry.user, str(entry.action))
 
 @bot.event
 async def on_message(message):
-    if message.author.bot:
-        return
-    if not message.guild:
+    if message.author.bot or not message.guild:
         return
 
     settings = get_guild_settings(message.guild.id)
@@ -2902,93 +1884,112 @@ async def on_message(message):
     is_mod = mod_role and mod_role in message.author.roles
     is_admin = message.author.guild_permissions.administrator
 
-    # Update message stats
     update_message_stats(message.author.id, message.guild.id)
 
-    # ---- AFK CHECK ----
+    # ---- AFK ----
     conn = get_db()
     c = conn.cursor()
-    c.execute("SELECT * FROM afk_users WHERE guild_id = ?", (str(message.guild.id),))
-    afk_users = {row["user_id"]: dict(row) for row in c.fetchall()}
+    c.execute("SELECT * FROM afk_users WHERE guild_id=?", (str(message.guild.id),))
+    afk = {r["user_id"]: dict(r) for r in c.fetchall()}
     conn.close()
-
-    if str(message.author.id) in afk_users:
+    if str(message.author.id) in afk:
         conn = get_db()
         c = conn.cursor()
-        c.execute("DELETE FROM afk_users WHERE user_id = ? AND guild_id = ?",
+        c.execute("DELETE FROM afk_users WHERE user_id=? AND guild_id=?",
             (str(message.author.id), str(message.guild.id)))
         conn.commit()
         conn.close()
         try:
-            await message.channel.send(
-                f"👋 Welcome back {message.author.mention}! AFK removed.",
-                delete_after=5
-            )
+            await message.channel.send(f"👋 Welcome back {message.author.mention}!", delete_after=5)
         except:
             pass
+    for m in message.mentions:
+        if str(m.id) in afk:
+            await message.channel.send(f"💤 {m.mention} is AFK: **{afk[str(m.id)]['reason']}**", delete_after=10)
 
-    for mentioned in message.mentions:
-        if str(mentioned.id) in afk_users:
-            afk_data = afk_users[str(mentioned.id)]
-            await message.channel.send(
-                f"💤 {mentioned.mention} is AFK: **{afk_data['reason']}**",
-                delete_after=10
-            )
+    # ---- CUSTOM COMMANDS ----
+    conn = get_db()
+    c = conn.cursor()
+    c.execute("SELECT * FROM custom_commands WHERE guild_id=?", (str(message.guild.id),))
+    customs = {r["trigger_word"]: r["response"] for r in c.fetchall()}
+    conn.close()
+    if message.content.lower() in customs:
+        await message.channel.send(customs[message.content.lower()])
+        return
 
-    # ============ AI CHAT CHANNEL ============
+    # ============ AI CHAT & COMMANDS ============
     is_ai_channel = message.channel.name == AI_CHAT_CHANNEL
     is_mentioned = bot.user in message.mentions
 
     if is_ai_channel or is_mentioned:
         content = message.content.replace(f"<@{bot.user.id}>", "").strip()
         if not content and not is_ai_channel:
-            await message.reply(f"👋 Hey! Try: `@{BOT_NAME} help`")
+            await message.reply(f"👋 Hey! Try `@{BOT_NAME} help`")
             return
 
         if content:
             if is_mod or is_admin:
-                # Parse as command first
                 async with message.channel.typing():
                     parsed = await parse_command(content, message.guild, message.author)
 
                 if parsed and parsed.get("command") not in ["chat", "unknown", None]:
-                    needs_confirmation = parsed.get("needs_confirmation", False)
-                    if needs_confirmation:
-                        embed = discord.Embed(
-                            title="⚠️ Confirm Action",
-                            description=parsed.get("confirmation_message", "Confirm?"),
-                            color=discord.Color.orange()
-                        )
-                        view = ConfirmView(
-                            parsed, message, message.guild, message.author
-                        )
+                    confidence = parsed.get("confidence", 0)
+
+                    if confidence < 0.7:
+                        system = get_system_prompt(str(message.author.id), str(message.guild.id))
+                        history = get_conversation_history(str(message.author.id), str(message.guild.id))
+                        await stream_response(message, content, system, history,
+                            str(message.author.id), str(message.guild.id))
+                        return
+
+                    dangerous = ["ban_user","kick_user","mute_user","warn_user","delete_channel",
+                        "delete_role","delete_category","lockdown","purge","clear_warnings","quarantine"]
+
+                    if parsed.get("command") in dangerous:
+                        target_name = parsed.get("params", {}).get("target_user_name")
+                        target_id = parsed.get("params", {}).get("target_user_id")
+                        if target_name or target_id:
+                            target = find_member_strict(message.guild, parsed.get("params", {}))
+                            if not target:
+                                await message.reply(f"❌ User **{target_name or target_id}** not found. "
+                                    "Please @mention them directly!")
+                                return
+
+                    needs_confirm = parsed.get("needs_confirmation", False) or parsed.get("command") in dangerous
+
+                    if needs_confirm:
+                        cmd_name = parsed.get("command","").replace("_"," ").title()
+                        params = parsed.get("params", {})
+                        details = []
+                        if params.get("target_user_name"):
+                            details.append(f"**Target:** {params['target_user_name']}")
+                        if params.get("name"):
+                            details.append(f"**Name:** {params['name']}")
+                        if params.get("reason"):
+                            details.append(f"**Reason:** {params['reason']}")
+                        if params.get("duration"):
+                            details.append(f"**Duration:** {params['duration']} min")
+
+                        embed = discord.Embed(title=f"⚠️ Confirm: {cmd_name}",
+                            description=parsed.get("confirmation_message","Are you sure?") +
+                            "\n\n" + "\n".join(details),
+                            color=discord.Color.orange())
+                        embed.set_footer(text="30 seconds to confirm")
+                        view = ConfirmView(parsed, message, message.guild, message.author)
                         await message.reply(embed=embed, view=view)
                     else:
                         async with message.channel.typing():
-                            result = await execute_command(
-                                parsed, message, message.guild, message.author
-                            )
+                            result = await execute_command(parsed, message, message.guild, message.author)
                         if result:
                             await message.reply(result[:2000])
-                    if not is_ai_channel:
-                        await bot.process_commands(message)
                     return
 
-            # AI Chat with streaming + memory + personality
-            system = get_system_prompt(
-                str(message.author.id),
-                str(message.guild.id),
-                f"Server: {message.guild.name}\n"
-                f"Channel: {message.channel.name}\n"
-                f"User: {message.author.display_name}"
-            )
-            history = get_conversation_history(
-                str(message.author.id), str(message.guild.id)
-            )
-            await stream_response(
-                message, content, system, history,
-                str(message.author.id), str(message.guild.id)
-            )
+            # AI Chat with streaming
+            system = get_system_prompt(str(message.author.id), str(message.guild.id),
+                f"Server: {message.guild.name}\nChannel: {message.channel.name}\nUser: {message.author.display_name}")
+            history = get_conversation_history(str(message.author.id), str(message.guild.id))
+            await stream_response(message, content, system, history,
+                str(message.author.id), str(message.guild.id))
             return
 
     # ============ MODERATION ============
@@ -2996,236 +1997,120 @@ async def on_message(message):
         await bot.process_commands(message)
         return
 
-    # ---- ANTI-SPAM ----
-    is_spam = await check_spam(message, settings)
-    if is_spam:
+    # Anti-spam
+    if await check_spam(message, settings):
         await handle_spam(message, settings)
         return
 
-    # ---- ADVANCED PATTERN CHECKS ----
-    pattern_type, pattern_reason = await check_advanced_patterns(message, settings)
-    if pattern_type:
+    # Pattern checks
+    ptype, preason, pseverity = await check_patterns(message, settings)
+    if ptype:
         try:
             await message.delete()
         except:
             pass
 
-        severity_map = {
-            "phone_number": "high", "email": "high", "fake_nitro": "critical",
-            "token_grab": "critical", "zalgo": "medium", "emoji_spam": "low",
-            "repeated_chars": "low", "excessive_caps": "low",
-            "mention_spam": "high", "everyone_mention": "medium",
-            "file_spam": "medium", "large_file": "medium",
-            "invite_link": "medium", "phishing_link": "critical",
-            "advertisement": "medium", "scam": "critical",
-            "grooming": "critical", "impersonation": "high",
-            "unicode_bypass": "high", "zero_width": "medium",
-            "rtl_abuse": "medium", "social_engineering": "critical",
-            "blackmail": "critical", "self_harm": "high",
-            "extremism": "critical", "copypasta": "low",
-            "mass_dm": "high"
-        }
-
-        severity = severity_map.get(pattern_type, "medium")
-
-        # Special handling for self harm
-        if pattern_type == "self_harm":
+        if ptype == "self_harm":
             try:
-                support_embed = discord.Embed(
-                    title="💙 We're Here For You",
-                    description=f"{message.author.mention}, it seems you might be "
-                               "going through something difficult.\n\n"
-                               "**Crisis Resources:**\n"
-                               "• National Suicide Prevention: **988**\n"
-                               "• Crisis Text Line: Text **HOME** to **741741**\n"
-                               "• International: **findahelpline.com**",
-                    color=discord.Color.blue()
-                )
-                await message.channel.send(embed=support_embed)
+                await message.channel.send(embed=discord.Embed(title="💙 We're Here",
+                    description=f"{message.author.mention} if you're struggling:\n"
+                    "• **988** Suicide Prevention\n• Text **HOME** to **741741**\n• **findahelpline.com**",
+                    color=discord.Color.blue()))
             except:
                 pass
 
-        warn_count = add_warning(
-            message.author.id, message.guild.id, pattern_reason, severity
-        )
+        wc = add_warning(message.author.id, message.guild.id, preason, pseverity)
 
-        if severity in ["high", "critical"]:
-            embed = discord.Embed(
-                title=f"🚨 {pattern_type.replace('_', ' ').title()} Detected",
-                color=discord.Color.red(),
-                timestamp=datetime.now()
-            )
+        if pseverity in ["high", "critical"]:
+            embed = discord.Embed(title=f"🚨 {ptype.replace('_',' ').title()}",
+                color=discord.Color.red(), timestamp=datetime.now())
             embed.add_field(name="User", value=message.author.mention, inline=True)
-            embed.add_field(name="Channel", value=message.channel.mention, inline=True)
-            embed.add_field(name="Reason", value=pattern_reason, inline=False)
-            embed.add_field(name="Severity", value=severity.upper(), inline=True)
-            embed.add_field(name="Warnings", value=str(warn_count), inline=True)
+            embed.add_field(name="Reason", value=preason, inline=True)
+            embed.add_field(name="Warnings", value=str(wc), inline=True)
             await alert_mods(message.guild, embed)
 
-        # Auto mute/ban based on warnings
-        if warn_count >= settings.get("warn_mute", 3):
+        if pseverity == "critical" and ptype in ["fake_nitro","token_grab","phishing","scam","social_engineering","blackmail","extremism","grooming"]:
             try:
-                until = datetime.now() + timedelta(
-                    minutes=settings.get("mute_duration", 10)
-                )
-                await message.author.timeout(until, reason=pattern_reason)
+                await message.guild.ban(message.author, reason=f"IMMEDIATE: {preason}")
+                await alert_mods(message.guild, discord.Embed(title="🔨 Immediate Ban",
+                    description=f"{message.author} banned: {preason}", color=discord.Color.dark_red()))
             except:
                 pass
 
-        if warn_count >= settings.get("warn_ban", 5):
+        if wc >= settings.get("warn_mute", 3):
             try:
-                await message.guild.ban(
-                    message.author, reason=f"Too many violations: {pattern_reason}"
-                )
+                await message.author.timeout(datetime.now() + timedelta(minutes=10), reason=preason)
             except:
                 pass
-
-        # For critical patterns, immediate action
-        if severity == "critical" and pattern_type in [
-            "fake_nitro", "token_grab", "phishing_link",
-            "scam", "social_engineering", "blackmail", "extremism"
-        ]:
+        if wc >= settings.get("warn_ban", 5):
             try:
-                await message.guild.ban(
-                    message.author,
-                    reason=f"IMMEDIATE BAN: {pattern_reason}"
-                )
-                embed = discord.Embed(
-                    title="🔨 Immediate Ban",
-                    description=f"{message.author} was immediately banned.",
-                    color=discord.Color.dark_red(),
-                    timestamp=datetime.now()
-                )
-                embed.add_field(name="Reason", value=pattern_reason)
-                await alert_mods(message.guild, embed)
+                await message.guild.ban(message.author, reason=f"Too many violations")
             except:
                 pass
-
-        await bot.process_commands(message)
         return
 
-    # ---- WORD FILTER ----
+    # Word filter
     words = get_filtered_words(message.guild.id)
-    content_lower = message.content.lower()
-    normalized = content_lower
+    cl = message.content.lower()
+    norm = cl
     for old, new in [("@","a"),("0","o"),("1","i"),("3","e"),("$","s"),("5","s"),("4","a")]:
-        normalized = normalized.replace(old, new)
-
+        norm = norm.replace(old, new)
     for word in words:
-        if word in content_lower or word in normalized:
+        if word in cl or word in norm:
             try:
                 await message.delete()
             except:
                 pass
-            warn_count = add_warning(
-                message.author.id, message.guild.id, "Filtered word", "medium"
-            )
-            await message.channel.send(
-                f"⚠️ {message.author.mention} That word is not allowed!",
-                delete_after=5
-            )
-            embed = discord.Embed(
-                title="🔤 Word Filter",
-                color=discord.Color.orange(),
-                timestamp=datetime.now()
-            )
-            embed.add_field(name="User", value=message.author.mention, inline=True)
-            embed.add_field(name="Warnings", value=str(warn_count), inline=True)
-            await alert_mods(message.guild, embed)
-            await bot.process_commands(message)
+            wc = add_warning(message.author.id, message.guild.id, "Filtered word", "medium")
+            await message.channel.send(f"⚠️ {message.author.mention} That word is not allowed!", delete_after=5)
             return
 
-    # ---- SKIP SHORT MESSAGES ----
     if len(message.content) < 3:
         await bot.process_commands(message)
         return
 
-    # ---- PRE-CONFLICT DETECTION ----
-    channel_key = f"{message.guild.id}:{message.channel.id}"
-    recent_messages[channel_key].append({
-        "author": message.author.name,
-        "content": message.content,
-        "time": time.time()
-    })
-    recent_messages[channel_key] = [
-        m for m in recent_messages[channel_key]
-        if time.time() - m["time"] < 60
-    ]
+    # Pre-conflict
+    ck = f"{message.guild.id}:{message.channel.id}"
+    recent_messages[ck].append({"author": message.author.name, "content": message.content, "time": time.time()})
+    recent_messages[ck] = [m for m in recent_messages[ck] if time.time() - m["time"] < 60]
 
-    if settings.get("pre_conflict", 1) and len(recent_messages[channel_key]) >= 6:
-        msgs_text = "\n".join([
-            f"{m['author']}: {m['content']}"
-            for m in recent_messages[channel_key][-10:]
-        ])
-        conflict = await ask_groq_json(
-            f"""Analyze for escalating conflict:
+    if settings.get("pre_conflict", 1) and len(recent_messages[ck]) >= 6:
+        mt = "\n".join(f"{m['author']}: {m['content']}" for m in recent_messages[ck][-10:])
+        conflict = await ask_groq_json(f'Analyze for conflict:\n{mt}\nJSON:{{"escalating":true/false,"severity":"none|mild|moderate|severe","reason":"brief"}}')
+        if conflict and conflict.get("escalating") and conflict.get("severity") in ["moderate","severe"]:
+            await message.channel.send(embed=discord.Embed(title="⚠️ Cool Down",
+                description="This conversation is getting heated. Please be respectful! 😊",
+                color=discord.Color.yellow()), delete_after=30)
+            if conflict.get("severity") == "severe":
+                await alert_mods(message.guild, discord.Embed(title="🔥 Conflict Alert",
+                    color=discord.Color.orange()).add_field(name="Channel", value=message.channel.mention))
+                if settings.get("slowmode_ai", 1):
+                    try:
+                        await message.channel.edit(slowmode_delay=10)
+                        await asyncio.sleep(60)
+                        await message.channel.edit(slowmode_delay=0)
+                    except:
+                        pass
 
-{msgs_text}
-
-JSON:
-{{
-    "escalating": true or false,
-    "severity": "none|mild|moderate|severe",
-    "users_involved": ["user1"],
-    "reason": "brief"
-}}"""
-        )
-        if conflict and conflict.get("escalating"):
-            severity = conflict.get("severity", "mild")
-            if severity in ["moderate", "severe"]:
-                embed = discord.Embed(
-                    title="⚠️ Conversation Heating Up",
-                    description="Please keep things civil! 😊",
-                    color=discord.Color.yellow()
-                )
-                await message.channel.send(embed=embed, delete_after=30)
-                if severity == "severe":
-                    mod_embed = discord.Embed(
-                        title="🔥 Conflict Alert",
-                        color=discord.Color.orange(),
-                        timestamp=datetime.now()
-                    )
-                    mod_embed.add_field(
-                        name="Channel", value=message.channel.mention
-                    )
-                    mod_embed.add_field(name="Severity", value=severity.upper())
-                    mod_embed.add_field(
-                        name="Users",
-                        value=", ".join(conflict.get("users_involved", []))
-                    )
-                    await alert_mods(message.guild, mod_embed)
-                    if settings.get("slowmode_ai", 1):
-                        try:
-                            await message.channel.edit(slowmode_delay=10)
-                            await asyncio.sleep(60)
-                            await message.channel.edit(slowmode_delay=0)
-                        except:
-                            pass
-
-    # ---- AI TOXICITY CHECK ----
-    if len(message.content) < 3:
-        await bot.process_commands(message)
-        return
-
+    # AI toxicity
     context = ""
     try:
-        history = []
-        async for msg in message.channel.history(limit=5, before=message):
-            if not msg.author.bot:
-                history.append(f"{msg.author.name}: {msg.content}")
-        context = "\n".join(reversed(history))
+        h = []
+        async for m in message.channel.history(limit=5, before=message):
+            if not m.author.bot:
+                h.append(f"{m.author.name}: {m.content}")
+        context = "\n".join(reversed(h))
     except:
         pass
 
-    sensitivity = settings.get("ai_sensitivity", 0.7)
-    analysis = await check_toxicity(message.content, context, sensitivity)
-
-    if analysis and analysis.get("toxic", False):
+    analysis = await check_toxicity(message.content, context)
+    if analysis and analysis.get("toxic"):
         severity = analysis.get("severity", "low")
         confidence = analysis.get("confidence", 0)
-        reason = analysis.get("reason", "Toxic content")
+        reason = analysis.get("reason", "Toxic")
+        sens = settings.get("ai_sensitivity", 0.7)
 
-        if settings.get("slowmode_ai", 1) and severity in ["high", "critical"]:
+        if settings.get("slowmode_ai", 1) and severity in ["high","critical"]:
             try:
                 await message.channel.edit(slowmode_delay=10)
                 await asyncio.sleep(60)
@@ -3233,27 +2118,21 @@ JSON:
             except:
                 pass
 
-        if confidence >= sensitivity:
-            if severity in ["medium", "high", "critical"]:
+        if confidence >= sens:
+            if severity in ["medium","high","critical"]:
                 await punish_user(message, severity, reason, analysis)
             elif severity == "low":
-                warn_count = add_warning(
-                    message.author.id, message.guild.id, reason, severity
-                )
+                add_warning(message.author.id, message.guild.id, reason, "low")
                 try:
-                    dm = discord.Embed(
-                        title="⚠️ Please be respectful",
-                        description=f"Warning in **{message.guild.name}**",
-                        color=discord.Color.yellow()
-                    )
-                    dm.add_field(name="Reason", value=reason)
-                    await message.author.send(embed=dm)
+                    await message.author.send(embed=discord.Embed(title="⚠️ Heads up",
+                        description=f"Please be respectful in **{message.guild.name}**\nReason: {reason}",
+                        color=discord.Color.yellow()))
                 except:
                     pass
 
     await bot.process_commands(message)
 
-# ============ SECTION 20 - RUN BOT ============
+# ============ SECTION 19 - RUN ============
 if __name__ == "__main__":
     if not DISCORD_TOKEN:
         print("❌ DISCORD_TOKEN not set!")
