@@ -1,6 +1,6 @@
 # bot.py
 # ================================
-# SentinelMod v3.0 - Full Bot
+# SentinelMod v3.1 - UDP Bypass Edition
 # ================================
 
 import discord
@@ -16,11 +16,12 @@ import threading
 import random
 import re
 import tempfile
+import io
 from datetime import datetime, timedelta
 from collections import defaultdict
 import dashboard
 
-# Bundled FFmpeg (works on Render free tier!)
+# Bundled FFmpeg
 try:
     import imageio_ffmpeg
     FFMPEG_PATH = imageio_ffmpeg.get_ffmpeg_exe()
@@ -39,6 +40,12 @@ MOD_ROLE_NAME = "Sentinel-Mod"
 MOD_LOG_CHANNEL = "sentinel-logs"
 RAID_CHANNEL = "sentinel-raid-alerts"
 
+# Voice mode settings
+VOICE_MODE_FILE = "file"      # Always send as audio file (works everywhere!)
+VOICE_MODE_VC = "vc"          # Try real VC connection
+VOICE_MODE_AUTO = "auto"      # Try VC, fallback to file
+DEFAULT_VOICE_MODE = VOICE_MODE_AUTO
+
 # ============ BOT IDENTITY ============
 BOT_IDENTITY = {
     "name": "SentinelMod",
@@ -49,7 +56,7 @@ BOT_IDENTITY = {
     "dashboard_url": "https://automationbot20-1.onrender.com/",
     "bot_id": None,
     "purpose": "A powerful AI-driven Discord moderation and utility bot",
-    "version": "3.0",
+    "version": "3.1",
 }
 
 PERSONALITIES = {
@@ -145,7 +152,8 @@ def init_database():
             personality TEXT DEFAULT 'default',
             ai_mod_enabled INTEGER DEFAULT 1,
             voice_enabled INTEGER DEFAULT 1,
-            voice_language TEXT DEFAULT 'en'
+            voice_language TEXT DEFAULT 'en',
+            voice_mode TEXT DEFAULT 'auto'
         )""",
         """CREATE TABLE IF NOT EXISTS user_memory (
             user_id TEXT, guild_id TEXT,
@@ -226,6 +234,7 @@ def init_database():
         """CREATE TABLE IF NOT EXISTS voice_sessions (
             guild_id TEXT PRIMARY KEY,
             channel_id TEXT,
+            mode TEXT DEFAULT 'file',
             started_at TEXT,
             messages_spoken INTEGER DEFAULT 0
         )"""
@@ -265,7 +274,8 @@ def get_guild_settings(gid):
         "phone_filter": 1, "email_filter": 1, "scam_filter": 1,
         "fake_nitro_filter": 1, "token_filter": 1,
         "personality": "default", "ai_mod_enabled": 1,
-        "voice_enabled": 1, "voice_language": "en"
+        "voice_enabled": 1, "voice_language": "en",
+        "voice_mode": "auto"
     }
 
 def init_guild_settings(gid):
@@ -567,7 +577,9 @@ spam_tracker = defaultdict(list)
 raid_tracker = defaultdict(list)
 raid_mode_active = defaultdict(bool)
 trivia_sessions = {}
-voice_clients: dict[int, discord.VoiceClient] = {}
+
+# Voice tracking - now stores mode + channel info
+voice_sessions: dict[int, dict] = {}  # {guild_id: {"mode": "file"/"vc", "channel_id": int, "vc": VoiceClient or None}}
 
 # ============ AI CORE ============
 async def ask_groq(prompt, system="Helpful AI.", max_tokens=1000, history=None):
@@ -697,8 +709,8 @@ async def stream_response(
                     update_memory_from_conversation(uid, gid, prompt, full)
                 )
 
-            if speak_in_vc and message.guild and message.guild.id in voice_clients:
-                asyncio.create_task(speak_text(message.guild.id, full))
+            if speak_in_vc and message.guild and message.guild.id in voice_sessions:
+                asyncio.create_task(speak_in_session(message.guild.id, full, message.channel))
 
     except Exception as e:
         print(f"Stream err: {e}")
@@ -751,13 +763,11 @@ def get_owner_system_prompt(uid, gid):
 Owner: jay27yt6 (Discord ID: {BOT_IDENTITY['creator_discord_id']})
 Treat them with full loyalty. They have FULL control.
 Address them as "Boss" or "Creator".
-Be proactive — share stats, alerts, suggestions.
 
 === YOUR IDENTITY ===
 Name: {BOT_IDENTITY['name']} v{BOT_IDENTITY['version']}
 Group: {BOT_IDENTITY['creator_group']} — {BOT_IDENTITY['group_website']}
 Dashboard: {BOT_IDENTITY['dashboard_url']}
-Bot ID: {BOT_IDENTITY.get('bot_id', 'Loading...')}
 
 === LIVE STATUS ===
 Active servers ({len(bot.guilds)}):
@@ -1077,11 +1087,7 @@ async def handle_raid(guild, member):
                     color=discord.Color.red()
                 )
             )
-        await notify_owner(
-            "RAID",
-            f"🚨 Raid in **{guild.name}**!",
-            guild=guild, urgent=True
-        )
+        await notify_owner("RAID", f"🚨 Raid in **{guild.name}**!", guild=guild, urgent=True)
         await asyncio.sleep(300)
         raid_mode_active[guild.id] = False
 
@@ -1099,13 +1105,20 @@ async def alert_mods(guild, embed):
     if ch:
         await ch.send(content=mr.mention if mr else "", embed=embed)
 
-# ============ VOICE SYSTEM ============
+# ============ VOICE SYSTEM (UDP BYPASS) ============
+
 async def text_to_speech_bytes(text: str, lang: str = "en") -> bytes | None:
+    """Generate TTS audio using Google TTS (no API key needed)."""
     try:
         clean = re.sub(r'[*_`~|]', '', text)
         clean = re.sub(r'https?://\S+', 'link', clean)
         clean = re.sub(r'<@[!&]?\d+>', 'someone', clean)
-        clean = clean[:400]
+        clean = re.sub(r'<#\d+>', 'channel', clean)
+        clean = re.sub(r':[a-zA-Z_]+:', '', clean)
+        clean = clean.strip()[:400]
+        
+        if not clean:
+            return None
 
         url = (
             f"https://translate.google.com/translate_tts"
@@ -1113,7 +1126,7 @@ async def text_to_speech_bytes(text: str, lang: str = "en") -> bytes | None:
             f"&tl={lang}&client=tw-ob"
         )
         headers = {
-            "User-Agent": "Mozilla/5.0 (compatible; SentinelBot/3.0)"
+            "User-Agent": "Mozilla/5.0 (compatible; SentinelBot/3.1)"
         }
         async with aiohttp.ClientSession() as session:
             async with session.get(
@@ -1126,82 +1139,227 @@ async def text_to_speech_bytes(text: str, lang: str = "en") -> bytes | None:
         print(f"TTS err: {e}")
     return None
 
-async def speak_text(guild_id: int, text: str):
-    """Speak text in voice channel using bundled FFmpeg."""
-    vc = voice_clients.get(guild_id)
-    if not vc or not vc.is_connected():
-        return
+async def try_join_voice_real(channel: discord.VoiceChannel, guild_id: int) -> tuple[bool, str]:
+    """Try to actually connect to voice channel. Returns (success, error)."""
+    try:
+        perms = channel.permissions_for(channel.guild.me)
+        if not perms.connect or not perms.speak:
+            return False, "Missing Connect/Speak permission"
+        
+        # Disconnect any existing
+        if guild_id in voice_sessions:
+            session = voice_sessions[guild_id]
+            if session.get("vc"):
+                try:
+                    await session["vc"].disconnect(force=True)
+                except:
+                    pass
+        
+        # Try to connect with short timeout
+        vc = await asyncio.wait_for(
+            channel.connect(reconnect=False, self_deaf=False),
+            timeout=8.0
+        )
+        return True, vc
+    except asyncio.TimeoutError:
+        return False, "Connection timed out (likely UDP blocked)"
+    except discord.ClientException as e:
+        return False, f"Already connected: {e}"
+    except Exception as e:
+        return False, f"{type(e).__name__}: {str(e)[:100]}"
 
+async def start_voice_session(
+    channel: discord.VoiceChannel,
+    guild_id: int,
+    mode: str = "auto",
+    text_channel: discord.TextChannel = None
+) -> tuple[bool, str]:
+    """
+    Start a voice session. Returns (success, info_message).
+    
+    Modes:
+    - "vc"   = Force real voice channel connection
+    - "file" = Always send as audio file in chat (no UDP needed!)
+    - "auto" = Try VC first, fallback to file mode
+    """
+    
+    # Clean up any existing session
+    if guild_id in voice_sessions:
+        old = voice_sessions[guild_id]
+        if old.get("vc"):
+            try:
+                await old["vc"].disconnect(force=True)
+            except:
+                pass
+        del voice_sessions[guild_id]
+    
+    actual_mode = "file"
+    vc = None
+    info = ""
+    
+    if mode in ["vc", "auto"]:
+        print(f"🎙️ Attempting real VC connection to {channel.name}...")
+        success, result = await try_join_voice_real(channel, guild_id)
+        
+        if success:
+            actual_mode = "vc"
+            vc = result
+            info = f"🎙️ Joined **{channel.name}** (real voice mode)!"
+            print(f"✅ Connected to VC: {channel.name}")
+        elif mode == "vc":
+            return False, f"❌ Couldn't join VC: {result}"
+        else:
+            # Auto mode - fall back to file
+            actual_mode = "file"
+            info = f"🔊 Voice activated for **{channel.name}** (file mode - VC blocked: {result})"
+            print(f"⚠️ VC failed, using file mode: {result}")
+    else:
+        info = f"🔊 Voice activated for **{channel.name}** (file mode)"
+    
+    # Save session
+    voice_sessions[guild_id] = {
+        "mode": actual_mode,
+        "channel_id": channel.id,
+        "vc": vc,
+        "text_channel_id": text_channel.id if text_channel else None,
+        "started_at": datetime.now().isoformat()
+    }
+    
+    # DB log
+    conn = get_db()
+    c = conn.cursor()
+    c.execute(
+        """INSERT OR REPLACE INTO voice_sessions
+           (guild_id, channel_id, mode, started_at, messages_spoken)
+           VALUES (?, ?, ?, ?, 0)""",
+        (str(guild_id), str(channel.id), actual_mode, datetime.now().isoformat())
+    )
+    conn.commit()
+    conn.close()
+    
+    return True, info
+
+async def end_voice_session(guild_id: int):
+    """End a voice session."""
+    if guild_id in voice_sessions:
+        session = voice_sessions[guild_id]
+        if session.get("vc"):
+            try:
+                await session["vc"].disconnect(force=True)
+            except:
+                pass
+        del voice_sessions[guild_id]
+        return True
+    return False
+
+async def speak_in_session(guild_id: int, text: str, text_channel: discord.TextChannel = None):
+    """
+    Speak text in the voice session.
+    Automatically uses real VC if connected, otherwise sends file in chat.
+    """
+    if guild_id not in voice_sessions:
+        return
+    
+    session = voice_sessions[guild_id]
     s = get_guild_settings(guild_id)
     lang = s.get("voice_language", "en")
-
+    
+    # Generate TTS
     audio_bytes = await text_to_speech_bytes(text, lang)
     if not audio_bytes:
         return
-
-    while vc.is_playing():
-        await asyncio.sleep(0.5)
-
-    with tempfile.NamedTemporaryFile(suffix=".mp3", delete=False) as f:
-        f.write(audio_bytes)
-        temp_path = f.name
-
-    try:
-        # Use bundled FFmpeg from imageio-ffmpeg
-        source = discord.FFmpegPCMAudio(temp_path, executable=FFMPEG_PATH)
-        vc.play(
-            discord.PCMVolumeTransformer(source, volume=0.8),
-            after=lambda e: os.unlink(temp_path) if os.path.exists(temp_path) else None
-        )
-
-        conn = get_db()
-        c = conn.cursor()
-        c.execute(
-            """UPDATE voice_sessions SET messages_spoken = messages_spoken + 1
-               WHERE guild_id = ?""",
-            (str(guild_id),)
-        )
-        conn.commit()
-        conn.close()
-
-    except Exception as e:
-        print(f"Voice play err: {e}")
-        if os.path.exists(temp_path):
-            os.unlink(temp_path)
-
-async def join_voice_channel(channel: discord.VoiceChannel, guild_id: int) -> bool:
-    try:
-        if guild_id in voice_clients:
+    
+    mode = session.get("mode", "file")
+    
+    # ===== Real VC Mode =====
+    if mode == "vc" and session.get("vc"):
+        vc = session["vc"]
+        if not vc.is_connected():
+            # Connection died, fallback to file
+            mode = "file"
+            session["mode"] = "file"
+            session["vc"] = None
+        else:
             try:
-                await voice_clients[guild_id].disconnect()
-            except:
-                pass
-
-        vc = await channel.connect()
-        voice_clients[guild_id] = vc
-
-        conn = get_db()
-        c = conn.cursor()
-        c.execute(
-            """INSERT OR REPLACE INTO voice_sessions
-               (guild_id, channel_id, started_at, messages_spoken)
-               VALUES (?, ?, ?, 0)""",
-            (str(guild_id), str(channel.id), datetime.now().isoformat())
-        )
-        conn.commit()
-        conn.close()
-        return True
-    except Exception as e:
-        print(f"Join VC err: {e}")
-        return False
-
-async def leave_voice_channel(guild_id: int):
-    if guild_id in voice_clients:
+                while vc.is_playing():
+                    await asyncio.sleep(0.3)
+                
+                with tempfile.NamedTemporaryFile(suffix=".mp3", delete=False) as f:
+                    f.write(audio_bytes)
+                    temp_path = f.name
+                
+                source = discord.FFmpegPCMAudio(temp_path, executable=FFMPEG_PATH)
+                vc.play(
+                    discord.PCMVolumeTransformer(source, volume=0.8),
+                    after=lambda e: os.unlink(temp_path) if os.path.exists(temp_path) else None
+                )
+                
+                # Update stats
+                conn = get_db()
+                c = conn.cursor()
+                c.execute(
+                    "UPDATE voice_sessions SET messages_spoken = messages_spoken + 1 WHERE guild_id = ?",
+                    (str(guild_id),)
+                )
+                conn.commit()
+                conn.close()
+                return
+            except Exception as e:
+                print(f"VC play err, falling back to file: {e}")
+                mode = "file"
+                session["mode"] = "file"
+    
+    # ===== File Mode (UDP Bypass) =====
+    if mode == "file":
+        # Determine where to send the file
+        target_channel = None
+        
+        # Try the text channel from session
+        if session.get("text_channel_id"):
+            target_channel = bot.get_channel(int(session["text_channel_id"]))
+        
+        # Try the provided text channel
+        if not target_channel and text_channel:
+            target_channel = text_channel
+        
+        # Fallback: find a text channel
+        if not target_channel:
+            guild = bot.get_guild(guild_id)
+            if guild:
+                target_channel = discord.utils.get(guild.text_channels, name="sentinel-bot") or guild.system_channel
+                if not target_channel and guild.text_channels:
+                    target_channel = guild.text_channels[0]
+        
+        if not target_channel:
+            return
+        
         try:
-            await voice_clients[guild_id].disconnect()
-        except:
-            pass
-        del voice_clients[guild_id]
+            # Send as MP3 file
+            audio_file = discord.File(
+                io.BytesIO(audio_bytes),
+                filename="sentinel_voice.mp3"
+            )
+            
+            embed = discord.Embed(
+                description=f"🔊 **Voice Response** (UDP bypass mode)\n*{text[:300]}{'...' if len(text) > 300 else ''}*",
+                color=discord.Color.blurple()
+            )
+            embed.set_footer(text="▶ Click to play • Voice file mode")
+            
+            await target_channel.send(embed=embed, file=audio_file)
+            
+            # Update stats
+            conn = get_db()
+            c = conn.cursor()
+            c.execute(
+                "UPDATE voice_sessions SET messages_spoken = messages_spoken + 1 WHERE guild_id = ?",
+                (str(guild_id),)
+            )
+            conn.commit()
+            conn.close()
+            
+        except Exception as e:
+            print(f"File send err: {e}")
 
 # ============ COMMAND PARSER ============
 async def parse_command(content, guild, author):
@@ -1272,17 +1430,24 @@ async def execute_command(parsed, message, guild, author):
             if not s.get("voice_enabled", 1):
                 return "❌ Voice is disabled in this server."
 
-            success = await join_voice_channel(target_ch, guild.id)
+            mode = s.get("voice_mode", "auto")
+            success, info = await start_voice_session(target_ch, guild.id, mode, message.channel)
+            
             if success:
-                await speak_text(guild.id, f"Hello! SentinelMod is now online in {target_ch.name}!")
-                return f"🎙️ Joined **{target_ch.name}**! I'll speak responses aloud."
-            return "❌ Couldn't join voice channel. Check my permissions!"
+                # Send greeting
+                await speak_in_session(
+                    guild.id,
+                    f"Hello! SentinelMod is ready in {target_ch.name}!",
+                    message.channel
+                )
+                return info
+            return info
 
         elif cmd == "leave_voice":
-            if guild.id not in voice_clients:
-                return "❌ I'm not in a voice channel!"
-            await leave_voice_channel(guild.id)
-            return "👋 Left voice channel!"
+            if guild.id not in voice_sessions:
+                return "❌ I'm not active in any voice channel!"
+            await end_voice_session(guild.id)
+            return "👋 Voice session ended!"
 
         elif cmd == "owner_status":
             if not is_owner(author.id):
@@ -1360,7 +1525,7 @@ async def execute_command(parsed, message, guild, author):
                 .add_field(name="Reason", value=reason)
                 .add_field(name="By", value=str(author))
             )
-            await notify_owner("BAN", f"**{t}** banned from **{guild.name}**\nReason: {reason}", guild=guild)
+            await notify_owner("BAN", f"**{t}** banned from **{guild.name}**", guild=guild)
             return f"🔨 **{t.name}** has been banned!"
 
         elif cmd == "kick_user":
@@ -1412,10 +1577,7 @@ async def execute_command(parsed, message, guild, author):
             ws = get_warnings(t.id, guild.id)
             if not ws:
                 return f"✅ **{t.name}** has no warnings!"
-            lines = "\n".join(
-                f"#{i+1} [{w['severity']}] {w['reason']}"
-                for i, w in enumerate(ws[:5])
-            )
+            lines = "\n".join(f"#{i+1} [{w['severity']}] {w['reason']}" for i, w in enumerate(ws[:5]))
             return f"**{t.name}** has {len(ws)} warning(s):\n{lines}"
 
         elif cmd == "lock_channel":
@@ -1565,10 +1727,7 @@ async def execute_command(parsed, message, guild, author):
                 (str(t.id), str(guild.id))
             )
             conn.commit()
-            c.execute(
-                "SELECT rep FROM reputation WHERE user_id=? AND guild_id=?",
-                (str(t.id), str(guild.id))
-            )
+            c.execute("SELECT rep FROM reputation WHERE user_id=? AND guild_id=?", (str(t.id), str(guild.id)))
             rep = c.fetchone()[0]
             conn.close()
             return f"✅ +1 rep to **{t.name}**! They now have **{rep}** rep."
@@ -1712,7 +1871,7 @@ async def execute_command(parsed, message, guild, author):
             for i, r in enumerate(top):
                 m = guild.get_member(int(r["user_id"]))
                 medal = medals[i] if i < 3 else f"#{i+1}"
-                lines.append(f"{medal} {m.display_name if m else 'Unknown'}: **{r['message_count']}** messages")
+                lines.append(f"{medal} {m.display_name if m else 'Unknown'}: **{r['message_count']}**")
             await message.channel.send(
                 embed=discord.Embed(
                     title="📊 Most Active Members",
@@ -1726,8 +1885,8 @@ async def execute_command(parsed, message, guild, author):
             embed = discord.Embed(title="🛡️ SentinelMod Help", color=discord.Color.blue())
             embed.add_field(name="💬 Chat", value="@mention me or use #sentinel-bot", inline=False)
             embed.add_field(name="🔨 Mod", value="ban, kick, mute, warn, purge, lock", inline=False)
-            embed.add_field(name="🎮 Fun", value="trivia, roast, 8ball, ship, story, riddle", inline=False)
-            embed.add_field(name="🎙️ Voice", value="@mention 'join voice' or 'leave voice'", inline=False)
+            embed.add_field(name="🎮 Fun", value="trivia, roast, 8ball, ship, story", inline=False)
+            embed.add_field(name="🎙️ Voice", value="/join_vc, /leave_vc, /speak, /voice_mode", inline=False)
             embed.add_field(name="🌐 Dashboard", value=f"[Open]({BOT_IDENTITY['dashboard_url']})", inline=False)
             embed.add_field(
                 name="👨‍💻 Made by",
@@ -1762,10 +1921,7 @@ async def do_trivia(message, gid, uid):
         description=trivia["question"],
         color=discord.Color.blue()
     )
-    embed.add_field(
-        name="Options",
-        value="\n".join(f"{emojis[i]} {a}" for i, a in enumerate(answers))
-    )
+    embed.add_field(name="Options", value="\n".join(f"{emojis[i]} {a}" for i, a in enumerate(answers)))
     msg = await message.channel.send(embed=embed)
     for e in emojis:
         await msg.add_reaction(e)
@@ -1783,17 +1939,17 @@ async def do_trivia(message, gid, uid):
 
 async def do_fun(ftype, params, author):
     prompts = {
-        "wouldyourather": ("Generate a Would You Rather question with two creative options.", "🤔 Would You Rather?"),
-        "eightball": (f"Answer this 8-ball question: '{params.get('question','...')}'. Be mystical and brief.", "🎱 Magic 8-Ball"),
-        "roast": (f"Lightly roast {params.get('target_user_name','someone')}. Keep it fun, not mean.", "🔥 Roast"),
-        "compliment": (f"Give a genuine compliment to {params.get('target_user_name', author.name)}.", "💝 Compliment"),
+        "wouldyourather": ("Generate a Would You Rather question.", "🤔 Would You Rather?"),
+        "eightball": (f"Answer this 8-ball question: '{params.get('question','...')}'.", "🎱 Magic 8-Ball"),
+        "roast": (f"Lightly roast {params.get('target_user_name','someone')}. Keep it fun.", "🔥 Roast"),
+        "compliment": (f"Give a compliment to {params.get('target_user_name', author.name)}.", "💝 Compliment"),
         "dadjoke": ("Tell a classic dad joke.", "👨 Dad Joke"),
-        "ship": (f"Rate the ship between {params.get('target_user_name','Person 1')} and {params.get('target_user2','Person 2')}.", "💕 Ship"),
-        "rate": (f"Rate '{params.get('rating_target','life')}' out of 10 with a fun reason.", "⭐ Rate"),
-        "fact": ("Share one surprising random fact.", "🤯 Random Fact"),
-        "truthordare": ("Give either a truth question or a dare challenge.", "🎯 Truth or Dare"),
-        "story": (f"Write a creative 150-word story {('about '+params.get('text','')) if params.get('text') else ''}.", "📖 Story"),
-        "riddle": ("Give a riddle and its answer.", "🧩 Riddle"),
+        "ship": (f"Ship {params.get('target_user_name','x')} + {params.get('target_user2','y')}.", "💕 Ship"),
+        "rate": (f"Rate '{params.get('rating_target','life')}' out of 10.", "⭐ Rate"),
+        "fact": ("Share one surprising fact.", "🤯 Random Fact"),
+        "truthordare": ("Truth or dare challenge.", "🎯 Truth or Dare"),
+        "story": (f"Write a 150-word story {('about '+params.get('text','')) if params.get('text') else ''}.", "📖 Story"),
+        "riddle": ("Give a riddle and answer.", "🧩 Riddle"),
         "pickupline": ("Share a cheesy pickup line.", "😘 Pickup Line"),
     }
     p, title = prompts.get(ftype, ("Tell a joke.", "😄"))
@@ -1862,7 +2018,7 @@ async def get_owner_status_report(guild=None):
         f"**🤖 SentinelMod v{BOT_IDENTITY['version']} Status**\n\n"
         f"**Servers:** {len(bot.guilds)}\n"
         f"**Total Members:** {total:,}\n"
-        f"**Voice Active:** {len(voice_clients)} server(s)\n\n"
+        f"**Voice Active:** {len(voice_sessions)} server(s)\n\n"
         f"**Stats:**\n"
         f"• Warnings: {warns:,}\n"
         f"• Mod Actions: {actions:,}\n"
@@ -1896,7 +2052,7 @@ async def setup_server(guild):
             if mr:
                 ow[mr] = discord.PermissionOverwrite(read_messages=True)
             scat = await guild.create_category(name="🛡️ SENTINELAI", overwrites=ow)
-            results.append("✅ Category: SENTINELAI")
+            results.append("✅ Category")
         except:
             pass
     for cn in [s["log_channel"], s["raid_channel"], "sentinel-bot"]:
@@ -1941,7 +2097,7 @@ class ConfirmView(discord.ui.View):
         self.stop()
 
 # ============ SLASH COMMANDS ============
-@bot.tree.command(name="join_vc", description="Make SentinelMod join your voice channel")
+@bot.tree.command(name="join_vc", description="Start voice mode (auto-detect best mode)")
 async def join_vc_cmd(interaction: discord.Interaction):
     if not interaction.user.voice or not interaction.user.voice.channel:
         await interaction.response.send_message("❌ Join a voice channel first!", ephemeral=True)
@@ -1952,32 +2108,69 @@ async def join_vc_cmd(interaction: discord.Interaction):
         await interaction.response.send_message("❌ Voice is disabled.", ephemeral=True)
         return
     await interaction.response.defer()
-    success = await join_voice_channel(channel, interaction.guild.id)
+    mode = s.get("voice_mode", "auto")
+    success, info = await start_voice_session(channel, interaction.guild.id, mode, interaction.channel)
     if success:
-        await speak_text(interaction.guild.id, "Hello! SentinelMod is ready to chat!")
-        await interaction.followup.send(f"🎙️ Joined **{channel.name}**!")
+        await speak_in_session(
+            interaction.guild.id,
+            "Hello! SentinelMod voice is ready!",
+            interaction.channel
+        )
+        await interaction.followup.send(info)
     else:
-        await interaction.followup.send("❌ Couldn't join! Check my permissions.")
+        await interaction.followup.send(info)
 
-@bot.tree.command(name="leave_vc", description="Make SentinelMod leave voice")
+@bot.tree.command(name="leave_vc", description="End voice session")
 async def leave_vc_cmd(interaction: discord.Interaction):
-    if interaction.guild.id not in voice_clients:
-        await interaction.response.send_message("❌ I'm not in a voice channel!", ephemeral=True)
+    if interaction.guild.id not in voice_sessions:
+        await interaction.response.send_message("❌ I'm not active in voice!", ephemeral=True)
         return
-    await leave_voice_channel(interaction.guild.id)
-    await interaction.response.send_message("👋 Left voice channel!")
+    await end_voice_session(interaction.guild.id)
+    await interaction.response.send_message("👋 Voice session ended!")
 
-@bot.tree.command(name="speak", description="Make SentinelMod say something in voice")
+@bot.tree.command(name="speak", description="Make SentinelMod speak something")
 @app_commands.describe(text="What should I say?")
 async def speak_cmd(interaction: discord.Interaction, text: str):
-    if interaction.guild.id not in voice_clients:
+    if interaction.guild.id not in voice_sessions:
         await interaction.response.send_message(
-            "❌ I'm not in a voice channel! Use /join_vc first.", ephemeral=True
+            "❌ Start voice first with /join_vc!", ephemeral=True
         )
         return
     await interaction.response.defer()
-    await speak_text(interaction.guild.id, text)
-    await interaction.followup.send(f"🎙️ Speaking: *{text[:100]}*")
+    await speak_in_session(interaction.guild.id, text, interaction.channel)
+    await interaction.followup.send(f"🔊 Speaking: *{text[:100]}*", ephemeral=True)
+
+@bot.tree.command(name="voice_mode", description="Set voice mode (auto/vc/file)")
+@app_commands.describe(mode="auto = try VC then file | vc = force voice channel | file = audio files in chat")
+@app_commands.choices(mode=[
+    app_commands.Choice(name="🤖 Auto (Recommended)", value="auto"),
+    app_commands.Choice(name="🎙️ Voice Channel Only", value="vc"),
+    app_commands.Choice(name="📁 File Mode (Works Everywhere!)", value="file"),
+])
+async def voice_mode_cmd(interaction: discord.Interaction, mode: app_commands.Choice[str]):
+    if not interaction.user.guild_permissions.administrator:
+        await interaction.response.send_message("❌ Admin only!", ephemeral=True)
+        return
+    
+    conn = get_db()
+    c = conn.cursor()
+    c.execute(
+        "UPDATE guild_settings SET voice_mode=? WHERE guild_id=?",
+        (mode.value, str(interaction.guild.id))
+    )
+    conn.commit()
+    conn.close()
+    
+    explanations = {
+        "auto": "Bot will try real VC, fallback to file mode if blocked",
+        "vc": "Bot only uses real voice channel (may fail on free hosting)",
+        "file": "Bot sends voice as MP3 files in chat (works 100% everywhere!)"
+    }
+    
+    await interaction.response.send_message(
+        f"✅ Voice mode set to **{mode.name}**\n*{explanations[mode.value]}*",
+        ephemeral=True
+    )
 
 @bot.tree.command(name="dashboard", description="Get dashboard link")
 async def dashboard_cmd(interaction: discord.Interaction):
@@ -2007,7 +2200,6 @@ async def about_cmd(interaction: discord.Interaction):
         value=f"**{len(bot.guilds)}** servers | **{sum(g.member_count for g in bot.guilds):,}** members",
         inline=False
     )
-    embed.set_footer(text=f"Bot ID: {BOT_IDENTITY.get('bot_id', '...')}")
     await interaction.response.send_message(embed=embed)
 
 @bot.tree.command(name="personality", description="Choose bot personality")
@@ -2029,7 +2221,6 @@ async def personality_cmd(interaction: discord.Interaction):
     await interaction.response.send_message(
         embed=discord.Embed(
             title="🎭 Choose Personality",
-            description="Select how SentinelMod talks to you!",
             color=discord.Color.purple()
         ),
         view=view, ephemeral=True
@@ -2057,24 +2248,15 @@ async def memory_cmd(interaction: discord.Interaction):
         embed.description = "I don't know much about you yet! Chat with me to build memory. 💬"
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
-@bot.tree.command(name="forget_me", description="Clear all memory SentinelMod has about you")
+@bot.tree.command(name="forget_me", description="Clear all memory about you")
 async def forget_cmd(interaction: discord.Interaction):
     conn = get_db()
     c = conn.cursor()
-    c.execute(
-        "DELETE FROM user_memory WHERE user_id=? AND guild_id=?",
-        (str(interaction.user.id), str(interaction.guild.id))
-    )
-    c.execute(
-        "DELETE FROM conversation_history WHERE user_id=? AND guild_id=?",
-        (str(interaction.user.id), str(interaction.guild.id))
-    )
+    c.execute("DELETE FROM user_memory WHERE user_id=? AND guild_id=?", (str(interaction.user.id), str(interaction.guild.id)))
+    c.execute("DELETE FROM conversation_history WHERE user_id=? AND guild_id=?", (str(interaction.user.id), str(interaction.guild.id)))
     conn.commit()
     conn.close()
-    await interaction.response.send_message(
-        "🧹 Done! I've forgotten everything about you in this server.",
-        ephemeral=True
-    )
+    await interaction.response.send_message("🧹 Done! I've forgotten everything about you.", ephemeral=True)
 
 @bot.tree.command(name="owner_status", description="[Owner Only] Full bot status")
 async def owner_status_cmd(interaction: discord.Interaction):
@@ -2090,9 +2272,9 @@ async def help_cmd(interaction: discord.Interaction):
     embed = discord.Embed(title="🛡️ SentinelMod Help", color=discord.Color.blue())
     embed.add_field(name="💬 Chat", value="@mention me or use #sentinel-bot", inline=False)
     embed.add_field(name="🔨 Mod", value="ban, kick, mute, warn, purge, lock", inline=False)
-    embed.add_field(name="🎮 Fun", value="trivia, roast, 8ball, ship, story, riddle", inline=False)
-    embed.add_field(name="🧠 Memory", value="`/memory` to see what I know\n`/forget_me` to clear", inline=False)
-    embed.add_field(name="🎙️ Voice", value="/join_vc, /leave_vc, /speak", inline=False)
+    embed.add_field(name="🎮 Fun", value="trivia, roast, 8ball, ship, story", inline=False)
+    embed.add_field(name="🧠 Memory", value="`/memory` see, `/forget_me` clear", inline=False)
+    embed.add_field(name="🎙️ Voice", value="`/join_vc`, `/leave_vc`, `/speak`, `/voice_mode`", inline=False)
     embed.add_field(name="🌐 Dashboard", value=f"[Open]({BOT_IDENTITY['dashboard_url']})", inline=False)
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
@@ -2101,10 +2283,7 @@ async def help_cmd(interaction: discord.Interaction):
 async def check_giveaways():
     conn = get_db()
     c = conn.cursor()
-    c.execute(
-        "SELECT * FROM giveaways WHERE active=1 AND end_time<=?",
-        (datetime.now().isoformat(),)
-    )
+    c.execute("SELECT * FROM giveaways WHERE active=1 AND end_time<=?", (datetime.now().isoformat(),))
     ended = [dict(r) for r in c.fetchall()]
     conn.close()
     for g in ended:
@@ -2141,10 +2320,7 @@ async def check_giveaways():
 async def check_reminders():
     conn = get_db()
     c = conn.cursor()
-    c.execute(
-        "SELECT * FROM reminders WHERE active=1 AND remind_time<=?",
-        (datetime.now().isoformat(),)
-    )
+    c.execute("SELECT * FROM reminders WHERE active=1 AND remind_time<=?", (datetime.now().isoformat(),))
     due = [dict(r) for r in c.fetchall()]
     for rem in due:
         try:
@@ -2191,22 +2367,6 @@ async def daily_stats_task():
         except Exception as e:
             print(f"Daily stats err: {e}")
 
-@tasks.loop(hours=24)
-async def daily_owner_report():
-    try:
-        report = await get_owner_status_report()
-        owner = await bot.fetch_user(BOT_IDENTITY["creator_discord_id"])
-        if owner:
-            embed = discord.Embed(
-                title="📊 Daily Owner Report",
-                description=report,
-                color=discord.Color.blue(),
-                timestamp=datetime.now()
-            )
-            await owner.send(embed=embed)
-    except Exception as e:
-        print(f"Daily owner report err: {e}")
-
 # ============ EVENTS ============
 @bot.event
 async def on_ready():
@@ -2222,7 +2382,6 @@ async def on_ready():
     check_giveaways.start()
     check_reminders.start()
     daily_stats_task.start()
-    daily_owner_report.start()
     await bot.change_presence(
         activity=discord.Activity(
             type=discord.ActivityType.watching,
@@ -2234,23 +2393,18 @@ async def on_ready():
         f"✅ **SentinelMod v{BOT_IDENTITY['version']} is ONLINE!**\n"
         f"Servers: **{len(bot.guilds)}**\n"
         f"Members: **{sum(g.member_count for g in bot.guilds):,}**\n"
-        f"FFmpeg: `{FFMPEG_PATH}`\n"
-        f"Dashboard: {BOT_IDENTITY['dashboard_url']}"
+        f"Voice: UDP Bypass enabled 🎙️"
     )
 
 @bot.event
 async def on_guild_join(guild):
     init_guild_settings(guild.id)
     await setup_server(guild)
-    await notify_owner(
-        "JOIN",
-        f"🎉 Joined **{guild.name}**!\nMembers: {guild.member_count}\nOwner: {guild.owner}",
-        guild=guild
-    )
+    await notify_owner("JOIN", f"🎉 Joined **{guild.name}**! Members: {guild.member_count}", guild=guild)
 
 @bot.event
 async def on_guild_remove(guild):
-    await notify_owner("INFO", f"😢 Removed from **{guild.name}**. Servers now: {len(bot.guilds)}")
+    await notify_owner("INFO", f"😢 Removed from **{guild.name}**.")
 
 @bot.event
 async def on_member_join(member):
@@ -2276,11 +2430,7 @@ async def on_member_join(member):
                 "Friendly Discord bot."
             )
             if w:
-                embed = discord.Embed(
-                    title="👋 Welcome!",
-                    description=w,
-                    color=discord.Color.green()
-                )
+                embed = discord.Embed(title="👋 Welcome!", description=w, color=discord.Color.green())
                 embed.set_thumbnail(url=member.display_avatar.url)
                 await wch.send(content=member.mention, embed=embed)
 
@@ -2301,12 +2451,14 @@ async def on_voice_state_update(member, before, after):
     if member.bot:
         return
     guild = member.guild
-    if guild.id in voice_clients:
-        vc = voice_clients[guild.id]
-        if vc.channel and len([m for m in vc.channel.members if not m.bot]) == 0:
-            await asyncio.sleep(30)
+    if guild.id in voice_sessions:
+        session = voice_sessions[guild.id]
+        if session.get("mode") == "vc" and session.get("vc"):
+            vc = session["vc"]
             if vc.channel and len([m for m in vc.channel.members if not m.bot]) == 0:
-                await leave_voice_channel(guild.id)
+                await asyncio.sleep(30)
+                if vc.channel and len([m for m in vc.channel.members if not m.bot]) == 0:
+                    await end_voice_session(guild.id)
 
 @bot.event
 async def on_reaction_add(reaction, user):
@@ -2334,6 +2486,7 @@ async def on_message(message):
 
     update_message_stats(message.author.id, message.guild.id)
 
+    # AFK
     conn = get_db()
     c = conn.cursor()
     c.execute("SELECT * FROM afk_users WHERE guild_id=?", (str(message.guild.id),))
@@ -2343,10 +2496,7 @@ async def on_message(message):
     if str(message.author.id) in afk:
         conn = get_db()
         c = conn.cursor()
-        c.execute(
-            "DELETE FROM afk_users WHERE user_id=? AND guild_id=?",
-            (str(message.author.id), str(message.guild.id))
-        )
+        c.execute("DELETE FROM afk_users WHERE user_id=? AND guild_id=?", (str(message.author.id), str(message.guild.id)))
         conn.commit()
         conn.close()
         try:
@@ -2356,17 +2506,12 @@ async def on_message(message):
 
     for m in message.mentions:
         if str(m.id) in afk:
-            await message.channel.send(
-                f"💤 {m.mention} is AFK: **{afk[str(m.id)]['reason']}**",
-                delete_after=10
-            )
+            await message.channel.send(f"💤 {m.mention} is AFK: **{afk[str(m.id)]['reason']}**", delete_after=10)
 
+    # Custom commands
     conn = get_db()
     c = conn.cursor()
-    c.execute(
-        "SELECT response FROM custom_commands WHERE guild_id=? AND trigger_word=?",
-        (str(message.guild.id), message.content.lower().strip())
-    )
+    c.execute("SELECT response FROM custom_commands WHERE guild_id=? AND trigger_word=?", (str(message.guild.id), message.content.lower().strip()))
     cc = c.fetchone()
     conn.close()
     if cc:
@@ -2384,7 +2529,7 @@ async def on_message(message):
                 await message.reply("👋 Hey! Try asking me something or say `help`!")
             return
 
-        speak_vc = message.guild.id in voice_clients
+        speak_vc = message.guild.id in voice_sessions
 
         if owner_talking:
             async with message.channel.typing():
@@ -2395,11 +2540,7 @@ async def on_message(message):
                 if nc:
                     view = ConfirmView(parsed, message, message.guild, message.author)
                     await message.reply(
-                        embed=discord.Embed(
-                            title="⚠️ Confirm Action",
-                            description=parsed.get("confirmation_message", "Confirm?"),
-                            color=discord.Color.orange()
-                        ),
+                        embed=discord.Embed(title="⚠️ Confirm Action", description=parsed.get("confirmation_message", "Confirm?"), color=discord.Color.orange()),
                         view=view
                     )
                 else:
@@ -2411,11 +2552,7 @@ async def on_message(message):
 
             sys = get_owner_system_prompt(str(message.author.id), str(message.guild.id))
             hist = get_conversation_history(str(message.author.id), str(message.guild.id))
-            await stream_response(
-                message, content, sys, hist,
-                str(message.author.id), str(message.guild.id),
-                speak_in_vc=speak_vc
-            )
+            await stream_response(message, content, sys, hist, str(message.author.id), str(message.guild.id), speak_in_vc=speak_vc)
             return
 
         if is_mod or is_admin:
@@ -2432,11 +2569,7 @@ async def on_message(message):
                 if nc:
                     view = ConfirmView(parsed, message, message.guild, message.author)
                     await message.reply(
-                        embed=discord.Embed(
-                            title="⚠️ Confirm",
-                            description=parsed.get("confirmation_message", "Are you sure?"),
-                            color=discord.Color.orange()
-                        ),
+                        embed=discord.Embed(title="⚠️ Confirm", description=parsed.get("confirmation_message", "Are you sure?"), color=discord.Color.orange()),
                         view=view
                     )
                 else:
@@ -2446,17 +2579,9 @@ async def on_message(message):
                         await message.reply(r[:2000])
                 return
 
-        sys = get_system_prompt(
-            str(message.author.id),
-            str(message.guild.id),
-            message.author.display_name
-        )
+        sys = get_system_prompt(str(message.author.id), str(message.guild.id), message.author.display_name)
         hist = get_conversation_history(str(message.author.id), str(message.guild.id))
-        await stream_response(
-            message, content, sys, hist,
-            str(message.author.id), str(message.guild.id),
-            speak_in_vc=speak_vc
-        )
+        await stream_response(message, content, sys, hist, str(message.author.id), str(message.guild.id), speak_in_vc=speak_vc)
         return
 
     if owner_talking or is_mod or is_admin:
@@ -2495,5 +2620,5 @@ if __name__ == "__main__":
         thread.daemon = True
         thread.start()
         print("🌐 Dashboard starting on port 8080")
-        print("🚀 Starting SentinelMod v3.0...")
+        print("🚀 Starting SentinelMod v3.1 (UDP Bypass)...")
         bot.run(DISCORD_TOKEN)
