@@ -1,7 +1,7 @@
 # bot.py
 # ================================
-# SentinelMod v5.0 - ULTIMATE Edition
-# Memory + Smart Mod + AI Features + Fixed Streaming
+# SentinelMod v5.1 - BULLETPROOF Edition
+# Never fails to respond + multi-AI fallback
 # ================================
 
 import discord
@@ -34,6 +34,7 @@ except Exception as e:
 # ============ CONFIG ============
 DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+HF_API_KEY = os.getenv("HF_API_KEY", "")  # Optional Hugging Face key
 GROQ_MODEL = "llama-3.1-8b-instant"
 BOT_NAME = "SentinelMod"
 AI_CHAT_CHANNEL = "sentinel-bot"
@@ -49,8 +50,8 @@ BOT_IDENTITY = {
     "group_website": "https://antarcticstuds.neocities.org/",
     "dashboard_url": "https://automationbot20-1.onrender.com/",
     "bot_id": None,
-    "purpose": "Advanced AI Discord bot with memory, image gen, mood tracking & more",
-    "version": "5.0",
+    "purpose": "Bulletproof AI Discord bot with memory, image gen, mood tracking & more",
+    "version": "5.1",
 }
 
 PERSONALITIES = {
@@ -729,18 +730,234 @@ raid_mode_active = defaultdict(bool)
 trivia_sessions = {}
 voice_sessions: dict[int, dict] = {}
 
-# ============ AI CORE - FIXED! ============
-async def ask_groq(prompt, system="Helpful AI.", max_tokens=1000, history=None):
-    """Reliable non-streaming AI call."""
+# ============ BULLETPROOF AI CORE ============
+
+async def ask_groq(prompt, system="Helpful AI.", max_tokens=1000, history=None, status_msg=None):
+    """
+    BULLETPROOF AI call - tries multiple models, then fallback APIs.
+    Optionally updates status_msg with progress.
+    """
     headers = {"Authorization": f"Bearer {GROQ_API_KEY}", "Content-Type": "application/json"}
     messages = [{"role": "system", "content": system}]
     if history:
         messages.extend(history[-12:])
     messages.append({"role": "user", "content": prompt})
-    payload = {"model": GROQ_MODEL, "messages": messages, "temperature": 0.75, "max_tokens": max_tokens}
     
-    # Retry up to 2 times
-    for attempt in range(2):
+    # Try multiple Groq models
+    models_to_try = [
+        ("llama-3.1-8b-instant", "Fast model"),
+        ("llama-3.3-70b-versatile", "Powerful model"),
+        ("gemma2-9b-it", "Backup model"),
+        ("llama-3.1-8b-instant", "Retry fast"),
+    ]
+    
+    for idx, (model, model_name) in enumerate(models_to_try):
+        # Update status
+        if status_msg and idx > 0:
+            try:
+                await status_msg.edit(content=f"🔄 *Trying {model_name}... (attempt {idx+1}/{len(models_to_try)+2})*")
+            except: pass
+        
+        payload = {
+            "model": model,
+            "messages": messages,
+            "temperature": 0.75,
+            "max_tokens": max_tokens
+        }
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.post(
+                    "https://api.groq.com/openai/v1/chat/completions",
+                    headers=headers, json=payload,
+                    timeout=aiohttp.ClientTimeout(total=25)
+                ) as resp:
+                    if resp.status == 200:
+                        data = await resp.json()
+                        result = data["choices"][0]["message"]["content"]
+                        if result and result.strip():
+                            print(f"✅ Got response from {model}")
+                            return result
+                    elif resp.status == 429:
+                        print(f"Rate limited on {model}")
+                        await asyncio.sleep(1.5)
+                    else:
+                        err_text = await resp.text()
+                        print(f"Groq HTTP {resp.status} on {model}: {err_text[:150]}")
+        except asyncio.TimeoutError:
+            print(f"Timeout on {model}")
+        except Exception as e:
+            print(f"Error on {model}: {e}")
+    
+    # All Groq failed - try Pollinations
+    if status_msg:
+        try:
+            await status_msg.edit(content="🌐 *Trying backup AI (Pollinations)...*")
+        except: pass
+    
+    pollinations_result = await ask_pollinations_ai(prompt, system, history)
+    if pollinations_result:
+        return pollinations_result
+    
+    # Try Hugging Face if key is set
+    if HF_API_KEY:
+        if status_msg:
+            try:
+                await status_msg.edit(content="🤗 *Trying HuggingFace AI...*")
+            except: pass
+        hf_result = await ask_huggingface_ai(prompt, system)
+        if hf_result:
+            return hf_result
+    
+    # Final fallback - smart default
+    print("All AI providers failed, using smart default")
+    return generate_smart_default(prompt)
+
+async def ask_pollinations_ai(prompt, system, history=None):
+    """Free Pollinations.ai text generation - no API key needed!"""
+    try:
+        full_prompt = f"System: {system}\n\n"
+        if history:
+            for h in history[-6:]:
+                role = "User" if h["role"] == "user" else "Assistant"
+                full_prompt += f"{role}: {h['content']}\n"
+        full_prompt += f"User: {prompt}\nAssistant:"
+        
+        # Method 1: GET endpoint
+        url = f"https://text.pollinations.ai/{aiohttp.helpers.quote(full_prompt[:1500])}"
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url, timeout=aiohttp.ClientTimeout(total=25)) as resp:
+                if resp.status == 200:
+                    text = await resp.text()
+                    if text and text.strip() and len(text.strip()) > 5:
+                        print("✅ Got response from Pollinations")
+                        return text.strip()[:2000]
+        
+        # Method 2: POST endpoint
+        async with aiohttp.ClientSession() as session:
+            payload = {
+                "messages": [
+                    {"role": "system", "content": system},
+                    {"role": "user", "content": prompt}
+                ],
+                "model": "openai"
+            }
+            async with session.post(
+                "https://text.pollinations.ai/openai",
+                json=payload,
+                timeout=aiohttp.ClientTimeout(total=25)
+            ) as resp:
+                if resp.status == 200:
+                    data = await resp.json()
+                    result = data.get("choices", [{}])[0].get("message", {}).get("content", "")
+                    if result:
+                        print("✅ Got response from Pollinations POST")
+                        return result[:2000]
+    except Exception as e:
+        print(f"Pollinations err: {e}")
+    return None
+
+async def ask_huggingface_ai(prompt, system):
+    """Optional HuggingFace backup if HF_API_KEY is set."""
+    try:
+        url = "https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.2"
+        headers = {"Authorization": f"Bearer {HF_API_KEY}"}
+        payload = {
+            "inputs": f"<s>[INST] {system}\n\n{prompt} [/INST]",
+            "parameters": {"max_new_tokens": 500, "temperature": 0.75}
+        }
+        async with aiohttp.ClientSession() as session:
+            async with session.post(url, headers=headers, json=payload, timeout=aiohttp.ClientTimeout(total=30)) as resp:
+                if resp.status == 200:
+                    data = await resp.json()
+                    if isinstance(data, list) and data:
+                        text = data[0].get("generated_text", "")
+                        if "[/INST]" in text:
+                            text = text.split("[/INST]")[-1].strip()
+                        if text:
+                            print("✅ Got response from HuggingFace")
+                            return text[:2000]
+    except Exception as e:
+        print(f"HF err: {e}")
+    return None
+
+def generate_smart_default(prompt):
+    """Smart contextual fallback when ALL AI fails."""
+    p = prompt.lower().strip()
+    
+    if any(w in p for w in ["hi", "hey", "hello", "yo ", "sup", "what's up", "wassup", "howdy"]):
+        return random.choice([
+            "Hey! 👋 What's going on?",
+            "Yo! What's up?",
+            "Hey there! How can I help?",
+            "Sup! 😎",
+            "Hello! What's on your mind?",
+            "Hiya! 👋",
+        ])
+    
+    if any(w in p for w in ["how are you", "how r u", "how you doin", "how's it going"]):
+        return random.choice([
+            "I'm doing great, thanks! How about you? 😊",
+            "Living the bot life! What about you?",
+            "All systems smooth! You?",
+            "Doing awesome! 🤖 You?",
+        ])
+    
+    if any(w in p for w in ["thanks", "thank you", "thx", "ty ", "appreciate"]):
+        return random.choice([
+            "You're welcome! 😊",
+            "No problem!",
+            "Anytime! 🙌",
+            "Happy to help!",
+            "👍",
+        ])
+    
+    if any(w in p for w in ["love you", "ily", "<3"]):
+        return random.choice([
+            "Aww, I appreciate you too! ❤️",
+            "You're the best! 💜",
+            "💖",
+        ])
+    
+    if any(w in p for w in ["lol", "lmao", "haha", "rofl"]):
+        return random.choice([
+            "😂",
+            "Haha right? 😄",
+            "lmaooo",
+            "💀",
+        ])
+    
+    if any(w in p for w in ["bye", "cya", "see ya", "gtg", "goodnight"]):
+        return random.choice([
+            "Catch you later! 👋",
+            "Bye! Take care! 💙",
+            "See ya! ✌️",
+            "Goodnight! 🌙",
+        ])
+    
+    if "?" in prompt:
+        return random.choice([
+            "That's a great question! My brain's loading slowly - mind asking once more?",
+            "Hmm interesting! Could you ask that again?",
+            "I'd love to answer properly - try one more time?",
+            "Thinking... can you rephrase that for me?",
+        ])
+    
+    return random.choice([
+        "Tell me more! 💭",
+        "Interesting! What else?",
+        "Cool! Go on...",
+        "I'm listening! 👂",
+        "Got it! What do you want to know?",
+        "Sounds good! Tell me more.",
+        "Yeah? 🤔",
+    ])
+
+async def ask_groq_json(prompt, system="Respond only in valid JSON."):
+    """JSON version with same fallback logic."""
+    headers = {"Authorization": f"Bearer {GROQ_API_KEY}", "Content-Type": "application/json"}
+    
+    for model in ["llama-3.1-8b-instant", "gemma2-9b-it"]:
+        payload = {"model": model, "messages": [{"role": "system", "content": system}, {"role": "user", "content": prompt}], "temperature": 0.1, "max_tokens": 800}
         try:
             async with aiohttp.ClientSession() as session:
                 async with session.post(
@@ -749,94 +966,57 @@ async def ask_groq(prompt, system="Helpful AI.", max_tokens=1000, history=None):
                 ) as resp:
                     if resp.status == 200:
                         data = await resp.json()
-                        return data["choices"][0]["message"]["content"]
-                    elif resp.status == 429:
-                        print(f"Rate limited, waiting 5s...")
-                        await asyncio.sleep(5)
-                    else:
-                        print(f"Groq HTTP {resp.status}")
-        except asyncio.TimeoutError:
-            print(f"Groq timeout, attempt {attempt + 1}")
-            if attempt == 0:
-                await asyncio.sleep(2)
+                        result = data["choices"][0]["message"]["content"].strip()
+                        if "```" in result:
+                            result = re.sub(r'```(?:json)?', '', result).strip()
+                        match = re.search(r'\{.*\}', result, re.DOTALL)
+                        if match:
+                            return json.loads(match.group())
         except Exception as e:
-            print(f"Groq err: {e}")
-            if attempt == 0:
-                await asyncio.sleep(1)
-    return None
-
-async def ask_groq_json(prompt, system="Respond only in valid JSON."):
-    headers = {"Authorization": f"Bearer {GROQ_API_KEY}", "Content-Type": "application/json"}
-    payload = {"model": GROQ_MODEL, "messages": [{"role": "system", "content": system}, {"role": "user", "content": prompt}], "temperature": 0.1, "max_tokens": 800}
-    try:
-        async with aiohttp.ClientSession() as session:
-            async with session.post(
-                "https://api.groq.com/openai/v1/chat/completions",
-                headers=headers, json=payload, timeout=aiohttp.ClientTimeout(total=20)
-            ) as resp:
-                if resp.status == 200:
-                    data = await resp.json()
-                    result = data["choices"][0]["message"]["content"].strip()
-                    if "```" in result:
-                        result = re.sub(r'```(?:json)?', '', result).strip()
-                    match = re.search(r'\{.*\}', result, re.DOTALL)
-                    if match:
-                        return json.loads(match.group())
-    except Exception as e:
-        print(f"Groq JSON err: {e}")
+            print(f"JSON err on {model}: {e}")
     return None
 
 async def smart_response(message, prompt, system, history=None, uid=None, gid=None, speak_in_vc=False):
     """
-    FIXED smart response - no more stuck thinking!
-    Uses fast non-streaming with timeout protection.
+    BULLETPROOF response - ALWAYS replies, shows progress, never gives up.
     """
-    # Send initial typing indicator
     typing_task = None
     sent_msg = None
     
     try:
+        # Send initial thinking message
+        sent_msg = await message.reply("💭 *thinking...*")
+        
         # Start typing indicator
         typing_task = asyncio.create_task(_keep_typing(message.channel))
         
-        # Get response with strict 25 second timeout
+        # Get response with progressive status updates - LONG timeout (60s)
         try:
             response = await asyncio.wait_for(
-                ask_groq(prompt, system, max_tokens=800, history=history),
-                timeout=25.0
+                ask_groq(prompt, system, max_tokens=800, history=history, status_msg=sent_msg),
+                timeout=60.0
             )
         except asyncio.TimeoutError:
-            print(f"Response timeout for: {prompt[:50]}")
-            response = None
+            print(f"Total timeout for: {prompt[:50]}")
+            response = generate_smart_default(prompt)
         
         # Cancel typing
         if typing_task:
             typing_task.cancel()
         
-        if not response:
-            # Fallback to simple non-AI response
-            fallback_responses = [
-                "🤔 Hmm, my brain's a bit slow right now. Try asking again!",
-                "💭 I'm thinking... give me a sec and try again!",
-                "⚡ The AI is taking a quick break. Try once more!",
-                "🌀 Something went sideways. Mind asking again?",
-            ]
-            await message.reply(random.choice(fallback_responses))
-            return
+        # ALWAYS have something to send
+        if not response or not response.strip():
+            response = generate_smart_default(prompt)
         
-        # Clean and send response
         response = response.strip()
-        if not response:
-            await message.reply("🤷 Got an empty response. Try rephrasing?")
-            return
         
-        # Send in chunks if too long
+        # Send final response (edit the thinking message)
         chunks = [response[i:i+2000] for i in range(0, len(response), 2000)]
-        sent_msg = await message.reply(chunks[0])
+        await sent_msg.edit(content=chunks[0])
         for chunk in chunks[1:]:
             await message.channel.send(chunk)
         
-        # Save to memory & history
+        # Save to memory
         if uid and gid:
             try:
                 add_to_conversation(uid, gid, "user", prompt, message.channel.id)
@@ -850,22 +1030,29 @@ async def smart_response(message, prompt, system, history=None, uid=None, gid=No
             asyncio.create_task(speak_in_session(message.guild.id, response, message.channel))
     
     except Exception as e:
-        print(f"Smart response err: {e}")
+        print(f"Smart response critical err: {e}")
+        # Last resort - send SOMETHING
         try:
+            fallback = generate_smart_default(prompt)
             if sent_msg:
-                await sent_msg.edit(content="❌ Something broke. Try again!")
+                try:
+                    await sent_msg.edit(content=fallback)
+                except:
+                    await message.channel.send(fallback)
             else:
-                await message.reply("❌ Something broke. Try again!")
+                await message.reply(fallback)
         except:
-            pass
+            try:
+                await message.channel.send("Hey! 👋")
+            except: pass
     finally:
         if typing_task and not typing_task.done():
             typing_task.cancel()
 
 async def _keep_typing(channel):
-    """Keep typing indicator alive for up to 30 seconds."""
+    """Keep typing indicator for up to 60 seconds."""
     try:
-        for _ in range(3):  # 3 x 10 seconds = 30 seconds max
+        for _ in range(6):
             async with channel.typing():
                 await asyncio.sleep(10)
     except asyncio.CancelledError:
@@ -922,7 +1109,7 @@ Servers ({len(bot.guilds)}):
 === MEMORY ===
 {memory_ctx}"""
 
-# ============ SMART MODERATION ============
+# ============ MODERATION ============
 def quick_safe_check(content):
     cl = content.lower()
     return any(phrase in cl for phrase in CONTEXT_SAFE_PHRASES)
@@ -949,19 +1136,18 @@ async def smart_ai_moderation(content, author_name, channel_name, recent_context
     if quick_safe_check(content):
         return {"action": "ignore", "confidence": 1.0, "reason": "safe", "severity": "none"}
     context_str = "\n".join(recent_context[-5:]) if recent_context else "No context"
-    prompt = f"""Discord moderator. Analyze if message needs moderation.
-
+    prompt = f"""Discord moderator. Analyze message.
 CHANNEL: #{channel_name}
 USER: {author_name} (trust: {user_trust:.2f})
 CONTEXT: {context_str}
 MESSAGE: "{content}"
 
-DO MODERATE: real threats, slurs, doxxing, harassment, NSFW wrong channel, scams, encouraging self-harm
-DON'T MODERATE: gaming talk, slang, jokes between friends, opinions, mild profanity, dark humor
+DO MODERATE: real threats, slurs, doxxing, harassment, NSFW wrong channel, scams
+DON'T MODERATE: gaming talk, slang, jokes, opinions, mild profanity
 
 JSON: {{"action":"ignore|warn|delete|critical","severity":"none|low|medium|high|critical","confidence":0.0-1.0,"reason":"brief"}}
-Be CONSERVATIVE. Unsure = ignore. Only act with confidence > 0.85."""
-    result = await ask_groq_json(prompt, "Expert moderator. JSON only.")
+Be CONSERVATIVE. Confidence > 0.85 only."""
+    result = await ask_groq_json(prompt, "Moderator. JSON only.")
     if not result:
         return {"action": "ignore", "confidence": 0.0, "reason": "AI down", "severity": "none"}
     if result.get("confidence", 0) < 0.85:
@@ -1651,14 +1837,13 @@ async def execute_command(parsed, message, guild, author):
             await message.channel.send(embed=discord.Embed(title="📊 Activity", description="\n".join(lines)))
             return None
         elif cmd == "help":
-            embed = discord.Embed(title="🛡️ SentinelMod v5.0", color=discord.Color.blue())
+            embed = discord.Embed(title="🛡️ SentinelMod v5.1", color=discord.Color.blue())
             embed.add_field(name="💬 Chat", value="@mention me", inline=False)
             embed.add_field(name="🔨 Mod", value="ban, kick, mute, warn, purge, lock", inline=False)
             embed.add_field(name="🎮 Fun", value="trivia, roast, 8ball, ship, story", inline=False)
             embed.add_field(name="🧠 Memory", value="/memory_settings, /server_memory, /my_memory", inline=False)
             embed.add_field(name="🎨 AI", value="/imagine, /ask, /mood, /recap", inline=False)
-            embed.add_field(name="📚 FAQ", value="/faq_add, /faq_list, /ask", inline=False)
-            embed.add_field(name="🌍 Translate", value="React with 🇪🇸🇫🇷🇯🇵 etc", inline=False)
+            embed.add_field(name="🌍 Translate", value="React 🇪🇸🇫🇷🇯🇵 on any message", inline=False)
             embed.add_field(name="🛡️ Trust", value="/trust_user, /ai_sensitivity", inline=False)
             embed.add_field(name="🎙️ Voice", value="/join_vc, /speak", inline=False)
             embed.add_field(name="🌐 Dashboard", value=f"[Open]({BOT_IDENTITY['dashboard_url']})", inline=False)
@@ -2051,14 +2236,13 @@ async def owner_status_cmd(interaction):
 
 @bot.tree.command(name="help", description="Help")
 async def help_cmd(interaction):
-    embed = discord.Embed(title="🛡️ SentinelMod v5.0", color=discord.Color.blue())
+    embed = discord.Embed(title="🛡️ SentinelMod v5.1", color=discord.Color.blue())
     embed.add_field(name="💬 Chat", value="@mention me or use #sentinel-bot", inline=False)
     embed.add_field(name="🔨 Mod", value="ban, kick, mute, warn, purge, lock", inline=False)
     embed.add_field(name="🎮 Fun", value="trivia, roast, 8ball, ship, story", inline=False)
     embed.add_field(name="🧠 Memory", value="/memory_settings, /server_memory, /my_memory", inline=False)
     embed.add_field(name="🎨 AI", value="/imagine, /ask, /mood, /recap", inline=False)
-    embed.add_field(name="📚 FAQ", value="/faq_add, /faq_list, /ask", inline=False)
-    embed.add_field(name="🌍 Translate", value="React with 🇪🇸🇫🇷🇯🇵 etc on any message", inline=False)
+    embed.add_field(name="🌍 Translate", value="React 🇪🇸🇫🇷🇯🇵 on any message", inline=False)
     embed.add_field(name="🎙️ Voice", value="/join_vc, /leave_vc, /speak", inline=False)
     embed.add_field(name="🌐 Dashboard", value=f"[Open]({BOT_IDENTITY['dashboard_url']})", inline=False)
     await interaction.response.send_message(embed=embed, ephemeral=True)
@@ -2172,8 +2356,8 @@ async def on_ready():
     check_giveaways.start()
     check_reminders.start()
     daily_stats_task.start()
-    await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name="& remembering 🧠"))
-    await notify_owner("INFO", f"✅ v{BOT_IDENTITY['version']} ONLINE!\nServers: {len(bot.guilds)}\nFixed: No more stuck thinking!\nNew: AI image gen, FAQ, mood tracking, daily recaps, translations")
+    await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name="& always replying 🧠"))
+    await notify_owner("INFO", f"✅ v{BOT_IDENTITY['version']} ONLINE!\nBulletproof AI: Always responds!\nMulti-AI fallback active")
 
 @bot.event
 async def on_guild_join(guild):
@@ -2231,7 +2415,6 @@ async def on_reaction_add(reaction, user):
 async def on_message(message):
     if message.author.bot: return
     
-    # DM appeals
     if not message.guild:
         await handle_appeal(message)
         return
@@ -2244,7 +2427,6 @@ async def on_message(message):
     
     update_message_stats(message.author.id, message.guild.id)
     
-    # Archive for server memory
     memory_mode = s.get("memory_mode", "both")
     if memory_mode in [MEMORY_MODE_SERVER, MEMORY_MODE_BOTH]:
         archive_message(message.guild.id, message.channel.id, message.author.id, message.content)
@@ -2280,14 +2462,14 @@ async def on_message(message):
     is_ai_ch = message.channel.name == AI_CHAT_CHANNEL
     is_mentioned = bot.user in message.mentions
     
-    # Auto-FAQ detection (only for questions when not @mentioning bot)
+    # Auto-FAQ
     if not is_ai_ch and not is_mentioned and message.content.strip().endswith("?"):
         try:
             faq_answered = await ai_features.check_for_faq_question(message)
             if faq_answered:
                 return
         except Exception as e:
-            print(f"FAQ check err: {e}")
+            print(f"FAQ err: {e}")
     
     if is_ai_ch or is_mentioned:
         content = message.content.replace(f"<@{bot.user.id}>", "").strip()
@@ -2343,17 +2525,14 @@ async def on_message(message):
         await smart_response(message, content, sys, hist, str(message.author.id), str(message.guild.id), speak_in_vc=speak_vc)
         return
     
-    # Skip moderation for mods/admins/owner
     if owner_talking or is_mod or is_admin:
         await bot.process_commands(message)
         return
     
-    # Spam
     if await check_spam(message, s):
         await handle_spam(message, s)
         return
     
-    # Smart AI moderation
     was_moderated = await handle_moderation_smart(message, s)
     if was_moderated:
         today = datetime.now().date().isoformat()
@@ -2380,7 +2559,6 @@ if __name__ == "__main__":
         thread.start()
         print("🌐 Dashboard on port 8080")
         
-        # Setup AI features module
         try:
             ai_features.setup(
                 bot_instance=bot,
@@ -2390,9 +2568,9 @@ if __name__ == "__main__":
                 ask_json=ask_groq_json,
                 notify_owner=notify_owner
             )
-            print("✅ AI Features module loaded")
+            print("✅ AI Features loaded")
         except Exception as e:
-            print(f"⚠️ AI features failed to load: {e}")
+            print(f"⚠️ AI features err: {e}")
         
-        print("🚀 Starting SentinelMod v5.0 (Ultimate)...")
+        print("🚀 Starting SentinelMod v5.1 (BULLETPROOF)...")
         bot.run(DISCORD_TOKEN)
