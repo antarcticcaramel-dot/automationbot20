@@ -1,6 +1,7 @@
 # bot.py
 # ================================
-# SentinelMod v5.4 - FIXED & ENHANCED
+# SentinelMod v5.4 - FULL EDITION
+# Bot remembers everything + 20 Mod Features + Dashboard Sync
 # ================================
 
 import discord
@@ -19,7 +20,12 @@ import io
 from datetime import datetime, timedelta
 from collections import defaultdict
 import dashboard
-import ai_features
+
+try:
+    import ai_features
+    AI_FEATURES_LOADED = True
+except ImportError:
+    AI_FEATURES_LOADED = False
 
 try:
     import imageio_ffmpeg
@@ -51,7 +57,7 @@ BOT_IDENTITY = {
     "version": "5.4",
 }
 
-# ============ ENHANCED PERSONALITIES ============
+# ============ PERSONALITIES ============
 PERSONALITIES = {
     "friendly": "You are extremely friendly, warm, and supportive. Use emojis generously. Hype people up.",
     "sarcastic": "You are deeply sarcastic and witty. Every response has a layer of irony but stays fun.",
@@ -63,7 +69,7 @@ PERSONALITIES = {
     "therapist": "You are a warm, empathetic therapist. Reflect feelings, ask thoughtful questions, validate emotions.",
     "villain": "Mwahahaha! You are a DRAMATICALLY over-the-top villain who secretly wants to help people.",
     "hype": "YOU ARE THE ULTIMATE HYPE MACHINE!!! EVERYTHING IS INCREDIBLE!!! LET'S GOOO!!!",
-    "philosopher": "You ponder the deepest questions of existence. Every answer leads to more questions. What IS a Discord bot, really?",
+    "philosopher": "You ponder the deepest questions of existence. Every answer leads to more questions.",
     "caveman": "UGH. You caveman. Talk simple. But caveman smart. UGH UGH.",
     "shakespeare": "Hark! Thou must speaketh only in the most flowery Shakespearean tongue, good friend!",
     "surfer": "Duuude, you're the chillest surfer bro. Everything's gnarly or radical, ya feel me bro?",
@@ -87,37 +93,68 @@ PERSONALITIES = {
     ),
 }
 
-# ============ ENHANCED HARD DELETE PATTERNS ============
+# ============ COMPREHENSIVE PATTERN DETECTION ============
 HARD_DELETE_PATTERNS = [
-    (r'(?i)(discord\s*token|grab\s*token|token\s*logger|token\s*grab)', "Token grabbing", "critical"),
-    (r'(?i)(grabify\.link|iplogger\.org|iplogger\.com|blasze\.tk|ps3cfw\.com)', "IP logger link", "critical"),
-    (r'(?i)(free\s*nitro.{0,60}(\.gift|\.link|click|discord\.com))', "Nitro scam", "critical"),
-    (r'(?i)(cp|child\s*porn|loli\s*porn|csam|minor\s*porn)', "CSAM content", "ban"),
+    (r'(?i)(discord\s*token|grab\s*token|token\s*logger|token\s*grab|steal\s*token)', "Token grabbing", "critical"),
+    (r'(?i)(grabify\.link|iplogger\.(org|com)|blasze\.tk|ps3cfw\.com|2no\.co|yip\.su)', "IP logger link", "critical"),
+    (r'(?i)(free\s*nitro.{0,80}(\.gift|\.link|click|http|discord))', "Nitro scam", "critical"),
     (r'(?i)(discord\.gift/[a-zA-Z0-9]{10,})', "Fake Discord gift", "critical"),
     (r'(?i)(steamcommunity\.com/tradeoffer.{0,100}token)', "Steam scam", "critical"),
-    (r'(?i)(@everyone|@here).{0,50}(free|win|claim|gift)', "Mass mention scam", "critical"),
+    (r'(?i)(@everyone|@here).{0,80}(free|win|claim|gift|nitro|giveaway)', "Mass mention scam", "critical"),
+    (r'(?i)\b(cp|child\s*p[o0]rn|loli\s*p[o0]rn|csam|minor\s*p[o0]rn|kiddi?e?\s*p[o0]rn)\b', "CSAM content", "ban"),
+    (r'(?i)(pedo(phile)?|p[e3]d[o0])\s+(content|porn|videos|pics)', "Pedophilia content", "ban"),
 ]
 
-# ============ ENHANCED SOFT VIOLATION PATTERNS ============
-# These get checked BEFORE AI to catch obvious stuff fast
 SOFT_VIOLATION_PATTERNS = [
-    (r'(?i)\b(n[i1!]gg[ae3]r|n[i1!]gg[ae3]rs)\b', "Racial slur", "high"),
-    (r'(?i)\b(f[a4]gg[o0]t|f[a4]gs)\b', "Homophobic slur", "high"),
-    (r'(?i)\b(k[i1]ll\s+your\s*self|kys)\b', "Tell to self harm", "high"),
-    (r'(?i)\b(dox(x?ing)?|i\s*will\s*dox)\b', "Doxxing threat", "high"),
-    (r'(?i)(your\s*(address|ip|location)\s*is\s*[\d.]{7,})', "Doxxing", "critical"),
-    (r'(?i)\b(rape|raped|raping)\b', "Sexual violence reference", "high"),
-    (r'(?i)(i\s*will\s*kill\s*(you|u|everyone))', "Direct threat", "critical"),
-    (r'(?i)(bomb\s*threat|school\s*shooting|mass\s*shooting)', "Terrorism threat", "ban"),
+    (r'(?i)\b(n[i1!|][gq9][gq9][ae3r]?[r]?[sz]?)\b', "Racial slur (n-word)", "high"),
+    (r'(?i)\b(ch[i1!]nk[sz]?)\b', "Racial slur", "high"),
+    (r'(?i)\b(sp[i1!]ck[sz]?)\b', "Racial slur", "high"),
+    (r'(?i)\b(k[i1!]ke[sz]?)\b', "Racial slur", "high"),
+    (r'(?i)\b(g[o0]{2}k[sz]?)\b', "Racial slur", "high"),
+    (r'(?i)\b(t[o0]welhead[sz]?|sandn[i1!][gq]+[ae3r]+[sz]?)\b', "Racial slur", "high"),
+    (r'(?i)\b(f[a4@][gq]{1,2}[o0]?t?[sz]?)\b', "Homophobic slur", "high"),
+    (r'(?i)\b(d[i1!]ke[sz]?)\b(?!\s+(road|berm))', "Lesbophobic slur", "high"),
+    (r'(?i)\b(tr[a4]nn[yi]+[sz]?)\b', "Transphobic slur", "high"),
+    (r'(?i)\b(sh[e3]m[a4]le[sz]?)\b', "Transphobic slur", "high"),
+    (r'(?i)\b(r[e3]t[a4]rd[ez]?d?[sz]?)\b', "Ableist slur", "medium"),
+    (r'(?i)\b(k[yi]+s|kill\s*your?\s*self|kill\s*ur\s*self)\b', "Telling someone to kill themselves", "high"),
+    (r'(?i)(i\s*(will|wanna|want\s*to|gonna|am\s*gonna)\s*(kill|murder|hurt|stab|shoot|beat)\s*(you|u|him|her|them))', "Direct violence threat", "critical"),
+    (r'(?i)(i\s*(hope|wish)\s*(you|u)\s*(die|fucking\s*die|kill\s*yourself))', "Death wish", "high"),
+    (r'(?i)(go\s*kill\s*your?\s*self|go\s*die|please\s*die)', "Telling to die", "high"),
+    (r'(?i)(dox(x?ing|x?ed|x)?|i\s*will\s*dox|gonna\s*dox)', "Doxxing threat", "high"),
+    (r'(?i)(your\s*(real\s*)?(address|home|location|ip)\s*is\s*[\d.\w]{5,})', "Doxxing - personal info", "critical"),
+    (r'\b\d{1,5}\s+\w+\s+(street|st|road|rd|ave|avenue|blvd|lane|ln|drive|dr)\b.{0,30}\b(apt|apartment|unit|#)?\s*\d+\b', "Sharing address", "critical"),
+    (r'\b(?:\d{1,3}\.){3}\d{1,3}\b(?!.*(?:version|gateway|router|local|192\.168|127\.0|10\.0))', "IP address shared", "high"),
+    (r'(?i)\b(rape|raped|raping|rapist)\b(?!.*\b(culture|awareness|survivor|victim|education|news)\b)', "Sexual violence", "high"),
+    (r'(?i)(i\s*(will|wanna|gonna|want\s*to)\s*rape)', "Rape threat", "critical"),
+    (r'(?i)(bomb\s*threat|school\s*shoot(er|ing)|mass\s*shoot(er|ing)|terror(ist)?\s*attack)', "Terrorism threat", "ban"),
+    (r'(?i)(i\s*will\s*(bomb|shoot\s*up))', "Terrorism threat", "ban"),
+    (r'(?i)\b(gas\s*the\s*\w+|lynch\s*the\s*\w+|kill\s*all\s*\w+s?)\b', "Calls for violence against group", "ban"),
+    (r'(?i)(hitler\s*did\s*nothing\s*wrong|heil\s*hitler|sieg\s*heil|14\s*words)', "Nazi content", "high"),
+    (r'(?i)(how\s*old\s*are\s*you).{0,100}(send|show|pic|nude|naked)', "Predatory behavior", "ban"),
+    (r'(?i)(send\s*(me\s*)?(nudes|nude\s*pics|naked\s*pics))', "Sexual harassment", "high"),
 ]
 
 SELF_HARM_PATTERNS = [
-    r'(?i)(want\s*to\s*(kill|end)\s*(myself|it\s*all))',
+    r'(?i)(want\s*to\s*(kill|end)\s*(myself|it\s*all|my\s*life))',
     r'(?i)(going\s*to\s*(kill|end)\s*my(self|life))',
-    r'(?i)\b(suicide|self.harm|cutting\s*myself)\b',
-    r'(?i)(i\s*don.t\s*want\s*to\s*(be\s*here|live)\s*anymore)',
-    r'(?i)(no\s*reason\s*to\s*(live|go\s*on))',
+    r'(?i)\b(committing\s*suicide|gonna\s*commit|gonna\s*kms)\b',
+    r'(?i)\b(self.?harm|cutting\s*myself|hurting\s*myself)\b',
+    r'(?i)(i\s*don[\'’]?t\s*want\s*to\s*(be\s*here|live|exist)\s*anymore)',
+    r'(?i)(no\s*reason\s*to\s*(live|go\s*on|keep\s*going))',
+    r'(?i)(life\s*(isn[\'’]?t|is\s*not)\s*worth\s*living)',
 ]
+
+ZALGO_PATTERN = re.compile(r'[\u0300-\u036f\u0483-\u0489\u0591-\u05bd\u05bf\u05c1\u05c2\u05c4\u05c5\u05c7\u0610-\u061a\u064b-\u065f\u0670\u06d6-\u06dc\u06df-\u06e4\u06e7\u06e8\u06ea-\u06ed\u0711\u0730-\u074a\u07a6-\u07b0\u07eb-\u07f3\u0816-\u0819\u081b-\u0823\u0825-\u0827\u0829-\u082d\u0859-\u085b\u08d4-\u08e1\u08e3-\u0903\u093a-\u093c\u093e-\u094f\u0951-\u0957\u0962\u0963]')
+NSFW_KEYWORDS = ['porn', 'xxx', 'sex', 'nude', 'nsfw', 'hentai', 'r34', 'rule34', 'pornhub', 'xvideos', 'onlyfans', 'cumming', 'blowjob', 'masturbat']
+AD_PATTERNS = [
+    r'(?i)(join\s+my\s+(server|discord)|check\s+out\s+my\s+(server|discord|youtube|twitch))',
+    r'(?i)(subscribe\s+to\s+my|follow\s+me\s+on)',
+    r'(?i)(discord\.gg/[a-zA-Z0-9]+)',
+    r'(?i)(youtube\.com/(channel|c|@)|youtu\.be/)',
+    r'(?i)(twitch\.tv/[a-zA-Z0-9_]+)',
+]
+CONFLICT_KEYWORDS = ['shut up', 'stfu', 'fuck you', 'fuck off', 'go away', 'nobody asked', 'cope', 'seethe', 'mald', 'cry about it', 'who asked', "didn't ask", 'mad', 'salty', 'triggered', 'crying', 'pathetic', 'loser']
 
 MEMORY_MODE_USER = "user"
 MEMORY_MODE_SERVER = "server"
@@ -132,10 +169,10 @@ def update_live_context(guild_id, channel_id, author_name, content):
     timestamp = datetime.now().strftime("%H:%M")
     entry = f"[{timestamp}] {author_name}: {content}"
     live_context[key].append(entry)
-    if len(live_context[key]) > 30:  # increased from 25
+    if len(live_context[key]) > 30:
         live_context[key].pop(0)
 
-def get_live_context(guild_id, channel_id, limit=20):  # increased from 15
+def get_live_context(guild_id, channel_id, limit=20):
     key = f"{guild_id}:{channel_id}"
     msgs = live_context[key]
     return "\n".join(msgs[-limit:]) if msgs else "No recent messages."
@@ -164,156 +201,86 @@ def init_database():
     c = conn.cursor()
     tables = [
         """CREATE TABLE IF NOT EXISTS warnings (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id TEXT, guild_id TEXT, reason TEXT,
-            severity TEXT, ai_confidence REAL DEFAULT 1.0,
-            context TEXT, appealed INTEGER DEFAULT 0,
-            timestamp TEXT
+            id INTEGER PRIMARY KEY AUTOINCREMENT, user_id TEXT, guild_id TEXT, reason TEXT,
+            severity TEXT, ai_confidence REAL DEFAULT 1.0, context TEXT, appealed INTEGER DEFAULT 0, timestamp TEXT
         )""",
         """CREATE TABLE IF NOT EXISTS mod_actions (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id TEXT, guild_id TEXT, action TEXT,
+            id INTEGER PRIMARY KEY AUTOINCREMENT, user_id TEXT, guild_id TEXT, action TEXT,
             reason TEXT, mod_id TEXT, timestamp TEXT
         )""",
         """CREATE TABLE IF NOT EXISTS guild_settings (
             guild_id TEXT PRIMARY KEY,
-            mod_role_name TEXT DEFAULT 'Sentinel-Mod',
-            log_channel TEXT DEFAULT 'sentinel-logs',
-            raid_channel TEXT DEFAULT 'sentinel-raid-alerts',
-            warn_mute INTEGER DEFAULT 3,
-            warn_ban INTEGER DEFAULT 5,
-            mute_duration INTEGER DEFAULT 10,
-            spam_limit INTEGER DEFAULT 5,
-            spam_window INTEGER DEFAULT 5,
-            raid_limit INTEGER DEFAULT 10,
-            raid_window INTEGER DEFAULT 10,
-            min_account_age INTEGER DEFAULT 7,
-            ai_sensitivity REAL DEFAULT 0.85,
-            welcome_channel TEXT DEFAULT 'welcome',
-            welcome_enabled INTEGER DEFAULT 1,
-            anti_nuke_enabled INTEGER DEFAULT 1,
-            invite_block INTEGER DEFAULT 0,
-            link_scan INTEGER DEFAULT 1,
-            caps_filter INTEGER DEFAULT 0,
-            mention_spam INTEGER DEFAULT 1,
-            phone_filter INTEGER DEFAULT 0,
-            email_filter INTEGER DEFAULT 1,
-            scam_filter INTEGER DEFAULT 1,
-            fake_nitro_filter INTEGER DEFAULT 1,
-            token_filter INTEGER DEFAULT 1,
-            personality TEXT DEFAULT 'default',
-            ai_mod_enabled INTEGER DEFAULT 1,
-            ai_mod_mode TEXT DEFAULT 'smart',
-            voice_enabled INTEGER DEFAULT 1,
-            voice_language TEXT DEFAULT 'en',
-            voice_mode TEXT DEFAULT 'file',
-            memory_mode TEXT DEFAULT 'both',
-            memory_retention_days INTEGER DEFAULT 90,
-            context_awareness INTEGER DEFAULT 1
+            mod_role_name TEXT DEFAULT 'Sentinel-Mod', log_channel TEXT DEFAULT 'sentinel-logs', raid_channel TEXT DEFAULT 'sentinel-raid-alerts',
+            warn_mute INTEGER DEFAULT 3, warn_ban INTEGER DEFAULT 5, mute_duration INTEGER DEFAULT 10,
+            spam_limit INTEGER DEFAULT 5, spam_window INTEGER DEFAULT 5, raid_limit INTEGER DEFAULT 10, raid_window INTEGER DEFAULT 10,
+            min_account_age INTEGER DEFAULT 7, ai_sensitivity REAL DEFAULT 0.85,
+            welcome_channel TEXT DEFAULT 'welcome', welcome_enabled INTEGER DEFAULT 1, anti_nuke_enabled INTEGER DEFAULT 1,
+            invite_block INTEGER DEFAULT 0, link_scan INTEGER DEFAULT 1, slowmode_ai INTEGER DEFAULT 0, pre_conflict INTEGER DEFAULT 0,
+            caps_filter INTEGER DEFAULT 0, mention_spam INTEGER DEFAULT 1, emoji_spam INTEGER DEFAULT 0, zalgo_filter INTEGER DEFAULT 0,
+            phone_filter INTEGER DEFAULT 0, email_filter INTEGER DEFAULT 1, scam_filter INTEGER DEFAULT 1, fake_nitro_filter INTEGER DEFAULT 1,
+            token_filter INTEGER DEFAULT 1, anti_advertisement INTEGER DEFAULT 0, everyone_block INTEGER DEFAULT 0, nsfw_text_filter INTEGER DEFAULT 0,
+            unicode_filter INTEGER DEFAULT 0, file_spam_filter INTEGER DEFAULT 0, personality TEXT DEFAULT 'default', ai_mod_enabled INTEGER DEFAULT 1,
+            ai_mod_mode TEXT DEFAULT 'smart', voice_enabled INTEGER DEFAULT 1, voice_language TEXT DEFAULT 'en', voice_mode TEXT DEFAULT 'file',
+            memory_mode TEXT DEFAULT 'both', memory_retention_days INTEGER DEFAULT 90, context_awareness INTEGER DEFAULT 1
         )""",
         """CREATE TABLE IF NOT EXISTS user_memory (
-            user_id TEXT, guild_id TEXT,
-            short_term TEXT DEFAULT '[]',
-            long_term TEXT DEFAULT '{}',
-            episodic TEXT DEFAULT '[]',
-            preferences TEXT DEFAULT '{}',
-            last_emotion TEXT DEFAULT 'neutral',
-            interaction_count INTEGER DEFAULT 0,
-            trust_score REAL DEFAULT 0.5,
-            updated TEXT,
-            PRIMARY KEY (user_id, guild_id)
+            user_id TEXT, guild_id TEXT, short_term TEXT DEFAULT '[]', long_term TEXT DEFAULT '{}', episodic TEXT DEFAULT '[]',
+            preferences TEXT DEFAULT '{}', last_emotion TEXT DEFAULT 'neutral', interaction_count INTEGER DEFAULT 0, trust_score REAL DEFAULT 0.5,
+            updated TEXT, PRIMARY KEY (user_id, guild_id)
         )""",
         """CREATE TABLE IF NOT EXISTS server_memory (
-            guild_id TEXT PRIMARY KEY,
-            server_culture TEXT DEFAULT '{}',
-            inside_jokes TEXT DEFAULT '[]',
-            recent_drama TEXT DEFAULT '[]',
-            notable_events TEXT DEFAULT '[]',
-            popular_topics TEXT DEFAULT '[]',
-            active_members TEXT DEFAULT '{}',
-            server_mood TEXT DEFAULT 'neutral',
-            last_summary TEXT DEFAULT '',
-            total_interactions INTEGER DEFAULT 0,
-            updated TEXT
+            guild_id TEXT PRIMARY KEY, server_culture TEXT DEFAULT '{}', inside_jokes TEXT DEFAULT '[]', recent_drama TEXT DEFAULT '[]',
+            notable_events TEXT DEFAULT '[]', popular_topics TEXT DEFAULT '[]', active_members TEXT DEFAULT '{}', server_mood TEXT DEFAULT 'neutral',
+            last_summary TEXT DEFAULT '', total_interactions INTEGER DEFAULT 0, updated TEXT
         )""",
         """CREATE TABLE IF NOT EXISTS conversation_history (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id TEXT, guild_id TEXT,
-            channel_id TEXT,
-            role TEXT, content TEXT,
-            emotion TEXT DEFAULT 'neutral',
-            timestamp TEXT
+            id INTEGER PRIMARY KEY AUTOINCREMENT, user_id TEXT, guild_id TEXT, channel_id TEXT, role TEXT, content TEXT,
+            emotion TEXT DEFAULT 'neutral', timestamp TEXT
         )""",
         """CREATE TABLE IF NOT EXISTS message_archive (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            guild_id TEXT, channel_id TEXT, user_id TEXT,
-            content TEXT, timestamp TEXT
+            id INTEGER PRIMARY KEY AUTOINCREMENT, guild_id TEXT, channel_id TEXT, user_id TEXT, content TEXT, timestamp TEXT
         )""",
         """CREATE TABLE IF NOT EXISTS trusted_users (
-            user_id TEXT, guild_id TEXT,
-            added_by TEXT, reason TEXT, timestamp TEXT,
-            PRIMARY KEY (user_id, guild_id)
+            user_id TEXT, guild_id TEXT, added_by TEXT, reason TEXT, timestamp TEXT, PRIMARY KEY (user_id, guild_id)
         )""",
         """CREATE TABLE IF NOT EXISTS appeals (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id TEXT, guild_id TEXT,
-            warning_id INTEGER,
-            appeal_text TEXT,
-            status TEXT DEFAULT 'pending',
-            timestamp TEXT
+            id INTEGER PRIMARY KEY AUTOINCREMENT, user_id TEXT, guild_id TEXT, warning_id INTEGER, appeal_text TEXT,
+            status TEXT DEFAULT 'pending', timestamp TEXT
         )""",
         """CREATE TABLE IF NOT EXISTS user_personalities (
-            user_id TEXT, guild_id TEXT,
-            personality TEXT DEFAULT 'default',
-            PRIMARY KEY (user_id, guild_id)
+            user_id TEXT, guild_id TEXT, personality TEXT DEFAULT 'default', PRIMARY KEY (user_id, guild_id)
         )""",
         """CREATE TABLE IF NOT EXISTS afk_users (
-            user_id TEXT, guild_id TEXT,
-            reason TEXT, timestamp TEXT,
-            PRIMARY KEY (user_id, guild_id)
+            user_id TEXT, guild_id TEXT, reason TEXT, timestamp TEXT, PRIMARY KEY (user_id, guild_id)
         )""",
         """CREATE TABLE IF NOT EXISTS giveaways (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            guild_id TEXT, channel_id TEXT, message_id TEXT,
-            prize TEXT, winners INTEGER DEFAULT 1,
+            id INTEGER PRIMARY KEY AUTOINCREMENT, guild_id TEXT, channel_id TEXT, message_id TEXT, prize TEXT, winners INTEGER DEFAULT 1,
             end_time TEXT, active INTEGER DEFAULT 1, host_id TEXT
         )""",
         """CREATE TABLE IF NOT EXISTS word_filters (
-            guild_id TEXT, word TEXT,
-            PRIMARY KEY (guild_id, word)
+            guild_id TEXT, word TEXT, PRIMARY KEY (guild_id, word)
         )""",
         """CREATE TABLE IF NOT EXISTS message_stats (
-            user_id TEXT, guild_id TEXT,
-            message_count INTEGER DEFAULT 0, last_message TEXT,
-            PRIMARY KEY (user_id, guild_id)
+            user_id TEXT, guild_id TEXT, message_count INTEGER DEFAULT 0, last_message TEXT, PRIMARY KEY (user_id, guild_id)
         )""",
         """CREATE TABLE IF NOT EXISTS reminders (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id TEXT, guild_id TEXT, channel_id TEXT,
-            reminder TEXT, remind_time TEXT, active INTEGER DEFAULT 1
+            id INTEGER PRIMARY KEY AUTOINCREMENT, user_id TEXT, guild_id TEXT, channel_id TEXT, reminder TEXT, remind_time TEXT, active INTEGER DEFAULT 1
         )""",
         """CREATE TABLE IF NOT EXISTS custom_commands (
-            guild_id TEXT, trigger_word TEXT, response TEXT,
-            PRIMARY KEY (guild_id, trigger_word)
+            guild_id TEXT, trigger_word TEXT, response TEXT, PRIMARY KEY (guild_id, trigger_word)
         )""",
         """CREATE TABLE IF NOT EXISTS confessions (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            guild_id TEXT, confession TEXT, timestamp TEXT
+            id INTEGER PRIMARY KEY AUTOINCREMENT, guild_id TEXT, confession TEXT, timestamp TEXT
         )""",
         """CREATE TABLE IF NOT EXISTS reputation (
-            user_id TEXT, guild_id TEXT, rep INTEGER DEFAULT 0,
-            PRIMARY KEY (user_id, guild_id)
+            user_id TEXT, guild_id TEXT, rep INTEGER DEFAULT 0, PRIMARY KEY (user_id, guild_id)
         )""",
         """CREATE TABLE IF NOT EXISTS daily_stats (
-            guild_id TEXT, date TEXT,
-            messages INTEGER DEFAULT 0, joins INTEGER DEFAULT 0,
-            leaves INTEGER DEFAULT 0, mod_actions INTEGER DEFAULT 0,
+            guild_id TEXT, date TEXT, messages INTEGER DEFAULT 0, joins INTEGER DEFAULT 0, leaves INTEGER DEFAULT 0, mod_actions INTEGER DEFAULT 0,
             PRIMARY KEY (guild_id, date)
         )""",
         """CREATE TABLE IF NOT EXISTS owner_alerts (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            guild_id TEXT, alert_type TEXT,
-            message TEXT, timestamp TEXT, delivered INTEGER DEFAULT 0
+            id INTEGER PRIMARY KEY AUTOINCREMENT, guild_id TEXT, alert_type TEXT, message TEXT, timestamp TEXT, delivered INTEGER DEFAULT 0
         )""",
     ]
     for t in tables:
@@ -321,6 +288,27 @@ def init_database():
     conn.commit()
     conn.close()
     print("✅ DB initialized")
+
+def migrate_database():
+    """Add any new columns to existing databases - safe to run multiple times"""
+    new_columns = [
+        ("slowmode_ai", "INTEGER DEFAULT 0"), ("pre_conflict", "INTEGER DEFAULT 0"),
+        ("emoji_spam", "INTEGER DEFAULT 0"), ("zalgo_filter", "INTEGER DEFAULT 0"),
+        ("anti_advertisement", "INTEGER DEFAULT 0"), ("everyone_block", "INTEGER DEFAULT 0"),
+        ("nsfw_text_filter", "INTEGER DEFAULT 0"), ("unicode_filter", "INTEGER DEFAULT 0"),
+        ("file_spam_filter", "INTEGER DEFAULT 0"),
+    ]
+    conn = sqlite3.connect("sentinel.db")
+    c = conn.cursor()
+    for col, definition in new_columns:
+        try:
+            c.execute(f"ALTER TABLE guild_settings ADD COLUMN {col} {definition}")
+            print(f"  ✅ Added missing column: {col}")
+        except sqlite3.OperationalError:
+            pass  # Column already exists
+    conn.commit()
+    conn.close()
+    print("✅ DB migration complete")
 
 def get_db():
     conn = sqlite3.connect("sentinel.db")
@@ -336,27 +324,14 @@ def get_guild_settings(gid):
     if row:
         return dict(row)
     return {
-        "guild_id": str(gid),
-        "mod_role_name": MOD_ROLE_NAME,
-        "log_channel": MOD_LOG_CHANNEL,
-        "raid_channel": RAID_CHANNEL,
-        "warn_mute": 3, "warn_ban": 5, "mute_duration": 10,
-        "spam_limit": 5, "spam_window": 5,
-        "raid_limit": 10, "raid_window": 10,
-        "min_account_age": 7,
-        "ai_sensitivity": 0.85,
-        "welcome_channel": "welcome", "welcome_enabled": 1,
-        "anti_nuke_enabled": 1, "invite_block": 0,
-        "link_scan": 1, "caps_filter": 0, "mention_spam": 1,
-        "phone_filter": 0, "email_filter": 1,
-        "scam_filter": 1, "fake_nitro_filter": 1, "token_filter": 1,
-        "personality": "default", "ai_mod_enabled": 1,
-        "ai_mod_mode": "smart",
-        "voice_enabled": 1, "voice_language": "en",
-        "voice_mode": "file",
-        "memory_mode": "both",
-        "memory_retention_days": 90,
-        "context_awareness": 1,
+        "guild_id": str(gid), "mod_role_name": MOD_ROLE_NAME, "log_channel": MOD_LOG_CHANNEL, "raid_channel": RAID_CHANNEL,
+        "warn_mute": 3, "warn_ban": 5, "mute_duration": 10, "spam_limit": 5, "spam_window": 5, "raid_limit": 10, "raid_window": 10,
+        "min_account_age": 7, "ai_sensitivity": 0.85, "welcome_channel": "welcome", "welcome_enabled": 1, "anti_nuke_enabled": 1,
+        "invite_block": 0, "link_scan": 1, "slowmode_ai": 0, "pre_conflict": 0, "caps_filter": 0, "mention_spam": 1,
+        "emoji_spam": 0, "zalgo_filter": 0, "phone_filter": 0, "email_filter": 1, "scam_filter": 1, "fake_nitro_filter": 1,
+        "token_filter": 1, "anti_advertisement": 0, "everyone_block": 0, "nsfw_text_filter": 0, "unicode_filter": 0, "file_spam_filter": 0,
+        "personality": "default", "ai_mod_enabled": 1, "ai_mod_mode": "smart", "voice_enabled": 1, "voice_language": "en",
+        "voice_mode": "file", "memory_mode": "both", "memory_retention_days": 90, "context_awareness": 1,
     }
 
 def init_guild_settings(gid):
@@ -721,6 +696,9 @@ raid_tracker = defaultdict(list)
 raid_mode_active = defaultdict(bool)
 trivia_sessions = {}
 voice_sessions: dict[int, dict] = {}
+emoji_tracker = defaultdict(list)
+file_tracker = defaultdict(list)
+mention_tracker = defaultdict(list)
 
 # ============ AI CORE ============
 async def ask_groq(prompt, system="Helpful AI.", max_tokens=1000, history=None, status_msg=None):
@@ -897,9 +875,7 @@ async def ask_groq_json(prompt, system="Respond only in valid JSON. No markdown,
                     if resp.status == 200:
                         data = await resp.json()
                         result = data["choices"][0]["message"]["content"].strip()
-                        # Strip markdown code blocks
                         result = re.sub(r'```(?:json)?', '', result).strip().rstrip('`').strip()
-                        # Find JSON object or array
                         match = re.search(r'\{.*\}', result, re.DOTALL)
                         if match:
                             try:
@@ -914,7 +890,6 @@ def is_owner(user_id):
     return int(user_id) == BOT_IDENTITY["creator_discord_id"]
 
 def has_mod_permissions(member, guild_settings):
-    """Check if a member has mod or admin permissions"""
     if is_owner(member.id):
         return True
     if member.guild_permissions.administrator:
@@ -922,7 +897,6 @@ def has_mod_permissions(member, guild_settings):
     mod_role = discord.utils.get(member.guild.roles, name=guild_settings.get("mod_role_name", MOD_ROLE_NAME))
     if mod_role and mod_role in member.roles:
         return True
-    # Also check for manage_messages or ban_members permission
     if member.guild_permissions.ban_members or member.guild_permissions.manage_messages:
         return True
     return False
@@ -1080,10 +1054,7 @@ async def smart_response(message, prompt, system, history=None, uid=None, gid=No
             else:
                 await message.reply(fallback)
         except:
-            try:
-                await message.channel.send("Hey! 👋")
-            except:
-                pass
+            pass
     finally:
         if typing_task and not typing_task.done():
             typing_task.cancel()
@@ -1098,168 +1069,267 @@ async def _keep_typing(channel):
     except Exception:
         pass
 
-# ============ MODERATION - FIXED & ENHANCED ============
+# ============ ADDITIONAL DETECTION HELPERS ============
+def detect_zalgo(text):
+    if len(text) < 5: return False
+    diacritics = len(ZALGO_PATTERN.findall(text))
+    return diacritics > len(text) * 0.3
+
+def detect_unicode_abuse(text):
+    suspicious = 0
+    for ch in text:
+        code = ord(ch)
+        if 0xFF00 <= code <= 0xFFEF: suspicious += 1
+        elif code in [0x0430, 0x0435, 0x043E, 0x0440, 0x0441, 0x0443, 0x0445, 0x0456]: suspicious += 1
+        elif 0x1D400 <= code <= 0x1D7FF: suspicious += 1
+    return suspicious > len(text) * 0.3 and suspicious > 3
+
+def detect_emoji_spam(text):
+    emoji_count = 0
+    for ch in text:
+        code = ord(ch)
+        if (0x1F300 <= code <= 0x1F9FF) or (0x2600 <= code <= 0x27BF):
+            emoji_count += 1
+    custom = len(re.findall(r'<a?:\w+:\d+>', text))
+    total = emoji_count + custom
+    return total >= 8 and total > len(text.split()) * 2
+
+def detect_caps_abuse(text, ratio=0.7, min_length=15):
+    if len(text) < min_length: return False
+    letters = [c for c in text if c.isalpha()]
+    if len(letters) < 10: return False
+    caps = sum(1 for c in letters if c.isupper())
+    return caps / len(letters) >= ratio
+
+def detect_invite(text):
+    patterns = [
+        r'(?i)discord\.gg/[a-zA-Z0-9]+',
+        r'(?i)discord(?:app)?\.com/invite/[a-zA-Z0-9]+',
+        r'(?i)dsc\.gg/[a-zA-Z0-9]+',
+    ]
+    for p in patterns:
+        if re.search(p, text): return True
+    return False
+
+def detect_phishing_link(text):
+    bad_patterns = [
+        r'(?i)(disc[o0]rd[\-\.]?nitr[o0])',
+        r'(?i)(steamcommun[i1]ty\.[a-z]{2,})',
+        r'(?i)(d[i1]sc[o0]rd[\-\.][a-z]+\.[a-z]{2,})',
+        r'(?i)(bit\.ly|tinyurl\.com|t\.co|goo\.gl|ow\.ly|is\.gd|buff\.ly)',
+        r'(?i)(free[\-_]?(nitro|robux|vbucks|skins))',
+        r'(?i)(claim[\-_]?your[\-_]?(prize|reward|gift))',
+    ]
+    for p in bad_patterns:
+        if re.search(p, text): return True
+    return False
+
+def detect_nsfw_text(text):
+    lower = text.lower()
+    hits = sum(1 for word in NSFW_KEYWORDS if word in lower)
+    return hits >= 2 or any(re.search(rf'\b{w}\b', lower) for w in ['porn', 'nsfw', 'hentai'])
+
+def detect_advertisement(text):
+    matches = sum(1 for p in AD_PATTERNS if re.search(p, text))
+    return matches >= 1 and len(text) > 20
+
+def detect_pre_conflict(text):
+    lower = text.lower()
+    hits = sum(1 for kw in CONFLICT_KEYWORDS if kw in lower)
+    return hits >= 2
+
+# ============ AI MODERATION FUNCTION ============
 async def smart_ai_moderation(content, author_name, channel_name, recent_context, user_trust=0.5):
-    """
-    Fixed: Lower threshold, better context understanding,
-    multi-pass detection so things don't slip through.
-    """
-    if len(content.strip()) < 6:
+    if len(content.strip()) < 4:
         return {"action": "ignore", "confidence": 1.0, "reason": "too short", "severity": "none"}
 
-    context_str = "\n".join(recent_context[-5:]) if recent_context else "No context"
+    context_str = "\n".join(recent_context[-5:]) if recent_context else "No prior context"
 
-    prompt = f"""You are a Discord chat moderator. Analyze this message carefully.
+    prompt = f"""You are a STRICT Discord moderator. Your job is to catch toxic behavior.
 
 CHANNEL: #{channel_name}
-USER TRUST SCORE: {user_trust:.2f} (0=new/suspicious, 1=very trusted)
-RECENT CONTEXT:
+USER: {author_name} (trust score: {user_trust:.2f})
+RECENT MESSAGES IN CHANNEL:
 {context_str}
 
-MESSAGE TO ANALYZE: "{content}"
+MESSAGE TO REVIEW: "{content}"
 
-=== WHAT TO FLAG (high confidence) ===
-- Direct threats to specific real people ("I'll kill you", "I know where you live")
-- Hate speech / slurs used with hateful intent (not in quotes or education)
-- Doxxing (sharing real addresses, phone numbers, IPs)
-- Scam links or phishing attempts
-- Sexual content involving minors - ALWAYS ban
-- Coordinated harassment
+=== DELETE THESE (action="delete") ===
+- ANY slurs (racial, homophobic, transphobic, ableist) even with letter substitutions
+- Telling anyone to kill themselves, die, or harm themselves
+- Direct threats of violence to specific people
+- Sexual content directed at users
+- Harassment, name-calling with intent to hurt
+- Sharing personal info (addresses, phone numbers, IPs)
+- Scams, phishing, fake giveaways
+- Bigotry, hate speech, dehumanizing language
+- Encouraging violence or hate against any group
+- Sexual content involving minors (CRITICAL - flag immediately)
 
-=== WHAT NOT TO FLAG ===
-- Gaming violence ("I killed him in the game", "headshot!")
-- Trash talk between friends
-- Dark humor / memes (context matters!)
-- Venting about emotions without targeting anyone
-- Swearing by itself
-- Quotes or discussion of slurs (vs using them hatefully)
-- Roleplay / fiction
-- Hyperbole ("I'm going to kill this assignment")
+=== WARN THESE (action="warn") ===
+- Borderline insults that target someone
+- Aggressive trash talk that crosses lines
+- Repeated rudeness toward specific users
+- Mild slurs used carelessly
 
-IMPORTANT: Be precise. False positives destroy trust. Only act with HIGH confidence.
-If trust score is above 0.7, require even higher confidence.
+=== IGNORE THESE (action="ignore") ===
+- Swearing for emphasis (not at people)
+- Gaming/sports talk ("I killed him", "headshot")
+- Friendly banter, jokes between friends
+- Dark humor that doesn't target real people
+- Quoting/discussing bad words academically
+- Venting frustration without targeting
 
-Respond ONLY with this JSON:
+=== CRITICAL RULES ===
+- BE STRICT. If it would make someone uncomfortable, flag it.
+- If unsure between ignore and warn → choose warn
+- If unsure between warn and delete → consider context
+- Slurs are ALWAYS deletable, no matter the context
+- Threats are ALWAYS deletable
+- Set confidence based on how obvious the violation is
+
+Respond ONLY with this exact JSON:
 {{"action":"ignore|warn|delete","severity":"none|low|medium|high|critical","confidence":0.0-1.0,"reason":"brief explanation"}}"""
 
     result = await ask_groq_json(prompt)
     if not result:
+        print(f"⚠️ AI mod returned None for: {content[:50]}")
         return {"action": "ignore", "confidence": 0.0, "reason": "AI unavailable", "severity": "none"}
 
-    confidence = result.get("confidence", 0)
+    print(f"🤖 AI MOD CHECK: '{content[:60]}' → {result.get('action')} ({result.get('confidence', 0):.2f}) - {result.get('reason', 'no reason')}")
 
-    # Adjust threshold based on trust
-    threshold = 0.85 if user_trust < 0.3 else (0.90 if user_trust < 0.6 else 0.95)
+    confidence = result.get("confidence", 0)
+    action = result.get("action", "ignore")
+    severity = result.get("severity", "low")
+
+    # Lower thresholds for more aggressive moderation
+    if action == "delete":
+        threshold = 0.65
+    elif action == "warn":
+        threshold = 0.60
+    else:
+        threshold = 0.5
 
     if confidence < threshold:
-        result["action"] = "ignore"
-    # High trust users get extra protection from false positives
-    if user_trust > 0.7 and result.get("severity") in ["low", "medium"]:
+        print(f"   ↳ Below threshold ({threshold}), downgrading")
+        if action == "delete" and confidence >= 0.50:
+            result["action"] = "warn"
+        else:
+            result["action"] = "ignore"
+
+    if user_trust > 0.85 and severity == "low":
+        print(f"   ↳ High trust user, ignoring low severity")
         result["action"] = "ignore"
 
     return result
+
+async def _delete_and_punish(message, reason, action_type, settings, severity="medium", confidence=1.0):
+    author = message.author
+    guild = message.guild
+
+    try:
+        await message.delete()
+    except Exception as e:
+        print(f"   Delete failed: {e}")
+
+    if action_type == "ban":
+        try:
+            await guild.ban(author, reason=reason, delete_message_days=1)
+            print(f"   ✅ BANNED {author}")
+        except discord.Forbidden:
+            print(f"   ❌ No ban permission!")
+        log_mod_action(author.id, guild.id, "AUTO-BAN", reason, bot.user.id)
+        await alert_mods(guild, discord.Embed(
+            title="🔨 Auto-Ban", color=discord.Color.dark_red()
+        ).add_field(name="User", value=str(author))
+         .add_field(name="Reason", value=reason)
+         .add_field(name="Content", value=f"||{message.content[:200]}||", inline=False))
+        await notify_owner("CRITICAL", f"Auto-banned **{author}**: {reason}", guild=guild, urgent=True)
+        return
+
+    wc, wid = add_warning(author.id, guild.id, reason, severity, confidence, message.content[:200])
+    log_mod_action(author.id, guild.id, "AUTO-DELETE", reason, bot.user.id)
+
+    try:
+        await message.channel.send(
+            f"🛑 {author.mention} **{reason}** | Warning #{wc}",
+            delete_after=10
+        )
+    except:
+        pass
+
+    warn_mute = settings.get("warn_mute", 3)
+    warn_ban = settings.get("warn_ban", 5)
+    mute_dur = settings.get("mute_duration", 10)
+
+    if severity == "critical" or wc >= warn_ban:
+        try:
+            await guild.ban(author, reason=f"Reached ban threshold ({wc} warnings) - {reason}")
+            print(f"   ✅ BANNED (threshold)")
+        except:
+            pass
+    elif severity == "high":
+        try:
+            await author.timeout(datetime.now() + timedelta(minutes=60), reason=reason)
+            print(f"   ✅ MUTED 60min (high severity)")
+        except:
+            pass
+    elif wc >= warn_mute:
+        try:
+            await author.timeout(datetime.now() + timedelta(minutes=mute_dur), reason=reason)
+            print(f"   ✅ MUTED {mute_dur}min (warning threshold)")
+        except:
+            pass
+    elif severity == "medium":
+        try:
+            await author.timeout(datetime.now() + timedelta(minutes=5), reason=reason)
+        except:
+            pass
+
+    if severity in ["high", "critical"]:
+        await alert_mods(guild, discord.Embed(
+            title=f"🛡️ Auto-Mod: {severity.upper()}", color=discord.Color.red()
+        ).add_field(name="User", value=author.mention)
+         .add_field(name="Reason", value=reason)
+         .add_field(name="Warnings", value=str(wc))
+         .add_field(name="Confidence", value=f"{confidence:.0%}" if confidence < 1 else "Pattern match")
+         .add_field(name="Content", value=f"||{message.content[:300]}||", inline=False))
+
 
 async def handle_moderation_smart(message, settings):
     content = message.content
     author = message.author
     guild = message.guild
 
-    # Never mod trusted users
-    if is_user_trusted(author.id, guild.id):
-        return False
-    if not settings.get("ai_mod_enabled", 1):
-        return False
+    if is_user_trusted(author.id, guild.id): return False
+    if not settings.get("ai_mod_enabled", 1): return False
+    if has_mod_permissions(author, settings): return False
 
-    # ---- LAYER 1: Hard patterns (instant action, no AI needed) ----
+    print(f"\n🔍 MODERATING: [{author.display_name}] {content[:100]}")
+
     for pattern, reason, action in HARD_DELETE_PATTERNS:
         if re.search(pattern, content):
-            try:
-                await message.delete()
-            except:
-                pass
-
-            if action == "ban":
-                try:
-                    await guild.ban(author, reason=reason, delete_message_days=1)
-                except discord.Forbidden:
-                    pass
-                log_mod_action(author.id, guild.id, "AUTO-BAN", reason, bot.user.id)
-                await alert_mods(guild, discord.Embed(
-                    title="🔨 Auto-Ban", color=discord.Color.dark_red()
-                ).add_field(name="User", value=str(author))
-                 .add_field(name="Reason", value=reason))
-                await notify_owner("CRITICAL", f"Auto-banned {author}: {reason}", guild=guild, urgent=True)
-                return True
-
-            elif action == "critical":
-                wc, wid = add_warning(author.id, guild.id, reason, "critical", 1.0, content[:200])
-                try:
-                    await message.channel.send(
-                        f"⚠️ {author.mention} Message removed: **{reason}**",
-                        delete_after=8
-                    )
-                except:
-                    pass
-                log_mod_action(author.id, guild.id, "AUTO-DELETE", reason, bot.user.id)
-                await alert_mods(guild, discord.Embed(
-                    title="🚨 Critical Content Removed", color=discord.Color.red()
-                ).add_field(name="User", value=str(author))
-                 .add_field(name="Reason", value=reason)
-                 .add_field(name="Warnings", value=str(wc)))
-                return True
-
-    # ---- LAYER 2: Soft patterns (high confidence violations) ----
-    for pattern, reason, severity in SOFT_VIOLATION_PATTERNS:
-        if re.search(pattern, content):
-            try:
-                await message.delete()
-            except:
-                pass
-            wc, wid = add_warning(author.id, guild.id, reason, severity, 0.98, content[:200])
-            log_mod_action(author.id, guild.id, "PATTERN-DELETE", reason, bot.user.id)
-            try:
-                await message.channel.send(
-                    f"⚠️ {author.mention} That's not allowed here. (Warning #{wc})",
-                    delete_after=8
-                )
-            except:
-                pass
-            if severity == "ban":
-                try:
-                    await guild.ban(author, reason=reason, delete_message_days=1)
-                except:
-                    pass
-            elif wc >= settings.get("warn_ban", 5):
-                try:
-                    await guild.ban(author, reason=f"Repeated violations ({wc} warnings)")
-                except:
-                    pass
-            elif wc >= settings.get("warn_mute", 3):
-                try:
-                    await author.timeout(
-                        datetime.now() + timedelta(minutes=settings.get("mute_duration", 10)),
-                        reason=reason
-                    )
-                except:
-                    pass
-            await alert_mods(guild, discord.Embed(
-                title=f"🛡️ Auto-Mod: {severity.upper()}", color=discord.Color.orange()
-            ).add_field(name="User", value=author.mention)
-             .add_field(name="Reason", value=reason)
-             .add_field(name="Warnings", value=str(wc)))
+            print(f"   🚨 HARD PATTERN: {reason}")
+            await _delete_and_punish(message, reason, action, settings, severity="critical")
             return True
 
-    # ---- LAYER 3: Self harm check ----
+    for pattern, reason, severity in SOFT_VIOLATION_PATTERNS:
+        if re.search(pattern, content):
+            print(f"   🚨 SOFT PATTERN: {reason}")
+            await _delete_and_punish(message, reason, "delete", settings, severity=severity)
+            return True
+
     for pattern in SELF_HARM_PATTERNS:
         if re.search(pattern, content):
+            print(f"   💙 Self-harm pattern")
             try:
                 await message.channel.send(embed=discord.Embed(
                     title="💙 Hey, we see you",
                     description=(
-                        f"{author.mention} You're not alone in this. If you're struggling:\n\n"
-                        "📞 **988** - Suicide & Crisis Lifeline (call or text)\n"
-                        "💬 Text HOME to **741741** - Crisis Text Line\n"
-                        "🌐 **crisistextline.org**\n\n"
+                        f"{author.mention} You're not alone. If you're struggling:\n\n"
+                        "📞 **988** - Suicide & Crisis Lifeline (US)\n"
+                        "💬 Text **HOME** to **741741** - Crisis Text Line\n"
+                        "🌐 [findahelpline.com](https://findahelpline.com)\n\n"
                         "You matter here. 💙"
                     ),
                     color=discord.Color.blue(),
@@ -1268,43 +1338,147 @@ async def handle_moderation_smart(message, settings):
                 pass
             return False
 
-    # ---- LAYER 4: Email filter ----
-    if settings.get("email_filter", 1):
-        if re.search(r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b', content):
-            try:
-                await message.delete()
-            except:
-                pass
-            wc, _ = add_warning(author.id, guild.id, "Shared email address", "medium", 1.0, content[:200])
-            try:
-                await message.channel.send(
-                    f"⚠️ {author.mention} Please don't share personal info in public channels!",
-                    delete_after=8
-                )
-            except:
-                pass
+    if settings.get("invite_block", 0) and detect_invite(content):
+        print(f"   🚫 Invite blocked")
+        await _delete_and_punish(message, "Discord invite link", "delete", settings, severity="medium")
+        return True
+
+    if settings.get("link_scan", 1) and detect_phishing_link(content):
+        print(f"   🎣 Phishing link")
+        await _delete_and_punish(message, "Suspicious/phishing link", "delete", settings, severity="high")
+        return True
+
+    if settings.get("scam_filter", 1):
+        scam_phrases = ['free nitro', 'free robux', 'free vbucks', 'claim your', 'limited time offer', 'click here to claim']
+        lower = content.lower()
+        if any(p in lower for p in scam_phrases) and ('http' in lower or 'discord.gg' in lower or '.com' in lower):
+            print(f"   💸 Scam detected")
+            await _delete_and_punish(message, "Scam attempt", "delete", settings, severity="high")
             return True
 
-    # ---- LAYER 5: Custom word filters ----
+    if settings.get("fake_nitro_filter", 1):
+        if re.search(r'(?i)(free\s*(nitro|discord\s*nitro))', content) and ('http' in content.lower() or 'discord.gift' in content.lower()):
+            print(f"   💎 Fake Nitro")
+            await _delete_and_punish(message, "Fake Nitro scam", "delete", settings, severity="critical")
+            return True
+
+    if settings.get("token_filter", 1):
+        if re.search(r'(?i)(steal[\-_]?token|token[\-_]?grab|token[\-_]?log|webhook[\-_]?spam)', content):
+            print(f"   🔑 Token grabber")
+            await _delete_and_punish(message, "Token grabbing content", "delete", settings, severity="critical")
+            return True
+
+    if settings.get("email_filter", 1):
+        if re.search(r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b', content):
+            print(f"   📧 Email shared")
+            await _delete_and_punish(message, "Shared email address", "delete", settings, severity="medium")
+            return True
+
+    if settings.get("phone_filter", 0):
+        if re.search(r'(\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}', content):
+            print(f"   📱 Phone number shared")
+            await _delete_and_punish(message, "Shared phone number", "delete", settings, severity="medium")
+            return True
+
+    if settings.get("everyone_block", 0):
+        if ('@everyone' in content or '@here' in content) and not author.guild_permissions.mention_everyone:
+            print(f"   🔕 @everyone abuse")
+            await _delete_and_punish(message, "Unauthorized @everyone/@here", "delete", settings, severity="high")
+            return True
+
+    if settings.get("mention_spam", 1):
+        unique_mentions = len(set(m.id for m in message.mentions))
+        if unique_mentions >= 5:
+            print(f"   📢 Mass mentions: {unique_mentions}")
+            await _delete_and_punish(message, f"Mass mentions ({unique_mentions} users)", "delete", settings, severity="high")
+            return True
+        now = time.time()
+        key = f"{author.id}:{guild.id}"
+        mention_tracker[key] = [t for t in mention_tracker[key] if now - t < 30]
+        mention_tracker[key].extend([now] * unique_mentions)
+        if len(mention_tracker[key]) >= 10:
+            print(f"   📢 Mention spam over time")
+            await _delete_and_punish(message, "Mention spam over time", "delete", settings, severity="medium")
+            mention_tracker[key] = []
+            return True
+
+    if settings.get("caps_filter", 0) and detect_caps_abuse(content):
+        print(f"   🔠 Excessive caps")
+        try:
+            await message.delete()
+            await message.channel.send(f"⚠️ {author.mention} Please don't use excessive caps!", delete_after=6)
+        except: pass
+        return True
+
+    if settings.get("emoji_spam", 0) and detect_emoji_spam(content):
+        print(f"   😂 Emoji spam")
+        await _delete_and_punish(message, "Excessive emoji use", "delete", settings, severity="low")
+        return True
+
+    if settings.get("zalgo_filter", 0) and detect_zalgo(content):
+        print(f"   🌀 Zalgo text")
+        await _delete_and_punish(message, "Zalgo/glitch text", "delete", settings, severity="low")
+        return True
+
+    if settings.get("unicode_filter", 0) and detect_unicode_abuse(content):
+        print(f"   🔠 Unicode bypass attempt")
+        await _delete_and_punish(message, "Unicode bypass attempt", "delete", settings, severity="medium")
+        return True
+
+    if settings.get("nsfw_text_filter", 0) and not message.channel.is_nsfw() and detect_nsfw_text(content):
+        print(f"   🔞 NSFW text in SFW channel")
+        await _delete_and_punish(message, "NSFW content in SFW channel", "delete", settings, severity="medium")
+        return True
+
+    if settings.get("anti_advertisement", 0) and detect_advertisement(content):
+        print(f"   📣 Advertisement")
+        await _delete_and_punish(message, "Self-promotion/advertisement", "delete", settings, severity="low")
+        return True
+
+    if settings.get("file_spam_filter", 0) and message.attachments:
+        now = time.time()
+        key = f"{author.id}:{guild.id}"
+        file_tracker[key] = [t for t in file_tracker[key] if now - t < 30]
+        file_tracker[key].extend([now] * len(message.attachments))
+        if len(file_tracker[key]) >= 5:
+            print(f"   📁 File spam")
+            await _delete_and_punish(message, "File spam", "delete", settings, severity="medium")
+            file_tracker[key] = []
+            return True
+
+    if settings.get("pre_conflict", 0) and detect_pre_conflict(content):
+        print(f"   ⚠️ Pre-conflict detected")
+        try:
+            await message.channel.send(f"🕊️ Hey {author.mention}, let's keep things chill. Take a breather if you need!", delete_after=15)
+        except: pass
+
+    if settings.get("slowmode_ai", 0):
+        try:
+            recent_count = 0
+            cutoff = datetime.now() - timedelta(seconds=15)
+            async for m in message.channel.history(limit=20):
+                if m.created_at.replace(tzinfo=None) > cutoff:
+                    recent_count += 1
+            if recent_count > 12 and message.channel.slowmode_delay == 0:
+                await message.channel.edit(slowmode_delay=5, reason="AI auto-slowmode")
+                await message.channel.send("🐌 Auto-slowmode enabled (chat moving fast). Will remove in 2 min.", delete_after=10)
+                async def remove_slow():
+                    await asyncio.sleep(120)
+                    try:
+                        await message.channel.edit(slowmode_delay=0, reason="AI auto-slowmode removed")
+                    except: pass
+                asyncio.create_task(remove_slow())
+        except: pass
+
     words = get_filtered_words(guild.id)
     content_lower = content.lower()
     for w in words:
         if w.lower() in content_lower:
-            try:
-                await message.delete()
-            except:
-                pass
-            try:
-                await message.channel.send(
-                    f"⚠️ {author.mention} That word isn't allowed here!",
-                    delete_after=5
-                )
-            except:
-                pass
+            print(f"   🚫 Custom word: {w}")
+            await _delete_and_punish(message, f"Filtered word: {w}", "delete", settings, severity="medium")
             return True
 
-    # ---- LAYER 6: AI check for anything that slipped through ----
-    if len(content.strip()) < 15:
+    if len(content.strip()) < 8:
         return False
 
     context_msgs = []
@@ -1312,89 +1486,52 @@ async def handle_moderation_smart(message, settings):
         async for m in message.channel.history(limit=6, before=message):
             if not m.author.bot:
                 context_msgs.append(f"{m.author.display_name}: {m.content[:100]}")
-    except:
-        pass
+    except: pass
 
     user_mem = get_user_memory(author.id, guild.id)
     trust = user_mem.get("trust_score", 0.5)
+    sensitivity = settings.get("ai_sensitivity", 0.85)
 
-    analysis = await smart_ai_moderation(
-        content,
-        author.display_name,
-        message.channel.name,
-        list(reversed(context_msgs)),
-        trust
-    )
+    analysis = await smart_ai_moderation(content, author.display_name, message.channel.name, list(reversed(context_msgs)), trust)
 
     action = analysis.get("action", "ignore")
     confidence = analysis.get("confidence", 0)
     severity = analysis.get("severity", "low")
     reason = analysis.get("reason", "Flagged by AI")
 
+    if confidence < sensitivity and action == "delete":
+        if confidence >= sensitivity - 0.15:
+            action = "warn"
+        else:
+            action = "ignore"
+
     if action == "ignore":
+        print(f"   ✅ Passed all checks")
         return False
 
     if action == "delete":
-        try:
-            await message.delete()
-        except:
-            pass
-        wc, wid = add_warning(author.id, guild.id, f"AI: {reason}", severity, confidence, content[:200])
-        log_mod_action(author.id, guild.id, "AI-DELETE", reason, bot.user.id)
-        try:
-            await message.channel.send(
-                f"⚠️ {author.mention} Message removed. Reason: {reason}",
-                delete_after=8
-            )
-        except:
-            pass
-        if wc >= settings.get("warn_mute", 3):
-            try:
-                await author.timeout(
-                    datetime.now() + timedelta(minutes=settings.get("mute_duration", 10)),
-                    reason=reason
-                )
-            except:
-                pass
-        if wc >= settings.get("warn_ban", 5):
-            try:
-                await guild.ban(author, reason=f"Repeated violations ({wc} warnings)")
-            except:
-                pass
-        if severity in ["high", "critical"]:
-            await alert_mods(guild, discord.Embed(
-                title=f"🤖 AI Mod: {severity.upper()}", color=discord.Color.red()
-            ).add_field(name="User", value=author.mention)
-             .add_field(name="Reason", value=reason)
-             .add_field(name="Confidence", value=f"{confidence:.0%}")
-             .add_field(name="Warnings", value=str(wc)))
+        print(f"   🤖 AI DELETE: {reason}")
+        await _delete_and_punish(message, f"AI: {reason}", "delete", settings, severity=severity, confidence=confidence)
         return True
 
     if action == "warn":
+        print(f"   ⚠️ AI WARN: {reason}")
         wc, _ = add_warning(author.id, guild.id, reason, severity, confidence, content[:200])
         try:
-            await message.reply(
-                f"⚠️ Watch it! That's not cool. (Warning #{wc})",
-                delete_after=10
-            )
-        except:
-            pass
+            await message.reply(f"⚠️ {author.mention} {reason} (Warning #{wc})", delete_after=12)
+        except: pass
         return False
 
     return False
 
 # ============ APPEALS ============
 async def handle_appeal(message):
-    if message.guild:
-        return False
+    if message.guild: return False
     content = message.content.strip()
-    if not content.lower().startswith("appeal"):
-        return False
+    if not content.lower().startswith("appeal"): return False
     match = re.match(r'(?i)appeal\s+(\d+)\s*(.*)', content, re.DOTALL)
     if not match:
-        await message.reply(
-            "📝 To appeal a warning, DM me:\n`appeal [warning_id] [your reason]`\n\nExample: `appeal 5 I was joking`"
-        )
+        await message.reply("📝 To appeal a warning, DM me:\n`appeal [warning_id] [your reason]`\n\nExample: `appeal 5 I was joking`")
         return True
     warning_id = int(match.group(1))
     appeal_text = match.group(2).strip() or "No reason provided"
@@ -1410,10 +1547,8 @@ async def handle_appeal(message):
         await message.reply("ℹ️ You already appealed this warning. Mods will review it.")
         conn.close()
         return True
-    c.execute(
-        "INSERT INTO appeals (user_id, guild_id, warning_id, appeal_text, timestamp) VALUES (?, ?, ?, ?, ?)",
-        (str(message.author.id), warning["guild_id"], warning_id, appeal_text, datetime.now().isoformat())
-    )
+    c.execute("INSERT INTO appeals (user_id, guild_id, warning_id, appeal_text, timestamp) VALUES (?, ?, ?, ?, ?)",
+              (str(message.author.id), warning["guild_id"], warning_id, appeal_text, datetime.now().isoformat()))
     c.execute("UPDATE warnings SET appealed=1 WHERE id=?", (warning_id,))
     conn.commit()
     conn.close()
@@ -1440,15 +1575,10 @@ async def check_spam(msg, s):
 async def handle_spam(msg, s):
     try:
         await msg.channel.purge(limit=10, check=lambda m: m.author == msg.author)
-    except:
-        pass
+    except: pass
     try:
-        await msg.author.timeout(
-            datetime.now() + timedelta(minutes=s.get("mute_duration", 10)),
-            reason="Spam detected"
-        )
-    except:
-        pass
+        await msg.author.timeout(datetime.now() + timedelta(minutes=s.get("mute_duration", 10)), reason="Spam detected")
+    except: pass
     wc, _ = add_warning(msg.author.id, msg.guild.id, "Spam", "medium")
     await alert_mods(msg.guild, discord.Embed(
         title="🔇 Spam Muted", color=discord.Color.orange()
@@ -1472,14 +1602,9 @@ async def handle_raid(guild, member):
         if ch:
             await ch.send(
                 content=f"🚨 {mr.mention if mr else '@here'} RAID DETECTED!",
-                embed=discord.Embed(
-                    title="🚨 RAID IN PROGRESS",
-                    description="Mass join detected! Taking protective action.",
-                    color=discord.Color.red()
-                ),
+                embed=discord.Embed(title="🚨 RAID IN PROGRESS", description="Mass join detected! Taking protective action.", color=discord.Color.red()),
             )
         await notify_owner("RAID", f"🚨 Raid in **{guild.name}**!", guild=guild, urgent=True)
-
         async def reset_raid():
             await asyncio.sleep(300)
             raid_mode_active[guild.id] = False
@@ -1489,8 +1614,7 @@ async def handle_raid(guild, member):
     if age < s.get("min_account_age", 7):
         try:
             await member.kick(reason="Raid protection - new account")
-        except:
-            pass
+        except: pass
 
 async def alert_mods(guild, embed):
     s = get_guild_settings(guild.id)
@@ -1510,8 +1634,7 @@ async def text_to_speech_bytes(text, lang="en"):
         clean = re.sub(r'https?://\S+', 'link', clean)
         clean = re.sub(r'<@[!&]?\d+>', 'someone', clean)
         clean = clean[:400].strip()
-        if not clean:
-            return None
+        if not clean: return None
         encoded = urllib.parse.quote(clean)
         url = f"https://translate.google.com/translate_tts?ie=UTF-8&q={encoded}&tl={lang}&client=tw-ob"
         headers = {"User-Agent": "Mozilla/5.0"}
@@ -1529,13 +1652,10 @@ async def start_voice_session(channel, guild_id, mode="file", text_channel=None)
         if old.get("vc"):
             try:
                 await old["vc"].disconnect(force=True)
-            except:
-                pass
+            except: pass
         del voice_sessions[guild_id]
     voice_sessions[guild_id] = {
-        "mode": "file",
-        "channel_id": channel.id,
-        "vc": None,
+        "mode": "file", "channel_id": channel.id, "vc": None,
         "text_channel_id": text_channel.id if text_channel else None,
         "started_at": datetime.now().isoformat(),
     }
@@ -1547,21 +1667,18 @@ async def end_voice_session(guild_id):
         if session.get("vc"):
             try:
                 await session["vc"].disconnect(force=True)
-            except:
-                pass
+            except: pass
         del voice_sessions[guild_id]
         return True
     return False
 
 async def speak_in_session(guild_id, text, text_channel=None):
-    if guild_id not in voice_sessions:
-        return
+    if guild_id not in voice_sessions: return
     session = voice_sessions[guild_id]
     s = get_guild_settings(guild_id)
     lang = s.get("voice_language", "en")
     audio_bytes = await text_to_speech_bytes(text, lang)
-    if not audio_bytes:
-        return
+    if not audio_bytes: return
     target = None
     if session.get("text_channel_id"):
         target = bot.get_channel(int(session["text_channel_id"]))
@@ -1584,16 +1701,10 @@ async def speak_in_session(guild_id, text, text_channel=None):
 
 # ============ COMMAND PARSER ============
 async def parse_command(content, guild, author):
-    """
-    Enhanced parser - better at understanding natural language mod instructions.
-    Properly handles things like 'ban @user for spamming' or 'create a channel called gaming'
-    """
     channels = [c.name for c in guild.text_channels][:15]
     categories = [c.name for c in guild.categories][:10]
     roles = [r.name for r in guild.roles if r.name != "@everyone"][:15]
     members = [f"{m.name}#{m.discriminator}(ID:{m.id})" for m in guild.members if not m.bot][:25]
-    
-    # Extract mentions
     mids = re.findall(r'<@!?(\d+)>', content)
     mnames = []
     mentioned_members = []
@@ -1607,7 +1718,6 @@ async def parse_command(content, guild, author):
 
 Server: {guild.name}
 Channels: {', '.join(channels)}
-Categories: {', '.join(categories)}
 Roles: {', '.join(roles)}
 All Members: {', '.join(members[:20])}
 @Mentioned in message: {', '.join(mnames) if mnames else 'NOBODY MENTIONED'}
@@ -1617,20 +1727,12 @@ Message to parse: "{content}"
 
 === PARSING RULES ===
 - If it sounds like a chat message → command="chat"
-- If it's a clear admin/mod action → parse it
 - confidence must be ≥ 0.75 to take action
 - For ban/kick/mute/warn → target MUST be in the @mentioned list or very clearly named
 - "make a channel called X" → create_channel, name=X
-- "create category X" → create_category, name=X  
 - "ban @user for X" → ban_user, target from mentions
 - "mute @user for 10 minutes" → mute_user, duration=10
-- "create role called X" → create_role, name=X
-- "purge 50 messages" → purge, amount=50
-- "lock this channel" → lock_channel
-- "lockdown the server" → lockdown
-- "warn @user for X" → warn_user
-- "give @user the Y role" → this is "add_role"
-- If the target isn't @mentioned and isn't 100% clear → confidence < 0.75
+- "give @user the Y role" → add_role
 
 JSON only - no other text:
 {{
@@ -1638,51 +1740,28 @@ JSON only - no other text:
   "needs_confirmation": false,
   "confidence": 0.9,
   "params": {{
-    "name": null,
-    "target_user_id": null,
-    "target_user_name": null,
-    "target_user2": null,
-    "reason": null,
-    "duration": null,
-    "category": null,
-    "color": null,
-    "private": false,
-    "amount": null,
-    "prize": null,
-    "winners": null,
-    "question": null,
-    "options": null,
-    "language": null,
-    "text": null,
-    "word": null,
-    "channel": null,
-    "response": null,
-    "reminder_time": null,
-    "rating_target": null,
-    "zodiac": null,
-    "role_name": null
+    "name": null, "target_user_id": null, "target_user_name": null, "target_user2": null,
+    "reason": null, "duration": null, "category": null, "color": null, "private": false,
+    "amount": null, "prize": null, "winners": null, "question": null, "options": null,
+    "language": null, "text": null, "word": null, "channel": null, "response": null,
+    "reminder_time": null, "rating_target": null, "zodiac": null, "role_name": null
   }}
 }}"""
     return await ask_groq_json(prompt)
 
 def find_member_strict(guild, params):
-    """Find a member - checks mentions first, then name matching"""
     uid = params.get("target_user_id")
     if uid:
         try:
             m = guild.get_member(int(str(uid).strip()))
-            if m:
-                return m
-        except (ValueError, TypeError):
-            pass
+            if m: return m
+        except (ValueError, TypeError): pass
     name = params.get("target_user_name")
     if name:
         name_clean = name.lower().strip().replace("@", "").replace("#", "")
-        # Exact match first
         for m in guild.members:
             if m.name.lower() == name_clean or m.display_name.lower() == name_clean:
                 return m
-        # Partial match fallback
         for m in guild.members:
             if name_clean in m.name.lower() or name_clean in m.display_name.lower():
                 return m
@@ -1695,73 +1774,48 @@ async def execute_command(parsed, message, guild, author):
     s = get_guild_settings(guild.id)
 
     try:
-        # ---- VOICE COMMANDS ----
         if cmd == "join_voice":
             target_ch = None
             ch_name = params.get("channel") or params.get("name")
-            if ch_name:
-                target_ch = discord.utils.get(guild.voice_channels, name=ch_name)
-            elif author.voice and author.voice.channel:
-                target_ch = author.voice.channel
-            if not target_ch:
-                return "❌ Join a voice channel first, then ask me to join you!"
-            success, info = await start_voice_session(
-                target_ch, guild.id, s.get("voice_mode", "file"), message.channel
-            )
-            if success:
-                await speak_in_session(
-                    guild.id,
-                    f"Hey! SentinelMod voice is ready in {target_ch.name}!",
-                    message.channel
-                )
+            if ch_name: target_ch = discord.utils.get(guild.voice_channels, name=ch_name)
+            elif author.voice and author.voice.channel: target_ch = author.voice.channel
+            if not target_ch: return "❌ Join a voice channel first!"
+            success, info = await start_voice_session(target_ch, guild.id, s.get("voice_mode", "file"), message.channel)
+            if success: await speak_in_session(guild.id, f"Hey! Voice is ready in {target_ch.name}!", message.channel)
             return info
 
         elif cmd == "leave_voice":
-            if guild.id not in voice_sessions:
-                return "❌ I'm not in a voice session right now!"
+            if guild.id not in voice_sessions: return "❌ I'm not in a voice session right now!"
             await end_voice_session(guild.id)
             return "👋 Voice session ended!"
 
-        # ---- OWNER STATUS ----
         elif cmd == "owner_status":
-            if not is_owner(author.id):
-                return "❌ This command is owner-only!"
-            lines = [f"**🤖 SentinelMod v{BOT_IDENTITY['version']} - Full Status Report**\n"]
+            if not is_owner(author.id): return "❌ This command is owner-only!"
+            lines = [f"**🤖 SentinelMod v{BOT_IDENTITY['version']} - Status Report**\n"]
             for g in bot.guilds:
                 try:
                     sm = get_server_memory(g.id)
                     all_ctx = get_all_server_context(g.id)
-                    lines.append(f"**{g.name}** ({g.member_count} members)")
-                    lines.append(f"Mood: {sm.get('server_mood', 'neutral')}")
-                    if all_ctx and all_ctx != "No activity.":
-                        lines.append(f"Recent:\n{all_ctx[:400]}")
-                    lines.append("")
-                except Exception as e:
-                    lines.append(f"{g.name}: error - {e}\n")
+                    lines.append(f"**{g.name}** ({g.member_count} members) | Mood: {sm.get('server_mood', 'neutral')}")
+                    if all_ctx and all_ctx != "No activity.": lines.append(f"Recent:\n{all_ctx[:300]}\n")
+                except: pass
             report = "\n".join(lines)
-            chunks = [report[i:i+2000] for i in range(0, len(report), 2000)]
-            for chunk in chunks:
+            for chunk in [report[i:i+2000] for i in range(0, len(report), 2000)]:
                 await message.channel.send(chunk)
             return None
 
-        # ---- CHANNEL COMMANDS ----
         elif cmd == "create_channel":
             name = params.get("name")
-            if not name:
-                return "❌ What should I name the channel?"
+            if not name: return "❌ What should I name the channel?"
             name = name.lower().replace(" ", "-").strip()
-            existing = discord.utils.get(guild.text_channels, name=name)
-            if existing:
-                return f"⏭️ #{name} already exists! ({existing.mention})"
+            if discord.utils.get(guild.text_channels, name=name): return f"⏭️ #{name} already exists!"
             cat = None
             cat_name = params.get("category")
             if cat_name:
                 cat = discord.utils.get(guild.categories, name=cat_name)
                 if not cat:
-                    try:
-                        cat = await guild.create_category(name=cat_name)
-                    except discord.Forbidden:
-                        return "❌ I need 'Manage Channels' permission to create categories!"
+                    try: cat = await guild.create_category(name=cat_name)
+                    except: return "❌ I need 'Manage Channels' permission!"
             overwrites = {}
             if params.get("private"):
                 overwrites = {
@@ -1769,240 +1823,136 @@ async def execute_command(parsed, message, guild, author):
                     author: discord.PermissionOverwrite(read_messages=True, send_messages=True),
                     guild.me: discord.PermissionOverwrite(read_messages=True, send_messages=True),
                 }
-            try:
-                ch = await guild.create_text_channel(name=name, category=cat, overwrites=overwrites)
-                return f"✅ Created {ch.mention}!"
-            except discord.Forbidden:
-                return "❌ I need 'Manage Channels' permission!"
-            except Exception as e:
-                return f"❌ Error creating channel: {str(e)[:100]}"
+            ch = await guild.create_text_channel(name=name, category=cat, overwrites=overwrites)
+            return f"✅ Created {ch.mention}!"
 
         elif cmd == "delete_channel":
             name = params.get("name")
-            if not name:
-                return "❌ Which channel should I delete?"
-            name = name.lower().replace(" ", "-").strip()
-            ch = discord.utils.get(guild.text_channels, name=name)
-            if not ch:
-                return f"❌ #{name} not found."
-            try:
-                await ch.delete()
-                return f"🗑️ Deleted #{name}!"
-            except discord.Forbidden:
-                return "❌ I don't have permission to delete that channel!"
+            if not name: return "❌ Which channel?"
+            ch = discord.utils.get(guild.text_channels, name=name.lower().replace(" ", "-").strip())
+            if not ch: return f"❌ #{name} not found."
+            await ch.delete()
+            return f"🗑️ Deleted #{name}!"
 
         elif cmd == "create_category":
             name = params.get("name")
-            if not name:
-                return "❌ What should I name the category?"
-            name = name.strip()
-            existing = discord.utils.get(guild.categories, name=name)
-            if existing:
-                return f"⏭️ Category **{name}** already exists!"
-            try:
-                cat = await guild.create_category(name=name)
-                return f"✅ Created category **{cat.name}**!"
-            except discord.Forbidden:
-                return "❌ I need 'Manage Channels' permission!"
+            if not name: return "❌ Name required!"
+            if discord.utils.get(guild.categories, name=name.strip()): return f"⏭️ **{name}** already exists!"
+            await guild.create_category(name=name.strip())
+            return f"✅ Created category **{name}**!"
 
-        # ---- ROLE COMMANDS ----
         elif cmd == "create_role":
             name = params.get("name")
-            if not name:
-                return "❌ What should I name the role?"
-            if discord.utils.get(guild.roles, name=name):
-                return f"⏭️ Role **{name}** already exists!"
+            if not name: return "❌ Name required!"
+            if discord.utils.get(guild.roles, name=name): return f"⏭️ **{name}** already exists!"
             color = discord.Color.default()
             if params.get("color"):
-                try:
-                    color = discord.Color(int(params["color"].replace("#", ""), 16))
-                except:
-                    pass
-            try:
-                role = await guild.create_role(name=name, color=color, reason=f"Created by {author}")
-                return f"✅ Created role {role.mention}!"
-            except discord.Forbidden:
-                return "❌ I need 'Manage Roles' permission!"
+                try: color = discord.Color(int(params["color"].replace("#", ""), 16))
+                except: pass
+            role = await guild.create_role(name=name, color=color, reason=f"Created by {author}")
+            return f"✅ Created role {role.mention}!"
 
         elif cmd == "delete_role":
             name = params.get("name")
-            if not name:
-                return "❌ Which role should I delete?"
+            if not name: return "❌ Which role?"
             role = discord.utils.get(guild.roles, name=name)
-            if not role:
-                return f"❌ Role **{name}** not found."
-            try:
-                await role.delete()
-                return f"🗑️ Deleted role **{name}**!"
-            except discord.Forbidden:
-                return "❌ I don't have permission to delete that role!"
+            if not role: return f"❌ Role **{name}** not found."
+            await role.delete()
+            return f"🗑️ Deleted role **{name}**!"
 
         elif cmd == "add_role":
             t = find_member_strict(guild, params)
-            if not t:
-                return "❌ User not found! @mention them."
+            if not t: return "❌ User not found! @mention them."
             role_name = params.get("role_name") or params.get("name")
-            if not role_name:
-                return "❌ Which role?"
+            if not role_name: return "❌ Which role?"
             role = discord.utils.get(guild.roles, name=role_name)
-            if not role:
-                return f"❌ Role **{role_name}** not found."
-            try:
-                await t.add_roles(role)
-                return f"✅ Gave {role.mention} to **{t.name}**!"
-            except discord.Forbidden:
-                return "❌ I don't have permission to assign that role!"
+            if not role: return f"❌ Role **{role_name}** not found."
+            await t.add_roles(role)
+            return f"✅ Gave {role.mention} to **{t.name}**!"
 
         elif cmd == "remove_role":
             t = find_member_strict(guild, params)
-            if not t:
-                return "❌ User not found! @mention them."
+            if not t: return "❌ User not found!"
             role_name = params.get("role_name") or params.get("name")
-            if not role_name:
-                return "❌ Which role?"
             role = discord.utils.get(guild.roles, name=role_name)
-            if not role:
-                return f"❌ Role **{role_name}** not found."
-            try:
-                await t.remove_roles(role)
-                return f"✅ Removed {role.mention} from **{t.name}**!"
-            except discord.Forbidden:
-                return "❌ I don't have permission!"
+            if not role: return f"❌ Role not found."
+            await t.remove_roles(role)
+            return f"✅ Removed {role.mention} from **{t.name}**!"
 
-        # ---- MOD COMMANDS ----
         elif cmd == "ban_user":
             t = find_member_strict(guild, params)
-            if not t:
-                return "❌ User not found! @mention them directly."
-            if t.id == author.id:
-                return "❌ You can't ban yourself!"
-            if t.id == bot.user.id:
-                return "❌ I won't ban myself lol"
-            if t.top_role >= author.top_role and not is_owner(author.id):
-                return "❌ You can't ban someone with a higher or equal role!"
+            if not t: return "❌ User not found! @mention them."
+            if t.id == author.id: return "❌ You can't ban yourself!"
+            if t.id == bot.user.id: return "❌ I won't ban myself lol"
             reason = params.get("reason") or "No reason provided"
-            try:
-                await t.send(f"🔨 You have been banned from **{guild.name}**.\nReason: {reason}")
-            except:
-                pass
-            try:
-                await guild.ban(t, reason=f"{reason} | By: {author}", delete_message_days=1)
-            except discord.Forbidden:
-                return "❌ I don't have permission to ban!"
+            try: await t.send(f"🔨 You have been banned from **{guild.name}**.\nReason: {reason}")
+            except: pass
+            await guild.ban(t, reason=f"{reason} | By: {author}", delete_message_days=1)
             log_mod_action(t.id, guild.id, "BAN", reason, author.id)
             add_warning(t.id, guild.id, f"BANNED: {reason}", "critical")
-            await alert_mods(guild, discord.Embed(
-                title="🔨 Member Banned", color=discord.Color.dark_red()
-            ).add_field(name="User", value=f"{t} ({t.id})")
-             .add_field(name="Reason", value=reason)
-             .add_field(name="Banned By", value=str(author)))
             await notify_owner("BAN", f"**{t}** was banned from **{guild.name}**: {reason}", guild=guild)
             return f"🔨 **{t.name}** has been banned!"
 
         elif cmd == "kick_user":
             t = find_member_strict(guild, params)
-            if not t:
-                return "❌ User not found! @mention them."
-            if t.id == author.id:
-                return "❌ You can't kick yourself!"
+            if not t: return "❌ User not found!"
+            if t.id == author.id: return "❌ You can't kick yourself!"
             reason = params.get("reason") or "No reason provided"
-            try:
-                await t.send(f"👢 You were kicked from **{guild.name}**.\nReason: {reason}")
-            except:
-                pass
-            try:
-                await guild.kick(t, reason=f"{reason} | By: {author}")
-            except discord.Forbidden:
-                return "❌ I don't have permission to kick!"
+            try: await t.send(f"👢 You were kicked from **{guild.name}**.\nReason: {reason}")
+            except: pass
+            await guild.kick(t, reason=f"{reason} | By: {author}")
             log_mod_action(t.id, guild.id, "KICK", reason, author.id)
             return f"👢 **{t.name}** has been kicked!"
 
         elif cmd == "mute_user":
             t = find_member_strict(guild, params)
-            if not t:
-                return "❌ User not found! @mention them."
+            if not t: return "❌ User not found!"
             dur = int(params.get("duration") or s.get("mute_duration", 10))
-            dur = min(dur, 40320)  # Max 28 days
+            dur = min(dur, 40320)
             reason = params.get("reason") or "No reason provided"
-            try:
-                await t.timeout(
-                    datetime.now() + timedelta(minutes=dur),
-                    reason=f"{reason} | By: {author}"
-                )
-            except discord.Forbidden:
-                return "❌ I don't have permission to timeout!"
+            await t.timeout(datetime.now() + timedelta(minutes=dur), reason=f"{reason} | By: {author}")
             log_mod_action(t.id, guild.id, "MUTE", reason, author.id)
-            try:
-                await t.send(f"🔇 You were muted in **{guild.name}** for {dur} minutes.\nReason: {reason}")
-            except:
-                pass
             return f"🔇 **{t.name}** muted for **{dur} minutes**!"
 
         elif cmd == "unmute_user":
             t = find_member_strict(guild, params)
-            if not t:
-                return "❌ User not found."
-            try:
-                await t.timeout(None)
-            except discord.Forbidden:
-                return "❌ I don't have permission!"
+            if not t: return "❌ User not found."
+            await t.timeout(None)
             return f"🔊 **{t.name}** has been unmuted!"
 
         elif cmd == "warn_user":
             t = find_member_strict(guild, params)
-            if not t:
-                return "❌ User not found! @mention them."
+            if not t: return "❌ User not found!"
             reason = params.get("reason") or "No reason provided"
             wc, _ = add_warning(t.id, guild.id, reason, "manual")
             log_mod_action(t.id, guild.id, "WARN", reason, author.id)
-            try:
-                await t.send(f"⚠️ You received a warning in **{guild.name}**.\nReason: {reason}\nTotal warnings: {wc}")
-            except:
-                pass
             if wc >= s.get("warn_mute", 3):
                 try:
-                    await t.timeout(
-                        datetime.now() + timedelta(minutes=s.get("mute_duration", 10)),
-                        reason=f"Auto-mute: {wc} warnings"
-                    )
+                    await t.timeout(datetime.now() + timedelta(minutes=s.get("mute_duration", 10)), reason=f"Auto-mute: {wc} warnings")
                     return f"⚠️ Warned **{t.name}** (#{wc}) - Auto-muted for reaching warning threshold!"
-                except:
-                    pass
-            return f"⚠️ Warned **{t.name}** (Warning #{wc}) — Reason: {reason}"
+                except: pass
+            return f"⚠️ Warned **{t.name}** (Warning #{wc})"
 
         elif cmd == "clear_warnings":
             t = find_member_strict(guild, params)
-            if not t:
-                return "❌ User not found."
+            if not t: return "❌ User not found."
             clear_warnings(t.id, guild.id)
             return f"✅ All warnings cleared for **{t.name}**!"
 
         elif cmd == "warn_check":
             t = find_member_strict(guild, params)
-            if not t:
-                return "❌ User not found."
+            if not t: return "❌ User not found."
             ws = get_warnings(t.id, guild.id)
-            if not ws:
-                return f"✅ **{t.name}** has a clean record!"
-            lines = [
-                f"#{i+1} [{w['severity'].upper()}] {w['reason']} ({w['timestamp'][:10]})"
-                for i, w in enumerate(ws[:5])
-            ]
+            if not ws: return f"✅ **{t.name}** has a clean record!"
+            lines = [f"#{i+1} [{w['severity'].upper()}] {w['reason']} ({w['timestamp'][:10]})" for i, w in enumerate(ws[:5])]
             return f"**{t.name}** has **{len(ws)}** warning(s):\n" + "\n".join(lines)
 
-        # ---- CHANNEL MOD ----
         elif cmd == "lock_channel":
-            try:
-                await message.channel.set_permissions(guild.default_role, send_messages=False)
-            except discord.Forbidden:
-                return "❌ I need 'Manage Channels' permission!"
+            await message.channel.set_permissions(guild.default_role, send_messages=False)
             return f"🔒 **#{message.channel.name}** is now locked!"
 
         elif cmd == "unlock_channel":
-            try:
-                await message.channel.set_permissions(guild.default_role, send_messages=None)
-            except discord.Forbidden:
-                return "❌ I need 'Manage Channels' permission!"
+            await message.channel.set_permissions(guild.default_role, send_messages=None)
             return f"🔓 **#{message.channel.name}** is now unlocked!"
 
         elif cmd == "lockdown":
@@ -2011,14 +1961,8 @@ async def execute_command(parsed, message, guild, author):
                 try:
                     await ch.set_permissions(guild.default_role, send_messages=False)
                     count += 1
-                except:
-                    pass
-            await notify_owner(
-                "MOD",
-                f"⚠️ **{guild.name}** entered full lockdown ({count} channels locked)",
-                guild=guild,
-                urgent=True
-            )
+                except: pass
+            await notify_owner("MOD", f"⚠️ **{guild.name}** entered full lockdown ({count} channels locked)", guild=guild, urgent=True)
             return f"🔒 **SERVER LOCKDOWN ACTIVE** - {count} channels locked!"
 
         elif cmd == "unlock_server":
@@ -2027,79 +1971,50 @@ async def execute_command(parsed, message, guild, author):
                 try:
                     await ch.set_permissions(guild.default_role, send_messages=None)
                     count += 1
-                except:
-                    pass
+                except: pass
             return f"🔓 Server unlocked! {count} channels restored!"
 
         elif cmd == "slowmode":
             dur = int(params.get("duration") or 5)
-            dur = max(0, min(dur, 21600))  # 0-6 hours
-            try:
-                await message.channel.edit(slowmode_delay=dur)
-            except discord.Forbidden:
-                return "❌ I need 'Manage Channels' permission!"
-            if dur == 0:
-                return "🐌 Slowmode disabled!"
+            dur = max(0, min(dur, 21600))
+            await message.channel.edit(slowmode_delay=dur)
+            if dur == 0: return "🐌 Slowmode disabled!"
             return f"🐌 Slowmode set to **{dur} seconds**!"
 
         elif cmd == "purge":
             amt = min(int(params.get("amount") or 10), 100)
-            try:
-                deleted = await message.channel.purge(limit=amt + 1)
-            except discord.Forbidden:
-                return "❌ I need 'Manage Messages' permission!"
+            deleted = await message.channel.purge(limit=amt + 1)
             return f"🗑️ Deleted **{len(deleted) - 1}** messages!"
 
-        # ---- QUARANTINE ----
         elif cmd == "quarantine":
             t = find_member_strict(guild, params)
-            if not t:
-                return "❌ User not found."
+            if not t: return "❌ User not found."
             q = discord.utils.get(guild.roles, name="Quarantined")
             if not q:
-                try:
-                    q = await guild.create_role(
-                        name="Quarantined",
-                        color=discord.Color.dark_gray(),
-                        reason="Quarantine system"
-                    )
-                    for ch in guild.text_channels:
-                        try:
-                            await ch.set_permissions(q, send_messages=False, add_reactions=False, read_messages=False)
-                        except:
-                            pass
-                except discord.Forbidden:
-                    return "❌ I need 'Manage Roles' permission!"
-            try:
-                await t.add_roles(q)
-            except discord.Forbidden:
-                return "❌ I can't assign that role!"
+                q = await guild.create_role(name="Quarantined", color=discord.Color.dark_gray())
+                for ch in guild.text_channels:
+                    try: await ch.set_permissions(q, send_messages=False, add_reactions=False, read_messages=False)
+                    except: pass
+            await t.add_roles(q)
             reason = params.get("reason") or "Quarantined"
             log_mod_action(t.id, guild.id, "QUARANTINE", reason, author.id)
             return f"🔒 **{t.name}** has been quarantined!"
 
         elif cmd == "unquarantine":
             t = find_member_strict(guild, params)
-            if not t:
-                return "❌ User not found."
+            if not t: return "❌ User not found."
             q = discord.utils.get(guild.roles, name="Quarantined")
-            if q and q in t.roles:
-                try:
-                    await t.remove_roles(q)
-                except discord.Forbidden:
-                    return "❌ I can't remove that role!"
+            if q and q in t.roles: await t.remove_roles(q)
             return f"✅ **{t.name}** has been unquarantined!"
 
-        # ---- TRUST ----
         elif cmd == "trust_user":
             t = find_member_strict(guild, params)
-            if not t:
-                return "❌ User not found."
+            if not t: return "❌ User not found."
             conn = get_db()
             c = conn.cursor()
             c.execute(
                 "INSERT OR REPLACE INTO trusted_users (user_id, guild_id, added_by, reason, timestamp) VALUES (?, ?, ?, ?, ?)",
-                (str(t.id), str(guild.id), str(author.id), params.get("reason") or "Manually trusted", datetime.now().isoformat())
+                (str(t.id), str(guild.id), str(author.id), params.get("reason") or "Trusted", datetime.now().isoformat())
             )
             conn.commit()
             conn.close()
@@ -2107,8 +2022,7 @@ async def execute_command(parsed, message, guild, author):
 
         elif cmd == "untrust_user":
             t = find_member_strict(guild, params)
-            if not t:
-                return "❌ User not found."
+            if not t: return "❌ User not found."
             conn = get_db()
             c = conn.cursor()
             c.execute("DELETE FROM trusted_users WHERE user_id=? AND guild_id=?", (str(t.id), str(guild.id)))
@@ -2116,27 +2030,22 @@ async def execute_command(parsed, message, guild, author):
             conn.close()
             return f"✅ **{t.name}** is no longer trusted!"
 
-        # ---- MEMORY ----
         elif cmd == "memory_view":
             sm = get_server_memory(guild.id)
             live = get_live_context(guild.id, message.channel.id)
             embed = discord.Embed(title=f"🧠 Server Memory: {guild.name}", color=discord.Color.purple())
-            if sm.get("server_culture"):
-                embed.add_field(name="🏛️ Culture", value=str(sm["server_culture"])[:400], inline=False)
+            if sm.get("server_culture"): embed.add_field(name="🏛️ Culture", value=str(sm["server_culture"])[:400], inline=False)
             if sm.get("inside_jokes"):
                 jokes = "\n".join(f"• {j['text']}" for j in sm["inside_jokes"][-5:])
                 embed.add_field(name="😂 Inside Jokes", value=jokes[:400], inline=False)
-            if sm.get("popular_topics"):
-                embed.add_field(name="🔥 Hot Topics", value=", ".join(sm["popular_topics"][:10]), inline=False)
+            if sm.get("popular_topics"): embed.add_field(name="🔥 Hot Topics", value=", ".join(sm["popular_topics"][:10]), inline=False)
             embed.add_field(name="🌡️ Mood", value=sm.get("server_mood", "neutral").title(), inline=True)
-            embed.add_field(name="📊 Total Interactions", value=str(sm.get("total_interactions", 0)), inline=True)
+            embed.add_field(name="📊 Interactions", value=str(sm.get("total_interactions", 0)), inline=True)
             if live and live != "No recent messages.":
-                recent = "\n".join(live.split("\n")[-5:])
-                embed.add_field(name="💬 Live (last 5)", value=recent[:400], inline=False)
+                embed.add_field(name="💬 Live (last 5)", value="\n".join(live.split("\n")[-5:])[:400], inline=False)
             await message.channel.send(embed=embed)
             return None
 
-        # ---- FUN COMMANDS ----
         elif cmd == "trivia":
             await do_trivia(message, guild.id, author.id)
             return None
@@ -2149,25 +2058,16 @@ async def execute_command(parsed, message, guild, author):
                 await msg.add_reaction("🅱️")
             return None
 
-        elif cmd in ["eightball", "roast", "compliment", "dadjoke", "ship", "rate",
-                     "fact", "truthordare", "story", "riddle", "pickupline", "horoscope"]:
+        elif cmd in ["eightball", "roast", "compliment", "dadjoke", "ship", "rate", "fact", "truthordare", "story", "riddle", "pickupline", "horoscope"]:
             e = await do_fun(cmd, params, author)
-            if e:
-                await message.channel.send(embed=e)
+            if e: await message.channel.send(embed=e)
             return None
 
         elif cmd == "debate":
             topic = params.get("text") or "pineapple on pizza"
-            r = await ask_groq(
-                f"Start an interesting debate about: {topic}. Give both sides briefly.",
-                "You are a debate moderator."
-            )
+            r = await ask_groq(f"Start an interesting debate about: {topic}. Give both sides briefly.", "You are a debate moderator.")
             if r:
-                msg = await message.channel.send(embed=discord.Embed(
-                    title=f"⚔️ Debate: {topic}",
-                    description=r,
-                    color=discord.Color.orange()
-                ))
+                msg = await message.channel.send(embed=discord.Embed(title=f"⚔️ Debate: {topic}", description=r, color=discord.Color.orange()))
                 await msg.add_reaction("👍")
                 await msg.add_reaction("👎")
             return None
@@ -2200,42 +2100,26 @@ async def execute_command(parsed, message, guild, author):
 
         elif cmd == "confession":
             text = params.get("text") or params.get("reason")
-            if not text:
-                return "❌ What's your confession? (say 'confession: [your confession]')"
+            if not text: return "❌ What's your confession? (say 'confession: [your confession]')"
             conn = get_db()
             c = conn.cursor()
-            c.execute(
-                "INSERT INTO confessions (guild_id, confession, timestamp) VALUES (?, ?, ?)",
-                (str(guild.id), text, datetime.now().isoformat())
-            )
+            c.execute("INSERT INTO confessions (guild_id, confession, timestamp) VALUES (?, ?, ?)", (str(guild.id), text, datetime.now().isoformat()))
             cid = c.lastrowid
             conn.commit()
             conn.close()
-            await message.channel.send(embed=discord.Embed(
-                title=f"🤫 Anonymous Confession #{cid}",
-                description=text,
-                color=discord.Color.dark_purple()
-            ))
-            try:
-                await message.delete()
-            except:
-                pass
+            await message.channel.send(embed=discord.Embed(title=f"🤫 Anonymous Confession #{cid}", description=text, color=discord.Color.dark_purple()))
+            try: await message.delete()
+            except: pass
             return None
 
         elif cmd == "rep":
             t = find_member_strict(guild, params)
-            if not t:
-                return "❌ @mention someone to rep them!"
-            if t.id == author.id:
-                return "❌ Can't give yourself rep!"
-            if t.bot:
-                return "❌ Bots don't need rep (though I appreciate the thought 😎)"
+            if not t: return "❌ @mention someone to rep them!"
+            if t.id == author.id: return "❌ Can't give yourself rep!"
+            if t.bot: return "❌ Bots don't need rep!"
             conn = get_db()
             c = conn.cursor()
-            c.execute(
-                "INSERT INTO reputation (user_id, guild_id, rep) VALUES (?, ?, 1) ON CONFLICT(user_id, guild_id) DO UPDATE SET rep=rep+1",
-                (str(t.id), str(guild.id))
-            )
+            c.execute("INSERT INTO reputation (user_id, guild_id, rep) VALUES (?, ?, 1) ON CONFLICT(user_id, guild_id) DO UPDATE SET rep=rep+1", (str(t.id), str(guild.id)))
             conn.commit()
             c.execute("SELECT rep FROM reputation WHERE user_id=? AND guild_id=?", (str(t.id), str(guild.id)))
             rep_row = c.fetchone()
@@ -2248,22 +2132,15 @@ async def execute_command(parsed, message, guild, author):
             dur = int(params.get("duration") or 60)
             wins = int(params.get("winners") or 1)
             end = datetime.now() + timedelta(minutes=dur)
-            embed = discord.Embed(
-                title="🎉 GIVEAWAY TIME!",
-                description=f"**Prize:** {prize}\n\nReact with 🎉 to enter!\n\n**{wins}** winner(s)",
-                color=discord.Color.gold()
-            )
+            embed = discord.Embed(title="🎉 GIVEAWAY TIME!", description=f"**Prize:** {prize}\n\nReact with 🎉 to enter!\n\n**{wins}** winner(s)", color=discord.Color.gold())
             embed.add_field(name="⏰ Ends", value=f"<t:{int(end.timestamp())}:R>")
             embed.add_field(name="🎟️ Hosted by", value=author.mention)
-            embed.set_footer(text=f"Ends at {end.strftime('%H:%M UTC')}")
             gm = await message.channel.send(embed=embed)
             await gm.add_reaction("🎉")
             conn = get_db()
             c = conn.cursor()
-            c.execute(
-                "INSERT INTO giveaways (guild_id, channel_id, message_id, prize, winners, end_time, host_id) VALUES (?, ?, ?, ?, ?, ?, ?)",
-                (str(guild.id), str(message.channel.id), str(gm.id), prize, wins, end.isoformat(), str(author.id))
-            )
+            c.execute("INSERT INTO giveaways (guild_id, channel_id, message_id, prize, winners, end_time, host_id) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                      (str(guild.id), str(message.channel.id), str(gm.id), prize, wins, end.isoformat(), str(author.id)))
             conn.commit()
             conn.close()
             return f"🎉 Giveaway started! Ends in **{dur} minutes**!"
@@ -2271,61 +2148,44 @@ async def execute_command(parsed, message, guild, author):
         elif cmd == "create_poll":
             q = params.get("question") or "What do you think?"
             opts = params.get("options") or ["Yes", "No"]
-            if isinstance(opts, str):
-                opts = [o.strip() for o in opts.split(",")]
+            if isinstance(opts, str): opts = [o.strip() for o in opts.split(",")]
             emojis = ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣"]
             embed = discord.Embed(title=f"📊 Poll: {q}", color=discord.Color.blue())
-            desc = "\n".join(f"{emojis[i]} {o}" for i, o in enumerate(opts[:5]))
-            embed.description = desc
+            embed.description = "\n".join(f"{emojis[i]} {o}" for i, o in enumerate(opts[:5]))
             embed.set_footer(text=f"Poll by {author.display_name}")
             pm = await message.channel.send(embed=embed)
-            for i in range(min(len(opts), 5)):
-                await pm.add_reaction(emojis[i])
+            for i in range(min(len(opts), 5)): await pm.add_reaction(emojis[i])
             return None
 
         elif cmd == "summarize":
             amt = min(int(params.get("amount") or 20), 50)
             msgs = []
             async for m in message.channel.history(limit=amt):
-                if not m.author.bot:
-                    msgs.append(f"{m.author.display_name}: {m.content[:200]}")
-            if not msgs:
-                return "❌ No messages to summarize!"
-            result = await ask_groq(
-                "Summarize this conversation in clear bullet points:\n" + "\n".join(reversed(msgs)),
-                "You summarize Discord conversations concisely."
-            )
+                if not m.author.bot: msgs.append(f"{m.author.display_name}: {m.content[:200]}")
+            if not msgs: return "❌ No messages to summarize!"
+            result = await ask_groq("Summarize this conversation in clear bullet points:\n" + "\n".join(reversed(msgs)), "You summarize Discord conversations.")
             return f"📝 **Summary of last {amt} messages:**\n{result}"
 
         elif cmd == "translate":
             text = params.get("text") or ""
             lang = params.get("language") or "English"
-            if not text:
-                return "❌ Give me text to translate!"
-            result = await ask_groq(
-                f"Translate the following to {lang}. Return ONLY the translation, nothing else:\n{text}",
-                "You are a professional translator."
-            )
+            if not text: return "❌ Give me text to translate!"
+            result = await ask_groq(f"Translate the following to {lang}. Return ONLY the translation:\n{text}", "You are a professional translator.")
             return f"🌐 **{lang}:** {result}"
 
         elif cmd == "add_word_filter":
             w = params.get("word") or params.get("text")
-            if not w:
-                return "❌ Which word should I filter?"
+            if not w: return "❌ Which word should I filter?"
             conn = get_db()
             c = conn.cursor()
-            c.execute(
-                "INSERT OR IGNORE INTO word_filters (guild_id, word) VALUES (?, ?)",
-                (str(guild.id), w.lower().strip())
-            )
+            c.execute("INSERT OR IGNORE INTO word_filters (guild_id, word) VALUES (?, ?)", (str(guild.id), w.lower().strip()))
             conn.commit()
             conn.close()
             return f"✅ **{w}** will now be auto-deleted!"
 
         elif cmd == "remove_word_filter":
             w = params.get("word") or params.get("text")
-            if not w:
-                return "❌ Which word should I remove from filters?"
+            if not w: return "❌ Which word should I remove?"
             conn = get_db()
             c = conn.cursor()
             c.execute("DELETE FROM word_filters WHERE guild_id=? AND word=?", (str(guild.id), w.lower().strip()))
@@ -2336,14 +2196,10 @@ async def execute_command(parsed, message, guild, author):
         elif cmd == "add_custom_command":
             trigger = (params.get("name") or params.get("word") or "").lower().strip()
             response = params.get("response") or params.get("text")
-            if not trigger or not response:
-                return "❌ I need both a trigger word and a response!"
+            if not trigger or not response: return "❌ I need both a trigger word and a response!"
             conn = get_db()
             c = conn.cursor()
-            c.execute(
-                "INSERT OR REPLACE INTO custom_commands (guild_id, trigger_word, response) VALUES (?, ?, ?)",
-                (str(guild.id), trigger, response)
-            )
+            c.execute("INSERT OR REPLACE INTO custom_commands (guild_id, trigger_word, response) VALUES (?, ?, ?)", (str(guild.id), trigger, response))
             conn.commit()
             conn.close()
             return f"✅ Custom command `{trigger}` added! Whenever someone says it, I'll respond with: _{response}_"
@@ -2360,22 +2216,17 @@ async def execute_command(parsed, message, guild, author):
             wc = c.fetchone()[0]
             c.execute("SELECT COUNT(*) FROM mod_actions WHERE guild_id=?", (str(guild.id),))
             actions = c.fetchone()[0]
-            c.execute("SELECT messages FROM daily_stats WHERE guild_id=? AND date=?",
-                     (str(guild.id), datetime.now().date().isoformat()))
+            c.execute("SELECT messages FROM daily_stats WHERE guild_id=? AND date=?", (str(guild.id), datetime.now().date().isoformat()))
             today_msgs = c.fetchone()
             conn.close()
             score = max(0, 100 - (wc * 2))
-            color = (discord.Color.green() if score > 70
-                    else discord.Color.orange() if score > 40
-                    else discord.Color.red())
+            color = (discord.Color.green() if score > 70 else discord.Color.orange() if score > 40 else discord.Color.red())
             embed = discord.Embed(title=f"🏥 {guild.name} Health Report", color=color)
             embed.add_field(name="❤️ Health Score", value=f"**{score}/100**")
             embed.add_field(name="👥 Members", value=str(guild.member_count))
             embed.add_field(name="⚠️ Total Warnings", value=str(wc))
             embed.add_field(name="🔨 Mod Actions", value=str(actions))
             embed.add_field(name="💬 Today's Messages", value=str(today_msgs[0] if today_msgs else 0))
-            embed.add_field(name="📅 Server Age",
-                          value=f"{(datetime.now() - guild.created_at.replace(tzinfo=None)).days} days")
             status = "🟢 Healthy" if score > 70 else ("🟡 Needs attention" if score > 40 else "🔴 Critical")
             embed.set_footer(text=f"Status: {status}")
             await message.channel.send(embed=embed)
@@ -2384,14 +2235,10 @@ async def execute_command(parsed, message, guild, author):
         elif cmd == "activity_stats":
             conn = get_db()
             c = conn.cursor()
-            c.execute(
-                "SELECT user_id, message_count FROM message_stats WHERE guild_id=? ORDER BY message_count DESC LIMIT 10",
-                (str(guild.id),)
-            )
+            c.execute("SELECT user_id, message_count FROM message_stats WHERE guild_id=? ORDER BY message_count DESC LIMIT 10", (str(guild.id),))
             top = c.fetchall()
             conn.close()
-            if not top:
-                return "📊 No activity data yet! Get chatting!"
+            if not top: return "📊 No activity data yet!"
             medals = ["🥇", "🥈", "🥉"]
             lines = []
             for i, r in enumerate(top):
@@ -2399,65 +2246,21 @@ async def execute_command(parsed, message, guild, author):
                 medal = medals[i] if i < 3 else f"#{i+1}"
                 name = m.display_name if m else f"User {r['user_id']}"
                 lines.append(f"{medal} **{name}**: {r['message_count']:,} messages")
-            await message.channel.send(embed=discord.Embed(
-                title=f"📊 Most Active in {guild.name}",
-                description="\n".join(lines),
-                color=discord.Color.blue()
-            ))
+            await message.channel.send(embed=discord.Embed(title=f"📊 Most Active in {guild.name}", description="\n".join(lines), color=discord.Color.blue()))
             return None
 
         elif cmd == "help":
-            embed = discord.Embed(
-                title="🛡️ SentinelMod v5.4 - The Coolest Bot Ever",
-                description="Just talk to me naturally! I understand what you mean.",
-                color=discord.Color.blue()
-            )
-            embed.add_field(
-                name="💬 Chat with Me",
-                value=f"@mention me or chat in #{AI_CHAT_CHANNEL}",
-                inline=False
-            )
-            embed.add_field(
-                name="🔨 Moderation",
-                value="`ban @user` • `kick @user` • `mute @user 10min` • `warn @user` • `purge 50` • `lock` • `lockdown`",
-                inline=False
-            )
-            embed.add_field(
-                name="🏗️ Server Management",
-                value="`create channel gaming` • `create category Fun` • `create role VIP` • `setup server`",
-                inline=False
-            )
-            embed.add_field(
-                name="🎮 Fun",
-                value="`trivia` • `roast @user` • `8ball question` • `ship @a @b` • `story` • `riddle` • `debate topic`",
-                inline=False
-            )
-            embed.add_field(
-                name="🧠 Memory",
-                value="I automatically remember what everyone says and build a picture of your server!",
-                inline=False
-            )
-            embed.add_field(
-                name="🎙️ Voice",
-                value="`join voice` • `leave voice` (sends audio files)",
-                inline=False
-            )
-            embed.add_field(
-                name="⚙️ Settings",
-                value="Use `/memory_settings`, `/ai_mod`, `/personality`, `/trust_user`",
-                inline=False
-            )
-            embed.add_field(
-                name="🌐 Dashboard",
-                value=f"[Click here]({BOT_IDENTITY['dashboard_url']})",
-                inline=False
-            )
-            embed.set_footer(text="Made with 💙 by jay27yt6 | Antarctic Studs")
+            embed = discord.Embed(title="🛡️ SentinelMod v5.4", description="Just talk to me naturally! I understand what you mean.", color=discord.Color.blue())
+            embed.add_field(name="💬 Chat with Me", value=f"@mention me or chat in #{AI_CHAT_CHANNEL}", inline=False)
+            embed.add_field(name="🔨 Moderation", value="`ban @user` • `kick @user` • `mute @user 10min` • `warn @user` • `purge 50` • `lock`", inline=False)
+            embed.add_field(name="🏗️ Server", value="`create channel gaming` • `create category Fun` • `create role VIP` • `setup server`", inline=False)
+            embed.add_field(name="🎮 Fun", value="`trivia` • `roast @user` • `8ball` • `ship @a @b` • `story` • `riddle` • `debate`", inline=False)
+            embed.add_field(name="🧠 Memory", value="I automatically remember what everyone says and build a picture of your server!", inline=False)
+            embed.add_field(name="🌐 Dashboard", value=f"[Open Dashboard]({BOT_IDENTITY['dashboard_url']})", inline=False)
             await message.channel.send(embed=embed)
             return None
 
         else:
-            # cmd == "chat" or unknown
             return None
 
     except discord.Forbidden:
@@ -2466,15 +2269,11 @@ async def execute_command(parsed, message, guild, author):
         return f"❌ Discord error: {str(e)[:100]}"
     except Exception as e:
         print(f"Cmd err ({cmd}): {e}")
-        import traceback
-        traceback.print_exc()
         return f"❌ Something went wrong: {str(e)[:100]}"
 
 # ============ FUN ============
 async def do_trivia(message, gid, uid):
-    trivia = await ask_groq_json(
-        'Generate an interesting trivia question. JSON: {"question":"q","correct":"a","wrong1":"b","wrong2":"c","wrong3":"d","category":"cat"}'
-    )
+    trivia = await ask_groq_json('Generate an interesting trivia question. JSON: {"question":"q","correct":"a","wrong1":"b","wrong2":"c","wrong3":"d","category":"cat"}')
     if not trivia:
         await message.channel.send("❌ Couldn't load trivia right now! Try again?")
         return
@@ -2482,136 +2281,60 @@ async def do_trivia(message, gid, uid):
     random.shuffle(answers)
     idx = answers.index(trivia["correct"])
     emojis = ["🇦", "🇧", "🇨", "🇩"]
-    embed = discord.Embed(
-        title=f"🧠 Trivia - {trivia.get('category', 'General Knowledge')}",
-        description=f"**{trivia['question']}**",
-        color=discord.Color.blue()
-    )
-    embed.add_field(
-        name="Your Options:",
-        value="\n".join(f"{emojis[i]} {a}" for i, a in enumerate(answers))
-    )
+    embed = discord.Embed(title=f"🧠 Trivia - {trivia.get('category', 'General Knowledge')}", description=f"**{trivia['question']}**", color=discord.Color.blue())
+    embed.add_field(name="Your Options:", value="\n".join(f"{emojis[i]} {a}" for i, a in enumerate(answers)))
     embed.set_footer(text="You have 30 seconds!")
     msg = await message.channel.send(embed=embed)
-    for e in emojis:
-        await msg.add_reaction(e)
-    trivia_sessions[msg.id] = {
-        "correct_emoji": emojis[idx],
-        "correct_answer": trivia["correct"],
-        "guild_id": gid,
-        "answered": [],
-        "expires": time.time() + 30,
-    }
-
+    for e in emojis: await msg.add_reaction(e)
+    trivia_sessions[msg.id] = {"correct_emoji": emojis[idx], "correct_answer": trivia["correct"], "guild_id": gid, "answered": []}
     async def trivia_timeout():
         await asyncio.sleep(30)
         if msg.id in trivia_sessions:
-            await message.channel.send(
-                f"⏰ Time's up! The answer was: **{trivia['correct']}**"
-            )
+            await message.channel.send(f"⏰ Time's up! The answer was: **{trivia['correct']}**")
             del trivia_sessions[msg.id]
-
     asyncio.create_task(trivia_timeout())
 
 async def do_fun(ftype, params, author):
     prompts = {
-        "wouldyourather": (
-            "Generate a fun and interesting 'Would You Rather' with exactly two creative choices. Format: 'Would you rather [option A] OR [option B]?'",
-            "🤔 Would You Rather?"
-        ),
-        "eightball": (
-            f"Answer this 8-ball question mystically and creatively: '{params.get('question', 'Will things work out?')}'",
-            "🎱 The Magic 8-Ball Speaks..."
-        ),
-        "roast": (
-            f"Give a funny, lighthearted roast of someone named {params.get('target_user_name', 'someone')}. Keep it playful, not mean. Max 3 sentences.",
-            "🔥 Roasted!"
-        ),
-        "compliment": (
-            f"Give a genuine, creative compliment to {params.get('target_user_name', author.name)}. Make it specific and heartfelt.",
-            "💝 Compliment Drop!"
-        ),
-        "dadjoke": (
-            "Tell me your best dad joke. Make it groan-worthy.",
-            "👨 Dad Joke Alert 🚨"
-        ),
-        "ship": (
-            f"Ship {params.get('target_user_name', 'Person A')} and {params.get('target_user2', 'Person B')}. Give a compatibility percentage and a ship name. Be creative!",
-            "💕 Shipping!"
-        ),
-        "rate": (
-            f"Rate '{params.get('rating_target', 'this thing')}' out of 10 with a funny explanation.",
-            "⭐ Rating Time"
-        ),
-        "fact": (
-            "Share one genuinely surprising or mind-blowing fact. Make it interesting!",
-            "🤯 Mind-Blowing Fact!"
-        ),
-        "truthordare": (
-            "Give either a juicy truth question OR a fun dare. Be creative and keep it Discord-appropriate.",
-            "🎯 Truth or Dare!"
-        ),
-        "story": (
-            f"Write a short, engaging story {'about: ' + params.get('text', '') if params.get('text') else 'with a twist ending'}. Max 150 words. Make it memorable.",
-            "📖 Story Time!"
-        ),
-        "riddle": (
-            "Give me a clever riddle and then reveal the answer. Make it satisfying.",
-            "🧩 Riddle Me This!"
-        ),
-        "pickupline": (
-            "Give me the cheesiest, most creative pickup line ever. Really commit to the cringe.",
-            "😘 Pickup Line!"
-        ),
-        "horoscope": (
-            f"Give a fun, dramatic horoscope reading for {params.get('zodiac', 'Aries')} today. Be mysteriously vague but entertaining.",
-            f"⭐ {params.get('zodiac', 'Aries')} Horoscope"
-        ),
+        "wouldyourather": ("Generate a fun 'Would You Rather' with exactly two creative choices.", "🤔 Would You Rather?"),
+        "eightball": (f"Answer this 8-ball question mystically: '{params.get('question', 'Will things work out?')}'", "🎱 The Magic 8-Ball Speaks..."),
+        "roast": (f"Give a funny, lighthearted roast of {params.get('target_user_name', 'someone')}. Keep it playful.", "🔥 Roasted!"),
+        "compliment": (f"Give a genuine, creative compliment to {params.get('target_user_name', author.name)}.", "💝 Compliment Drop!"),
+        "dadjoke": ("Tell me your best dad joke. Make it groan-worthy.", "👨 Dad Joke Alert 🚨"),
+        "ship": (f"Ship {params.get('target_user_name', 'Person A')} and {params.get('target_user2', 'Person B')}. Give a compatibility percentage and a ship name.", "💕 Shipping!"),
+        "rate": (f"Rate '{params.get('rating_target', 'this thing')}' out of 10 with a funny explanation.", "⭐ Rating Time"),
+        "fact": ("Share one genuinely surprising or mind-blowing fact. Make it interesting!", "🤯 Mind-Blowing Fact!"),
+        "truthordare": ("Give either a juicy truth question OR a fun dare.", "🎯 Truth or Dare!"),
+        "story": (f"Write a short, engaging story {'about: ' + params.get('text', '') if params.get('text') else 'with a twist ending'}. Max 150 words.", "📖 Story Time!"),
+        "riddle": ("Give me a clever riddle and then reveal the answer.", "🧩 Riddle Me This!"),
+        "pickupline": ("Give me the cheesiest, most creative pickup line ever.", "😘 Pickup Line!"),
+        "horoscope": (f"Give a fun, dramatic horoscope reading for {params.get('zodiac', 'Aries')} today.", f"⭐ {params.get('zodiac', 'Aries')} Horoscope"),
     }
     p, title = prompts.get(ftype, ("Tell a funny joke.", "😄 Fun!"))
     result = await ask_groq(p, "You are a fun Discord bot. Be entertaining and creative.")
-    if result:
-        return discord.Embed(title=title, description=result, color=discord.Color.purple())
+    if result: return discord.Embed(title=title, description=result, color=discord.Color.purple())
     return None
 
 # ============ OWNER ============
 def log_owner_alert(guild_id, alert_type, message_text):
     conn = get_db()
     c = conn.cursor()
-    c.execute(
-        "INSERT INTO owner_alerts (guild_id, alert_type, message, timestamp) VALUES (?, ?, ?, ?)",
-        (str(guild_id), alert_type, message_text, datetime.now().isoformat())
-    )
+    c.execute("INSERT INTO owner_alerts (guild_id, alert_type, message, timestamp) VALUES (?, ?, ?, ?)", (str(guild_id), alert_type, message_text, datetime.now().isoformat()))
     conn.commit()
     conn.close()
 
 async def notify_owner(alert_type, message_text, guild=None, urgent=False):
     try:
         owner = await bot.fetch_user(BOT_IDENTITY["creator_discord_id"])
-        if not owner:
-            return
-        colors = {
-            "RAID": discord.Color.red(),
-            "BAN": discord.Color.dark_red(),
-            "CRITICAL": discord.Color.red(),
-            "JOIN": discord.Color.green(),
-            "INFO": discord.Color.blue(),
-            "MOD": discord.Color.orange(),
-        }
+        if not owner: return
+        colors = {"RAID": discord.Color.red(), "BAN": discord.Color.dark_red(), "CRITICAL": discord.Color.red(), "JOIN": discord.Color.green(), "INFO": discord.Color.blue(), "MOD": discord.Color.orange()}
         color = colors.get(alert_type.upper(), discord.Color.greyple())
-        embed = discord.Embed(
-            title=f"{'🚨 URGENT - ' if urgent else ''}🤖 {alert_type}",
-            description=message_text,
-            color=color,
-            timestamp=datetime.now(),
-        )
+        embed = discord.Embed(title=f"{'🚨 URGENT - ' if urgent else ''}🤖 {alert_type}", description=message_text, color=color, timestamp=datetime.now())
         if guild:
             embed.add_field(name="Server", value=f"{guild.name} ({guild.id})", inline=True)
             embed.add_field(name="Members", value=str(guild.member_count), inline=True)
-        embed.set_footer(text=f"SentinelMod v{BOT_IDENTITY['version']}")
         await owner.send(embed=embed)
-        if guild:
-            log_owner_alert(guild.id, alert_type, message_text)
+        if guild: log_owner_alert(guild.id, alert_type, message_text)
     except Exception as e:
         print(f"Notify owner err: {e}")
 
@@ -2619,8 +2342,6 @@ async def notify_owner(alert_type, message_text, guild=None, urgent=False):
 async def setup_server(guild):
     results = []
     s = get_guild_settings(guild.id)
-
-    # Create important roles
     for rn, c, h in [
         (s["mod_role_name"], discord.Color.red(), True),
         ("Muted", discord.Color.dark_gray(), False),
@@ -2633,26 +2354,17 @@ async def setup_server(guild):
                 results.append(f"✅ Role: **{rn}**")
             except discord.Forbidden:
                 results.append(f"❌ No perm to create role: {rn}")
-
     mr = discord.utils.get(guild.roles, name=s["mod_role_name"])
-
-    # Create SentinelAI category
     scat = discord.utils.get(guild.categories, name="🛡️ SENTINELAI")
     if not scat:
         try:
-            ow = {
-                guild.default_role: discord.PermissionOverwrite(read_messages=False),
-                guild.me: discord.PermissionOverwrite(read_messages=True, send_messages=True),
-            }
-            if mr:
-                ow[mr] = discord.PermissionOverwrite(read_messages=True, send_messages=True)
+            ow = {guild.default_role: discord.PermissionOverwrite(read_messages=False), guild.me: discord.PermissionOverwrite(read_messages=True, send_messages=True)}
+            if mr: ow[mr] = discord.PermissionOverwrite(read_messages=True, send_messages=True)
             scat = await guild.create_category(name="🛡️ SENTINELAI", overwrites=ow)
             results.append("✅ Category: **🛡️ SENTINELAI**")
         except discord.Forbidden:
             results.append("❌ No perm to create category")
             scat = None
-
-    # Sentinel channels (private)
     for cn in [s["log_channel"], s["raid_channel"], "sentinel-bot"]:
         if not discord.utils.get(guild.text_channels, name=cn):
             try:
@@ -2660,8 +2372,6 @@ async def setup_server(guild):
                 results.append(f"✅ Channel: **#{cn}**")
             except discord.Forbidden:
                 results.append(f"❌ No perm: #{cn}")
-
-    # Public channels
     for cn in ["welcome", "rules", "general", "announcements"]:
         if not discord.utils.get(guild.text_channels, name=cn):
             try:
@@ -2669,7 +2379,6 @@ async def setup_server(guild):
                 results.append(f"✅ Channel: **#{cn}**")
             except discord.Forbidden:
                 results.append(f"❌ No perm: #{cn}")
-
     return results
 
 class ConfirmView(discord.ui.View):
@@ -2686,13 +2395,11 @@ class ConfirmView(discord.ui.View):
         if interaction.user.id != self.author.id:
             await interaction.response.send_message("❌ This isn't yours!", ephemeral=True)
             return
-        if self.done:
-            return
+        if self.done: return
         self.done = True
         await interaction.response.defer()
         r = await execute_command(self.parsed, self.msg, self.guild, self.author)
-        if r:
-            await interaction.followup.send(r)
+        if r: await interaction.followup.send(r)
         self.stop()
 
     @discord.ui.button(label="❌ Cancel", style=discord.ButtonStyle.danger)
@@ -2738,62 +2445,32 @@ async def trust_cmd(interaction: discord.Interaction, user: discord.Member):
         return
     conn = get_db()
     c = conn.cursor()
-    c.execute(
-        "INSERT OR REPLACE INTO trusted_users (user_id, guild_id, added_by, reason, timestamp) VALUES (?, ?, ?, ?, ?)",
-        (str(user.id), str(interaction.guild.id), str(interaction.user.id), "Trusted via slash command", datetime.now().isoformat())
-    )
+    c.execute("INSERT OR REPLACE INTO trusted_users (user_id, guild_id, added_by, reason, timestamp) VALUES (?, ?, ?, ?, ?)",
+              (str(user.id), str(interaction.guild.id), str(interaction.user.id), "Trusted via slash command", datetime.now().isoformat()))
     conn.commit()
     conn.close()
     await interaction.response.send_message(f"✅ **{user.name}** is now trusted - AI mod will skip them!", ephemeral=True)
 
 @bot.tree.command(name="personality", description="Choose my personality!")
 async def personality_cmd(interaction: discord.Interaction):
-    opts = [
-        discord.SelectOption(label=n.replace("_", " ").title(), value=n, description=PERSONALITIES[n][:50])
-        for n in list(PERSONALITIES.keys())[:25]
-    ]
+    opts = [discord.SelectOption(label=n.replace("_", " ").title(), value=n, description=PERSONALITIES[n][:50]) for n in list(PERSONALITIES.keys())[:25]]
     view = discord.ui.View(timeout=60)
     select = discord.ui.Select(placeholder="Pick a personality...", options=opts)
-
     async def cb(i: discord.Interaction):
         p = i.data["values"][0]
         set_user_personality(str(i.user.id), str(i.guild.id), p)
-        await i.response.send_message(
-            f"✅ Personality set to **{p.replace('_', ' ').title()}**! Talk to me to see the difference!",
-            ephemeral=True
-        )
-
+        await i.response.send_message(f"✅ Personality set to **{p.replace('_', ' ').title()}**! Talk to me to see the difference!", ephemeral=True)
     select.callback = cb
     view.add_item(select)
-    await interaction.response.send_message(
-        embed=discord.Embed(
-            title="🎭 Choose My Personality",
-            description="Pick how I'll talk to you!",
-            color=discord.Color.purple()
-        ),
-        view=view,
-        ephemeral=True,
-    )
+    await interaction.response.send_message(embed=discord.Embed(title="🎭 Choose My Personality", description="Pick how I'll talk to you!", color=discord.Color.purple()), view=view, ephemeral=True)
 
 @bot.tree.command(name="about", description="About SentinelMod")
 async def about_cmd(interaction: discord.Interaction):
-    embed = discord.Embed(
-        title=f"🤖 SentinelMod v{BOT_IDENTITY['version']}",
-        description="The coolest AI Discord bot ever made.",
-        color=discord.Color.blue()
-    )
+    embed = discord.Embed(title=f"🤖 SentinelMod v{BOT_IDENTITY['version']}", description="The coolest AI Discord bot ever made.", color=discord.Color.blue())
     embed.add_field(name="👨‍💻 Creator", value=BOT_IDENTITY["creator_username"], inline=True)
-    embed.add_field(
-        name="🏢 Group",
-        value=f"[{BOT_IDENTITY['creator_group']}]({BOT_IDENTITY['group_website']})",
-        inline=True
-    )
+    embed.add_field(name="🏢 Group", value=f"[{BOT_IDENTITY['creator_group']}]({BOT_IDENTITY['group_website']})", inline=True)
     embed.add_field(name="📊 Servers", value=str(len(bot.guilds)), inline=True)
-    embed.add_field(
-        name="🌐 Dashboard",
-        value=f"[Open Dashboard]({BOT_IDENTITY['dashboard_url']})",
-        inline=False
-    )
+    embed.add_field(name="🌐 Dashboard", value=f"[Open Dashboard]({BOT_IDENTITY['dashboard_url']})", inline=False)
     embed.set_footer(text="Built with 💙 by Antarctic Studs")
     await interaction.response.send_message(embed=embed)
 
@@ -2806,8 +2483,7 @@ async def server_memory_extraction():
             if s.get("memory_mode") in ["server", "both"]:
                 await extract_server_memory(guild.id)
                 await asyncio.sleep(2)
-        except Exception as e:
-            print(f"Server mem err {guild.name}: {e}")
+        except Exception as e: print(f"Server mem err {guild.name}: {e}")
 
 @tasks.loop(hours=24)
 async def memory_cleanup():
@@ -2818,18 +2494,11 @@ async def memory_cleanup():
             cutoff = (datetime.now() - timedelta(days=days)).isoformat()
             conn = get_db()
             c = conn.cursor()
-            c.execute(
-                "DELETE FROM message_archive WHERE guild_id=? AND timestamp < ?",
-                (str(guild.id), cutoff)
-            )
-            c.execute(
-                "DELETE FROM conversation_history WHERE guild_id=? AND timestamp < ?",
-                (str(guild.id), cutoff)
-            )
+            c.execute("DELETE FROM message_archive WHERE guild_id=? AND timestamp < ?", (str(guild.id), cutoff))
+            c.execute("DELETE FROM conversation_history WHERE guild_id=? AND timestamp < ?", (str(guild.id), cutoff))
             conn.commit()
             conn.close()
-        except Exception as e:
-            print(f"Cleanup err: {e}")
+        except Exception as e: print(f"Cleanup err: {e}")
 
 @tasks.loop(minutes=1)
 async def check_giveaways():
@@ -2841,29 +2510,18 @@ async def check_giveaways():
     for g in ended:
         try:
             guild = bot.get_guild(int(g["guild_id"]))
-            if not guild:
-                continue
+            if not guild: continue
             ch = guild.get_channel(int(g["channel_id"]))
-            if not ch:
-                continue
+            if not ch: continue
             try:
                 msg = await ch.fetch_message(int(g["message_id"]))
                 r = discord.utils.get(msg.reactions, emoji="🎉")
                 users = [u async for u in r.users() if not u.bot] if r else []
-            except:
-                users = []
+            except: users = []
             if users:
-                num_winners = min(g["winners"], len(users))
-                winners = random.sample(users, num_winners)
+                winners = random.sample(users, min(g["winners"], len(users)))
                 mention = ", ".join(x.mention for x in winners)
-                await ch.send(
-                    f"🎉 Congratulations {mention}!",
-                    embed=discord.Embed(
-                        title="🎉 Giveaway Ended!",
-                        description=f"**Prize:** {g['prize']}\n**Winner(s):** {mention}",
-                        color=discord.Color.gold(),
-                    )
-                )
+                await ch.send(f"🎉 Congratulations {mention}!", embed=discord.Embed(title="🎉 Giveaway Ended!", description=f"**Prize:** {g['prize']}\n**Winner(s):** {mention}", color=discord.Color.gold()))
             else:
                 await ch.send("🎉 Giveaway ended but nobody entered! 😢")
             conn = get_db()
@@ -2871,8 +2529,7 @@ async def check_giveaways():
             c2.execute("UPDATE giveaways SET active=0 WHERE id=?", (g["id"],))
             conn.commit()
             conn.close()
-        except Exception as e:
-            print(f"Giveaway err: {e}")
+        except Exception as e: print(f"Giveaway err: {e}")
 
 @tasks.loop(minutes=1)
 async def check_reminders():
@@ -2880,17 +2537,12 @@ async def check_reminders():
     c = conn.cursor()
     c.execute("SELECT * FROM reminders WHERE active=1 AND remind_time<=?", (datetime.now().isoformat(),))
     due = [dict(r) for r in c.fetchall()]
-    ids_to_close = []
     for rem in due:
         try:
             ch = bot.get_channel(int(rem["channel_id"]))
-            if ch:
-                await ch.send(f"⏰ Hey <@{rem['user_id']}>, reminder: **{rem['reminder']}**")
-        except Exception as e:
-            print(f"Reminder err: {e}")
-        ids_to_close.append(rem["id"])
-    for rid in ids_to_close:
-        c.execute("UPDATE reminders SET active=0 WHERE id=?", (rid,))
+            if ch: await ch.send(f"⏰ Hey <@{rem['user_id']}>, reminder: **{rem['reminder']}**")
+        except: pass
+        c.execute("UPDATE reminders SET active=0 WHERE id=?", (rem["id"],))
     conn.commit()
     conn.close()
 
@@ -2900,55 +2552,36 @@ async def daily_stats_task():
         try:
             s = get_guild_settings(guild.id)
             ch = discord.utils.get(guild.text_channels, name=s.get("log_channel", "sentinel-logs"))
-            if not ch:
-                continue
+            if not ch: continue
             yesterday = (datetime.now() - timedelta(days=1)).date().isoformat()
             conn = get_db()
             c = conn.cursor()
-            c.execute(
-                "SELECT messages, joins, leaves, mod_actions FROM daily_stats WHERE guild_id=? AND date=?",
-                (str(guild.id), yesterday)
-            )
+            c.execute("SELECT messages, joins, leaves, mod_actions FROM daily_stats WHERE guild_id=? AND date=?", (str(guild.id), yesterday))
             stats = c.fetchone()
             conn.close()
-            if not stats:
-                continue
-            embed = discord.Embed(
-                title=f"📊 Daily Report — {yesterday}",
-                color=discord.Color.blue(),
-                timestamp=datetime.now()
-            )
+            if not stats: continue
+            embed = discord.Embed(title=f"📊 Daily Report — {yesterday}", color=discord.Color.blue(), timestamp=datetime.now())
             embed.add_field(name="💬 Messages", value=f"{stats[0]:,}", inline=True)
             embed.add_field(name="📥 Joins", value=str(stats[1]), inline=True)
             embed.add_field(name="📤 Leaves", value=str(stats[2]), inline=True)
             embed.add_field(name="🔨 Mod Actions", value=str(stats[3]), inline=True)
             await ch.send(embed=embed)
-        except Exception as e:
-            print(f"Daily stats err: {e}")
+        except Exception as e: print(f"Daily stats err: {e}")
 
 # ============ EVENTS ============
 @bot.event
 async def on_ready():
     print(f"🤖 {bot.user} ONLINE | {len(bot.guilds)} servers | v{BOT_IDENTITY['version']}")
     BOT_IDENTITY["bot_id"] = bot.user.id
-    for g in bot.guilds:
-        init_guild_settings(g.id)
+    for g in bot.guilds: init_guild_settings(g.id)
     try:
         synced = await bot.tree.sync()
         print(f"⚡ Synced {len(synced)} slash commands")
-    except Exception as e:
-        print(f"Sync err: {e}")
-    # Start background tasks
+    except Exception as e: print(f"Sync err: {e}")
     for task in [server_memory_extraction, memory_cleanup, check_giveaways, check_reminders, daily_stats_task]:
-        if not task.is_running():
-            task.start()
-    await bot.change_presence(
-        activity=discord.Activity(
-            type=discord.ActivityType.watching,
-            name=f"over {len(bot.guilds)} servers 👁️"
-        )
-    )
-    await notify_owner("INFO", f"✅ SentinelMod v{BOT_IDENTITY['version']} is ONLINE! Live context memory active. {len(bot.guilds)} servers.")
+        if not task.is_running(): task.start()
+    await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name=f"over {len(bot.guilds)} servers 👁️"))
+    await notify_owner("INFO", f"✅ SentinelMod v{BOT_IDENTITY['version']} is ONLINE! Live context active.")
 
 @bot.event
 async def on_guild_join(guild):
@@ -2967,10 +2600,7 @@ async def on_member_join(member):
     today = datetime.now().date().isoformat()
     conn = get_db()
     c = conn.cursor()
-    c.execute(
-        "INSERT INTO daily_stats (guild_id, date, joins) VALUES (?, ?, 1) ON CONFLICT(guild_id, date) DO UPDATE SET joins=joins+1",
-        (str(g.id), today)
-    )
+    c.execute("INSERT INTO daily_stats (guild_id, date, joins) VALUES (?, ?, 1) ON CONFLICT(guild_id, date) DO UPDATE SET joins=joins+1", (str(g.id), today))
     conn.commit()
     conn.close()
 
@@ -2982,82 +2612,53 @@ async def on_member_join(member):
         wch = discord.utils.get(g.text_channels, name=s.get("welcome_channel", "welcome"))
         if wch:
             try:
-                w = await ask_groq(
-                    f"Write a warm, exciting 2-sentence welcome for {member.display_name} joining {g.name}! Make them feel amazing.",
-                    "You are an enthusiastic community greeter.",
-                )
-                embed = discord.Embed(
-                    title=f"👋 Welcome to {g.name}!",
-                    description=w or f"Welcome {member.display_name}! We're glad you're here! 🎉",
-                    color=discord.Color.green()
-                )
+                w = await ask_groq(f"Write a warm, exciting 2-sentence welcome for {member.display_name} joining {g.name}!", "You are an enthusiastic greeter.")
+                embed = discord.Embed(title=f"👋 Welcome to {g.name}!", description=w or f"Welcome {member.display_name}! We're glad you're here! 🎉", color=discord.Color.green())
                 embed.set_thumbnail(url=member.display_avatar.url)
                 embed.set_footer(text=f"Member #{g.member_count}")
                 await wch.send(content=member.mention, embed=embed)
-            except Exception as e:
-                print(f"Welcome err: {e}")
+            except: pass
 
 @bot.event
 async def on_member_remove(member):
     today = datetime.now().date().isoformat()
     conn = get_db()
     c = conn.cursor()
-    c.execute(
-        "INSERT INTO daily_stats (guild_id, date, leaves) VALUES (?, ?, 1) ON CONFLICT(guild_id, date) DO UPDATE SET leaves=leaves+1",
-        (str(member.guild.id), today)
-    )
+    c.execute("INSERT INTO daily_stats (guild_id, date, leaves) VALUES (?, ?, 1) ON CONFLICT(guild_id, date) DO UPDATE SET leaves=leaves+1", (str(member.guild.id), today))
     conn.commit()
     conn.close()
 
 @bot.event
 async def on_reaction_add(reaction, user):
-    if user.bot:
-        return
+    if user.bot: return
     if reaction.message.id in trivia_sessions:
         session = trivia_sessions[reaction.message.id]
-        if user.id in session["answered"]:
-            return
+        if user.id in session["answered"]: return
         session["answered"].append(user.id)
         if str(reaction.emoji) == session["correct_emoji"]:
-            await reaction.message.channel.send(
-                f"🎉 {user.mention} got it right! The answer was: **{session['correct_answer']}**"
-            )
+            await reaction.message.channel.send(f"🎉 {user.mention} got it right! The answer was: **{session['correct_answer']}**")
             del trivia_sessions[reaction.message.id]
 
 # ============ MAIN MESSAGE HANDLER ============
 @bot.event
 async def on_message(message):
-    if message.author.bot:
-        return
-
-    # Handle DM appeals
+    if message.author.bot: return
     if not message.guild:
         await handle_appeal(message)
         return
 
-    # ================================================================
-    # STEP 1: RECORD EVERYTHING (the bot's ears)
-    # Every single message goes into live context FIRST
-    # ================================================================
-    update_live_context(
-        message.guild.id,
-        message.channel.id,
-        message.author.display_name,
-        message.content,
-    )
-
+    # STEP 1: RECORD CONTEXT
+    update_live_context(message.guild.id, message.channel.id, message.author.display_name, message.content)
     s = get_guild_settings(message.guild.id)
     guild = message.guild
     author = message.author
 
-    # Permission checks
     owner_talking = is_owner(author.id)
     is_mod_or_admin = has_mod_permissions(author, s)
 
     update_message_stats(author.id, guild.id)
     archive_message(guild.id, message.channel.id, author.id, message.content)
 
-    # ---- AFK system ----
     conn = get_db()
     c = conn.cursor()
     c.execute("SELECT * FROM afk_users WHERE guild_id=?", (str(guild.id),))
@@ -3067,37 +2668,20 @@ async def on_message(message):
     if str(author.id) in afk:
         conn = get_db()
         c = conn.cursor()
-        c.execute(
-            "DELETE FROM afk_users WHERE user_id=? AND guild_id=?",
-            (str(author.id), str(guild.id))
-        )
+        c.execute("DELETE FROM afk_users WHERE user_id=? AND guild_id=?", (str(author.id), str(guild.id)))
         conn.commit()
         conn.close()
-        try:
-            await message.channel.send(
-                f"👋 Welcome back {author.mention}! You're no longer AFK.",
-                delete_after=8
-            )
-        except:
-            pass
+        try: await message.channel.send(f"👋 Welcome back {author.mention}! You're no longer AFK.", delete_after=8)
+        except: pass
 
     for m in message.mentions:
         if str(m.id) in afk:
-            try:
-                await message.channel.send(
-                    f"💤 **{m.display_name}** is AFK: *{afk[str(m.id)]['reason']}*",
-                    delete_after=10
-                )
-            except:
-                pass
+            try: await message.channel.send(f"💤 **{m.display_name}** is AFK: *{afk[str(m.id)]['reason']}*", delete_after=10)
+            except: pass
 
-    # ---- Custom commands ----
     conn = get_db()
     c = conn.cursor()
-    c.execute(
-        "SELECT response FROM custom_commands WHERE guild_id=? AND trigger_word=?",
-        (str(guild.id), message.content.lower().strip())
-    )
+    c.execute("SELECT response FROM custom_commands WHERE guild_id=? AND trigger_word=?", (str(guild.id), message.content.lower().strip()))
     cc = c.fetchone()
     conn.close()
     if cc:
@@ -3108,180 +2692,89 @@ async def on_message(message):
     is_mentioned = bot.user in message.mentions
     speak_vc = guild.id in voice_sessions
 
-    # ================================================================
-    # STEP 2: OWNER - FULL ACCESS EVERYWHERE
-    # Owner can give commands in ANY channel, not just sentinel-bot
-    # ================================================================
+    # STEP 2: OWNER COMMANDS
     if owner_talking:
         content = message.content.replace(f"<@{bot.user.id}>", "").strip()
-
-        # Owner can trigger commands from ANY channel by mentioning the bot
-        # OR from the AI channel
         if is_ai_ch or is_mentioned:
             if not content:
                 await message.reply("👋 Yeah Boss, what do you need?")
                 return
-
-            # Try to parse as a command first
-            try:
-                parsed = await asyncio.wait_for(
-                    parse_command(content, guild, author),
-                    timeout=15.0
-                )
-            except asyncio.TimeoutError:
-                parsed = None
-
+            try: parsed = await asyncio.wait_for(parse_command(content, guild, author), timeout=15.0)
+            except asyncio.TimeoutError: parsed = None
             if parsed and parsed.get("command") not in ["chat", "unknown", None] and parsed.get("confidence", 0) >= 0.75:
                 dangerous = ["ban_user", "kick_user", "lockdown", "purge", "delete_channel", "delete_role"]
                 nc = parsed.get("needs_confirmation") or parsed.get("command") in dangerous
                 if nc:
                     cmd_display = parsed['command'].replace('_', ' ').title()
                     view = ConfirmView(parsed, message, guild, author)
-                    await message.reply(
-                        embed=discord.Embed(
-                            title="⚠️ Confirm Action",
-                            description=f"Run **{cmd_display}**?",
-                            color=discord.Color.orange(),
-                        ),
-                        view=view,
-                    )
+                    await message.reply(embed=discord.Embed(title="⚠️ Confirm Action", description=f"Run **{cmd_display}**?", color=discord.Color.orange()), view=view)
                 else:
                     r = await execute_command(parsed, message, guild, author)
-                    if r:
-                        await message.reply(r[:2000])
+                    if r: await message.reply(r[:2000])
                 return
-
-            # Chat with owner - full cross-server visibility
             sys = get_owner_system_prompt(str(author.id), str(guild.id), str(message.channel.id))
             hist = get_conversation_history(str(author.id), str(guild.id))
-            await smart_response(
-                message, content, sys, hist,
-                str(author.id), str(guild.id),
-                speak_in_vc=speak_vc
-            )
+            await smart_response(message, content, sys, hist, str(author.id), str(guild.id), speak_in_vc=speak_vc)
             return
-
-        # Owner in any OTHER channel - still process mod commands if they mention the bot
         await bot.process_commands(message)
         return
 
-    # ================================================================
-    # STEP 3: MODS/ADMINS - CAN GIVE COMMANDS IN AI CHANNEL OR MENTIONS
-    # Fixed: mods can now use the bot in ANY channel by mentioning it
-    # ================================================================
+    # STEP 3: MOD COMMANDS
     if is_mod_or_admin:
         content = message.content.replace(f"<@{bot.user.id}>", "").strip()
-
         if is_ai_ch or is_mentioned:
             if not content:
-                if is_mentioned:
-                    await message.reply("👋 Hey! Need something?")
+                if is_mentioned: await message.reply("👋 Hey! Need something?")
                 return
-
-            # Try to parse as command
-            try:
-                parsed = await asyncio.wait_for(
-                    parse_command(content, guild, author),
-                    timeout=15.0
-                )
-            except asyncio.TimeoutError:
-                parsed = None
-
+            try: parsed = await asyncio.wait_for(parse_command(content, guild, author), timeout=15.0)
+            except asyncio.TimeoutError: parsed = None
             if parsed and parsed.get("command") not in ["chat", "unknown", None] and parsed.get("confidence", 0) >= 0.75:
-                # Safety check: make sure target is actually mentioned for user-affecting commands
                 user_commands = ["ban_user", "kick_user", "mute_user", "unmute_user", "warn_user", "quarantine"]
                 if parsed.get("command") in user_commands:
                     t = find_member_strict(guild, parsed.get("params", {}))
                     if not t:
-                        await message.reply(
-                            "❌ I can't find that user. **@mention them directly** in your message!"
-                        )
+                        await message.reply("❌ I can't find that user. **@mention them directly** in your message!")
                         return
-
                 dangerous = ["ban_user", "kick_user", "lockdown", "purge", "delete_channel", "delete_role"]
                 nc = parsed.get("needs_confirmation") or parsed.get("command") in dangerous
                 if nc:
                     cmd_display = parsed['command'].replace('_', ' ').title()
                     view = ConfirmView(parsed, message, guild, author)
-                    await message.reply(
-                        embed=discord.Embed(
-                            title="⚠️ Confirm Action",
-                            description=f"Run **{cmd_display}**?",
-                            color=discord.Color.orange(),
-                        ),
-                        view=view,
-                    )
+                    await message.reply(embed=discord.Embed(title="⚠️ Confirm Action", description=f"Run **{cmd_display}**?", color=discord.Color.orange()), view=view)
                 else:
                     r = await execute_command(parsed, message, guild, author)
-                    if r:
-                        await message.reply(r[:2000])
+                    if r: await message.reply(r[:2000])
                 return
-
-            # Chat response for mods
-            sys = get_system_prompt(
-                str(author.id), str(guild.id), str(message.channel.id),
-                author.display_name
-            )
+            sys = get_system_prompt(str(author.id), str(guild.id), str(message.channel.id), author.display_name)
             hist = get_conversation_history(str(author.id), str(guild.id))
-            await smart_response(
-                message, content, sys, hist,
-                str(author.id), str(guild.id),
-                speak_in_vc=speak_vc
-            )
+            await smart_response(message, content, sys, hist, str(author.id), str(guild.id), speak_in_vc=speak_vc)
             return
-
-        # Mod in non-AI channel, not mentioned - still run normal mod on their messages
-        # (mods should be trusted but still go through normal flow)
         await bot.process_commands(message)
         return
 
-    # ================================================================
-    # STEP 4: REGULAR USERS
-    # ================================================================
-
-    # If in AI channel or mentioned, give AI response
+    # STEP 4: REGULAR CHAT
     if is_ai_ch or is_mentioned:
         content = message.content.replace(f"<@{bot.user.id}>", "").strip()
         if not content:
-            if is_mentioned:
-                replies = [
-                    "👋 Hey! What's up?",
-                    "Yeah? What do you need?",
-                    "I'm here! What's going on?",
-                    "Sup! 👀",
-                ]
-                await message.reply(random.choice(replies))
+            if is_mentioned: await message.reply(random.choice(["👋 Hey! What's up?", "Yeah? What do you need?", "I'm here! What's going on?", "Sup! 👀"]))
             return
-
-        sys = get_system_prompt(
-            str(author.id), str(guild.id), str(message.channel.id),
-            author.display_name
-        )
+        sys = get_system_prompt(str(author.id), str(guild.id), str(message.channel.id), author.display_name)
         hist = get_conversation_history(str(author.id), str(guild.id))
-        await smart_response(
-            message, content, sys, hist,
-            str(author.id), str(guild.id),
-            speak_in_vc=speak_vc
-        )
+        await smart_response(message, content, sys, hist, str(author.id), str(guild.id), speak_in_vc=speak_vc)
         return
 
-    # ---- Spam check ----
+    # STEP 5: SPAM / MODERATION (Only for non-mods not talking to AI)
     if await check_spam(message, s):
         await handle_spam(message, s)
         return
 
-    # ---- AI Moderation ----
     if s.get("ai_mod_enabled", 1):
         was_moderated = await handle_moderation_smart(message, s)
         if was_moderated:
             today = datetime.now().date().isoformat()
             conn = get_db()
             c = conn.cursor()
-            c.execute(
-                """INSERT INTO daily_stats (guild_id, date, mod_actions) VALUES (?, ?, 1)
-                   ON CONFLICT(guild_id, date) DO UPDATE SET mod_actions=mod_actions+1""",
-                (str(guild.id), today)
-            )
+            c.execute("INSERT INTO daily_stats (guild_id, date, mod_actions) VALUES (?, ?, 1) ON CONFLICT(guild_id, date) DO UPDATE SET mod_actions=mod_actions+1", (str(guild.id), today))
             conn.commit()
             conn.close()
             return
@@ -3298,8 +2791,8 @@ if __name__ == "__main__":
         exit(1)
     else:
         init_database()
+        migrate_database() # Auto-updates DB so dashboard works perfectly
 
-        # Start dashboard
         try:
             dashboard.set_bot(bot)
             thread = threading.Thread(target=dashboard.run_dashboard)
@@ -3309,19 +2802,11 @@ if __name__ == "__main__":
         except Exception as e:
             print(f"⚠️ Dashboard err: {e}")
 
-        # Load AI features
-        try:
-            ai_features.setup(
-                bot_instance=bot,
-                get_db=get_db,
-                get_settings=get_guild_settings,
-                ask_groq=ask_groq,
-                ask_json=ask_groq_json,
-                notify_owner=notify_owner,
-            )
-            print("✅ AI Features loaded")
-        except Exception as e:
-            print(f"⚠️ AI features err: {e}")
+        if AI_FEATURES_LOADED:
+            try:
+                ai_features.setup(bot_instance=bot, get_db=get_db, get_settings=get_guild_settings, ask_groq=ask_groq, ask_json=ask_groq_json, notify_owner=notify_owner)
+                print("✅ AI Features loaded")
+            except Exception as e: print(f"⚠️ AI features err: {e}")
 
         print(f"🚀 Starting SentinelMod v{BOT_IDENTITY['version']}...")
         bot.run(DISCORD_TOKEN)
