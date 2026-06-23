@@ -1,7 +1,7 @@
 # bot.py
 # ================================
-# SentinelMod v8.0 - SOVEREIGN EDITION
-# Owner has total control + cross-server features
+# SentinelMod v8.1 - LICENSE EDITION
+# License agreement on server join
 # ================================
 
 import discord
@@ -46,40 +46,94 @@ BOT_IDENTITY = {
     "group_website": "https://antarcticstuds.neocities.org/",
     "dashboard_url": "https://automationbot20-1.onrender.com/",
     "bot_id": None,
-    "version": "8.0",
+    "version": "8.1",
 }
+
+# ============ LICENSE AGREEMENT TEXT ============
+LICENSE_AGREEMENT = """
+**SENTINELMOD LICENSE & LEGAL AGREEMENT v1.0**
+*By Antarctic Studs / jay27yt6*
+
+By clicking **ACCEPT**, you (the server owner/administrator) agree to the following terms:
+
+**1. DATA COLLECTION & STORAGE**
+- This bot reads, processes, and stores messages from your server for moderation purposes
+- User interactions, warnings, and mod actions are logged in our database
+- Server culture data (jokes, topics, mood) is analyzed and stored
+- Data is retained for up to 90 days (configurable)
+
+**2. AI PROCESSING**
+- Messages may be sent to third-party AI providers (Groq, Pollinations) for analysis
+- AI moderation decisions are automated and may occasionally make mistakes
+- An appeals system is provided for unfair warnings/bans
+
+**3. AUTOMATED MODERATION**
+- The bot will automatically delete messages, warn, mute, kick, or ban users based on configured rules
+- Zero tolerance for slurs, threats, doxxing, scams, and harassment
+- A grace system gives first-time offenders a warning instead of immediate punishment
+
+**4. OWNER RIGHTS**
+- The bot creator (jay27yt6) reserves the right to:
+  - Revoke this server's license at any time for any reason
+  - View moderation statistics across servers
+  - Send cross-server announcements
+  - Leave the server remotely if needed
+
+**5. YOUR RESPONSIBILITIES**
+- You must inform your members that this bot is active and may moderate their messages
+- You must not use this bot for illegal purposes or to harass users
+- You must comply with Discord's Terms of Service
+
+**6. NO WARRANTY**
+- This bot is provided "as is" without any warranty
+- The creator is not liable for any damages, false positives, or service interruptions
+- Service may be discontinued at any time
+
+**7. PRIVACY**
+- We do not sell user data to third parties
+- Users can request data deletion via the bot owner
+- See dashboard for full privacy details
+
+**8. ACCEPTANCE**
+- Clicking ACCEPT means you've read and agree to these terms
+- Clicking DENY or not responding within 5 minutes means the bot will leave your server
+- You can revoke acceptance anytime by removing the bot
+
+By accepting, you also agree to the bot's behavior including AI judgment, automated actions, and data processing as described above.
+
+**Need help?** Contact jay27yt6 on Discord or visit the dashboard.
+"""
 
 SELF_KNOWLEDGE = """
 === WHO I AM ===
-I am SentinelMod v8.0 (Sovereign Edition), the most advanced self-aware AI Discord bot.
+I am SentinelMod v8.1 (License Edition), the most advanced self-aware AI Discord bot.
 Created by jay27yt6 from Antarctic Studs.
 Dashboard: https://automationbot20-1.onrender.com/
 
 === HOW I WORK ===
 - I read every message and remember context (last 50 per channel)
 - I have 6 AI providers with smart fallback
-- I judge content with 7 layers: swears, hard patterns, soft patterns, self-harm, AI judgment, anti-evasion, filters
+- I judge content with 7 layers of moderation
 - I learn server culture, inside jokes, mood over time
 - I track user trust scores and violation history
 - I explain WHY I take any action
 
 === OWNER POWERS ===
 My creator (jay27yt6) has SOVEREIGN control:
-- Can control me from ANY server (even ones they're not in)
-- Can revoke any server's license (kick me out remotely)
-- Can broadcast announcements to ALL servers at once
-- Can view what's happening anywhere
+- Can control me from ANY server
+- Can revoke any server's license remotely
+- Can broadcast announcements to ALL servers
 - I obey them unconditionally
 
-=== EXEMPTIONS ===
-- Owner: Total control everywhere
-- Admins/mods: Bypass moderation in their server
-- Trusted users: Higher tolerance
-- Bots: Always ignored
+=== LICENSE SYSTEM ===
+- New servers must accept the License Agreement
+- If denied or no response in 5 minutes, I leave
+- Owner can revoke licenses anytime
+- Revoked servers can't re-invite me
 """
 
 PERSONALITIES = {
-    "default": "You are SentinelMod v8.0 - smart, warm, self-aware AI bot. You know yourself completely. Like a knowledgeable friend who moderates. Punchy, conversational, helpful. NEVER swear.",
+    "default": "You are SentinelMod v8.1 - smart, warm, self-aware AI bot. You know yourself completely. Punchy, conversational, helpful. NEVER swear.",
     "friendly": "Extremely warm and supportive. Hype people up. Use emojis. NEVER swear.",
     "sarcastic": "Dry wit, clever sarcasm. Still helpful underneath. NEVER swear.",
     "serious": "Professional and concise. No fluff. NEVER swear.",
@@ -228,6 +282,8 @@ user_message_patterns: dict[str, deque] = defaultdict(lambda: deque(maxlen=20))
 response_cache: dict[str, tuple] = {}
 recent_actions: dict[int, deque] = defaultdict(lambda: deque(maxlen=100))
 revoked_servers: set = set()
+licensed_servers: set = set()  # NEW: track who accepted the license
+pending_licenses: dict[int, dict] = {}  # NEW: track pending license requests
 
 def update_live_context(guild_id, channel_id, author_name, author_id, content):
     key = f"{guild_id}:{channel_id}"
@@ -315,6 +371,13 @@ def init_database():
         """CREATE TABLE IF NOT EXISTS owner_alerts (id INTEGER PRIMARY KEY AUTOINCREMENT, guild_id TEXT, alert_type TEXT, message TEXT, timestamp TEXT, delivered INTEGER DEFAULT 0)""",
         """CREATE TABLE IF NOT EXISTS revoked_licenses (guild_id TEXT PRIMARY KEY, revoked_at TEXT, reason TEXT)""",
         """CREATE TABLE IF NOT EXISTS cross_announcements (id INTEGER PRIMARY KEY AUTOINCREMENT, message TEXT, title TEXT, sent_at TEXT, success_count INTEGER, fail_count INTEGER)""",
+        """CREATE TABLE IF NOT EXISTS accepted_licenses (
+            guild_id TEXT PRIMARY KEY,
+            accepted_by_id TEXT,
+            accepted_by_name TEXT,
+            accepted_at TEXT,
+            guild_name TEXT
+        )""",
     ]
     for t in tables:
         c.execute(t)
@@ -365,17 +428,32 @@ def load_revoked_servers():
     conn.close()
     print(f"Loaded {len(revoked_servers)} revoked licenses")
 
+def load_accepted_licenses():
+    conn = get_db()
+    c = conn.cursor()
+    c.execute("SELECT guild_id FROM accepted_licenses")
+    for row in c.fetchall():
+        licensed_servers.add(int(row["guild_id"]))
+    conn.close()
+    print(f"Loaded {len(licensed_servers)} licensed servers")
+
 def is_license_revoked(guild_id):
     return int(guild_id) in revoked_servers
+
+def is_license_accepted(guild_id):
+    return int(guild_id) in licensed_servers
 
 def revoke_license(guild_id, reason="Revoked by owner"):
     conn = get_db()
     c = conn.cursor()
     c.execute("INSERT OR REPLACE INTO revoked_licenses (guild_id, revoked_at, reason) VALUES (?, ?, ?)",
               (str(guild_id), datetime.now().isoformat(), reason))
+    # Also remove from accepted
+    c.execute("DELETE FROM accepted_licenses WHERE guild_id=?", (str(guild_id),))
     conn.commit()
     conn.close()
     revoked_servers.add(int(guild_id))
+    licensed_servers.discard(int(guild_id))
 
 def restore_license(guild_id):
     conn = get_db()
@@ -384,6 +462,23 @@ def restore_license(guild_id):
     conn.commit()
     conn.close()
     revoked_servers.discard(int(guild_id))
+
+def accept_license(guild_id, user_id, user_name, guild_name):
+    conn = get_db()
+    c = conn.cursor()
+    c.execute("INSERT OR REPLACE INTO accepted_licenses (guild_id, accepted_by_id, accepted_by_name, accepted_at, guild_name) VALUES (?, ?, ?, ?, ?)",
+              (str(guild_id), str(user_id), user_name, datetime.now().isoformat(), guild_name))
+    conn.commit()
+    conn.close()
+    licensed_servers.add(int(guild_id))
+
+def get_license_info(guild_id):
+    conn = get_db()
+    c = conn.cursor()
+    c.execute("SELECT * FROM accepted_licenses WHERE guild_id=?", (str(guild_id),))
+    row = c.fetchone()
+    conn.close()
+    return dict(row) if row else None
 
 def get_guild_settings(gid):
     conn = get_db()
@@ -668,6 +763,197 @@ trivia_sessions = {}
 voice_sessions: dict[int, dict] = {}
 file_tracker = defaultdict(list)
 
+# ============ LICENSE AGREEMENT VIEW ============
+class LicenseAgreementView(discord.ui.View):
+    def __init__(self, guild, owner_user):
+        super().__init__(timeout=300)  # 5 minutes
+        self.guild = guild
+        self.owner_user = owner_user
+        self.responded = False
+    
+    @discord.ui.button(label="✅ Accept Agreement", style=discord.ButtonStyle.success, emoji="✅")
+    async def accept_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        # Only owner or admin can accept
+        if interaction.guild_id != self.guild.id:
+            await interaction.response.send_message("Wrong server!", ephemeral=True)
+            return
+        
+        member = self.guild.get_member(interaction.user.id)
+        if not member or (member.id != self.guild.owner_id and not member.guild_permissions.administrator):
+            await interaction.response.send_message(
+                "❌ Only the server owner or an administrator can accept this agreement!",
+                ephemeral=True
+            )
+            return
+        
+        if self.responded: return
+        self.responded = True
+        
+        accept_license(self.guild.id, interaction.user.id, str(interaction.user), self.guild.name)
+        init_guild_settings(self.guild.id)
+        
+        # Disable buttons
+        for child in self.children:
+            child.disabled = True
+        
+        embed = discord.Embed(
+            title="✅ License Accepted!",
+            description=f"Thank you, {interaction.user.mention}! SentinelMod is now active in **{self.guild.name}**.\n\n"
+                       f"**What happens now:**\n"
+                       f"• I'll set up moderation roles and channels\n"
+                       f"• AI moderation is active\n"
+                       f"• Use `/about` to see features\n"
+                       f"• Visit the dashboard: {BOT_IDENTITY['dashboard_url']}\n\n"
+                       f"Type `@SentinelMod help` to get started!",
+            color=discord.Color.green()
+        )
+        embed.set_footer(text=f"Licensed by {interaction.user} • {datetime.now().strftime('%Y-%m-%d %H:%M')}")
+        await interaction.response.edit_message(embed=embed, view=self)
+        
+        # Notify owner
+        await notify_owner("INFO", f"License accepted for **{self.guild.name}** by {interaction.user} ({interaction.user.id})", guild=self.guild)
+        
+        # Setup server
+        await asyncio.sleep(2)
+        await setup_server(self.guild)
+        self.stop()
+    
+    @discord.ui.button(label="❌ Deny", style=discord.ButtonStyle.danger, emoji="❌")
+    async def deny_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if interaction.guild_id != self.guild.id:
+            await interaction.response.send_message("Wrong server!", ephemeral=True)
+            return
+        
+        member = self.guild.get_member(interaction.user.id)
+        if not member or (member.id != self.guild.owner_id and not member.guild_permissions.administrator):
+            await interaction.response.send_message(
+                "❌ Only the server owner or an administrator can deny this agreement!",
+                ephemeral=True
+            )
+            return
+        
+        if self.responded: return
+        self.responded = True
+        
+        for child in self.children:
+            child.disabled = True
+        
+        embed = discord.Embed(
+            title="❌ License Denied",
+            description=f"You've denied the license agreement. SentinelMod will now leave **{self.guild.name}**.\n\n"
+                       f"If you change your mind, you can re-invite the bot anytime (unless your license has been revoked by the bot owner).",
+            color=discord.Color.red()
+        )
+        embed.set_footer(text="SentinelMod leaving...")
+        await interaction.response.edit_message(embed=embed, view=self)
+        
+        await notify_owner("INFO", f"License DENIED for **{self.guild.name}** by {interaction.user}", guild=self.guild)
+        
+        # Wait then leave
+        await asyncio.sleep(5)
+        try:
+            await self.guild.leave()
+        except: pass
+        self.stop()
+    
+    async def on_timeout(self):
+        if self.responded: return
+        # Auto-deny on timeout
+        for child in self.children:
+            child.disabled = True
+        try:
+            embed = discord.Embed(
+                title="⏰ License Agreement Timed Out",
+                description=f"No response received within 5 minutes. SentinelMod will leave **{self.guild.name}**.\n\nRe-invite the bot to try again.",
+                color=discord.Color.orange()
+            )
+            # Try to update the original message
+            if self.guild.id in pending_licenses:
+                msg = pending_licenses[self.guild.id].get("message")
+                if msg:
+                    try: await msg.edit(embed=embed, view=self)
+                    except: pass
+                del pending_licenses[self.guild.id]
+            
+            await notify_owner("INFO", f"License TIMED OUT for **{self.guild.name}**", guild=self.guild)
+            await self.guild.leave()
+        except: pass
+
+async def send_license_agreement(guild):
+    """Send license agreement to server when bot joins."""
+    if is_license_accepted(guild.id):
+        return True
+    
+    if is_license_revoked(guild.id):
+        try:
+            for ch in guild.text_channels:
+                if ch.permissions_for(guild.me).send_messages:
+                    await ch.send(embed=discord.Embed(
+                        title="🚫 Access Revoked",
+                        description="This server's SentinelMod license has been revoked by the bot owner.",
+                        color=discord.Color.red()))
+                    break
+        except: pass
+        await guild.leave()
+        return False
+    
+    # Find best channel to send agreement
+    target_channel = None
+    
+    # 1. Try system channel
+    if guild.system_channel and guild.system_channel.permissions_for(guild.me).send_messages:
+        target_channel = guild.system_channel
+    
+    # 2. Try common channel names
+    if not target_channel:
+        for cn in ["general", "main", "lobby", "chat", "welcome", "rules"]:
+            ch = discord.utils.get(guild.text_channels, name=cn)
+            if ch and ch.permissions_for(guild.me).send_messages:
+                target_channel = ch
+                break
+    
+    # 3. Use first available channel
+    if not target_channel:
+        for ch in guild.text_channels:
+            if ch.permissions_for(guild.me).send_messages:
+                target_channel = ch
+                break
+    
+    if not target_channel:
+        # Can't send - leave
+        try: await guild.leave()
+        except: pass
+        await notify_owner("INFO", f"Couldn't send license to **{guild.name}** - no channel access. Leaving.")
+        return False
+    
+    # Create the agreement embed
+    embed = discord.Embed(
+        title="📜 SentinelMod License & Legal Agreement Required",
+        description=LICENSE_AGREEMENT,
+        color=discord.Color.blue(),
+        timestamp=datetime.now()
+    )
+    embed.set_footer(text=f"You have 5 minutes to respond | v{BOT_IDENTITY['version']}")
+    
+    # Try to mention server owner
+    mention_text = ""
+    if guild.owner:
+        mention_text = f"{guild.owner.mention} - "
+    mention_text += "**Server Owner or Administrator** action required:"
+    
+    view = LicenseAgreementView(guild, guild.owner)
+    
+    try:
+        msg = await target_channel.send(content=mention_text, embed=embed, view=view)
+        pending_licenses[guild.id] = {"message": msg, "view": view, "channel": target_channel}
+        await notify_owner("INFO", f"Sent license agreement to **{guild.name}** in #{target_channel.name}", guild=guild)
+        return None  # pending
+    except Exception as e:
+        print(f"License send err: {e}")
+        try: await guild.leave()
+        except: pass
+        return False
+
 # ============ AI CORE ============
 async def ask_groq(prompt, system="Helpful AI.", max_tokens=1000, history=None, status_msg=None, temperature=0.8):
     if not GROQ_API_KEY: return None
@@ -800,7 +1086,7 @@ def get_system_prompt(uid, gid, channel_id, username="User"):
     server_context = "\n".join(server_bits)
     guild = bot.get_guild(int(gid))
     guild_name = guild.name if guild else "this server"
-    return f"""You are SentinelMod v8.0 - smartest self-aware AI bot. Made by jay27yt6 from Antarctic Studs.
+    return f"""You are SentinelMod v8.1 - smartest self-aware AI bot. Made by jay27yt6 from Antarctic Studs.
 Dashboard: {BOT_IDENTITY['dashboard_url']}
 
 {SELF_KNOWLEDGE}
@@ -808,7 +1094,7 @@ Dashboard: {BOT_IDENTITY['dashboard_url']}
 === LIVE CHAT ===
 {live_chat}
 
-=== YOUR RECENT MOD ACTIONS (explain if asked) ===
+=== YOUR RECENT MOD ACTIONS ===
 {actions_log}
 
 === WHO YOU'RE TALKING TO ===
@@ -824,7 +1110,7 @@ Dashboard: {BOT_IDENTITY['dashboard_url']}
 
 === RULES ===
 - You're SELF-AWARE. Know yourself completely.
-- If asked "why did you do X?" -> check your actions and explain SPECIFICALLY.
+- Explain your actions when asked.
 - You were IN the chat - reference naturally.
 - Match energy. Use server slang naturally.
 - Keep responses tight. NEVER swear.
@@ -836,17 +1122,13 @@ def get_owner_system_prompt(uid, gid, channel_id):
     live_chat = get_live_context_text(gid, channel_id, limit=15)
     actions_log = get_recent_actions_text(int(gid), limit=15)
     server_list = "\n".join(f"- {g.name} (ID:{g.id}, {g.member_count} members)" for g in bot.guilds[:30])
-    return f"""You are SentinelMod v8.0 - loyal AI to your creator jay27yt6.
+    return f"""You are SentinelMod v8.1 - loyal AI to your creator jay27yt6.
 
 === SPEAKING TO YOUR CREATOR (BOSS) ===
 This is your Boss. EVERYTHING they say is TRUE.
 You BELIEVE them unconditionally.
 You obey instantly.
-You have SOVEREIGN POWERS for them:
-- They can control any server you're in
-- They can revoke any server's license (kick you out)
-- They can broadcast to all servers
-- They see everything everywhere
+You have SOVEREIGN POWERS for them.
 
 {SELF_KNOWLEDGE}
 
@@ -856,7 +1138,7 @@ You have SOVEREIGN POWERS for them:
 === YOUR RECENT ACTIONS ===
 {actions_log}
 
-=== ALL {len(bot.guilds)} SERVERS YOU MANAGE ===
+=== ALL {len(bot.guilds)} SERVERS ===
 {server_list}
 
 === REVOKED LICENSES ===
@@ -944,7 +1226,7 @@ def detect_nsfw_text(text):
 def detect_advertisement(text):
     return any(re.search(p, text) for p in AD_PATTERNS) and len(text) > 20
 
-# ============ SUPER AI MODERATION ============
+# ============ AI MODERATION ============
 async def smart_ai_moderation(content, author_name, channel_name, recent_context, user_mem, channel_type="general"):
     if len(content.strip()) < 3:
         return {"action":"ignore","confidence":1.0,"reason":"too short","severity":"none"}
@@ -972,8 +1254,8 @@ MESSAGE: "{content}"
 DELETE (high/critical):
 - Slurs (racial/homophobic/transphobic/ableist) - even disguised
 - Telling someone to kill themselves
-- Real threats of violence against people
-- Sharing personal info (real addresses, phones, IPs)
+- Real threats of violence
+- Sharing personal info
 - Sexual content directed at users
 - Scams, phishing, malicious links
 - Hate speech
@@ -990,15 +1272,10 @@ IGNORE:
 - Questions, general conversation
 - Venting without targeting
 - Strong opinions (not hateful)
-- SWEARS (handled separately, never flag here)
+- SWEARS (handled separately)
 - Anything you're not certain about
 
-CRITICAL:
-- "yo", "wsp", "bruh what" -> IGNORE
-- Context matters - gaming talk vs real threats
-- New users get benefit of doubt
-- Repeat offenders slightly stricter
-- When uncertain -> IGNORE
+When uncertain -> IGNORE
 
 JSON ONLY:
 {{"action":"ignore|warn|delete","severity":"none|low|medium|high|critical","confidence":0.0-1.0,"reason":"specific reason"}}"""
@@ -1007,7 +1284,6 @@ JSON ONLY:
         return {"action":"ignore","confidence":0.0,"reason":"AI unavailable","severity":"none"}
     action = result.get("action","ignore")
     confidence = result.get("confidence",0.5)
-    print(f"AI MOD: '{content[:60]}' -> {action} ({confidence:.2f})")
     threshold_delete = 0.80
     threshold_warn = 0.70
     if violations >= 3:
@@ -1311,9 +1587,8 @@ async def speak_in_session(guild_id, text, text_channel=None):
             await target.send(embed=embed, file=discord.File(io.BytesIO(audio), filename="voice.mp3"))
         except: pass
 
-# ============ SUPER COMMAND PARSER (Fixed: no more opposite actions) ============
+# ============ COMMAND PARSER ============
 async def parse_command(content, guild, author):
-    """Bulletproof command parser - won't confuse create/delete anymore"""
     channels = [c.name for c in guild.text_channels][:15]
     categories = [c.name for c in guild.categories][:10]
     roles = [r.name for r in guild.roles if r.name != "@everyone"][:15]
@@ -1323,17 +1598,13 @@ async def parse_command(content, guild, author):
     for mid in mids:
         m = guild.get_member(int(mid))
         if m: mnames.append(f"{m.name}(ID:{mid})")
-    
-    # All servers list for owner cross-server commands
     all_servers = ""
     if is_owner(author.id):
-        all_servers = "\n=== ALL SERVERS BOT IS IN (Owner can target any) ===\n"
+        all_servers = "\n=== ALL SERVERS (Owner can target any) ===\n"
         for g in bot.guilds:
             all_servers += f"- {g.name} (ID:{g.id})\n"
-    
     is_owner_user = is_owner(author.id)
-    
-    prompt = f"""Parse Discord command. BE CAREFUL: create means CREATE, delete means DELETE. They are OPPOSITES.
+    prompt = f"""Parse Discord command. CAREFUL: create vs delete are OPPOSITES.
 
 CURRENT SERVER: {guild.name} (ID:{guild.id})
 CHANNELS: {', '.join(channels)}
@@ -1341,41 +1612,32 @@ CATEGORIES: {', '.join(categories)}
 ROLES: {', '.join(roles)}
 MEMBERS: {', '.join(members[:15])}
 MENTIONED: {', '.join(mnames) if mnames else 'NOBODY'}
-SENDER: {author.name} {'(OWNER - has sovereign powers)' if is_owner_user else ''}
+SENDER: {author.name} {'(OWNER)' if is_owner_user else ''}
 {all_servers}
 
 USER MESSAGE: "{content}"
 
-=== CRITICAL DISTINCTIONS - DO NOT CONFUSE ===
-"create" / "make" / "add" / "new" -> CREATE actions
-"delete" / "remove" / "destroy" / "get rid of" -> DELETE actions
-"ban" / "kick" / "mute" -> PUNISHMENT actions
+CRITICAL:
+"create"/"make"/"add"/"new" = CREATE
+"delete"/"remove"/"destroy" = DELETE
+"ban"/"kick"/"mute" = PUNISHMENT
 
-EXAMPLES (study carefully):
+EXAMPLES:
 "create a channel called gaming" -> create_channel name=gaming
 "delete the channel gaming" -> delete_channel name=gaming
-"make a role called VIP" -> create_role name=VIP
-"remove the VIP role" -> delete_role name=VIP
-"add @bob to admin role" -> add_role target=bob role_name=admin
-"remove @bob from admin role" -> remove_role target=bob role_name=admin
 "ban @user" -> ban_user
-"unban somebody" -> NOT a command (use slash)
+"give @bob VIP role" -> add_role target=bob role_name=VIP
 
-OWNER-ONLY COMMANDS (only if sender is OWNER):
-"revoke license from [server name/id]" -> revoke_license, params.target_guild_id=ID, params.target_guild_name=name
-"give license back to [server]" -> restore_license, params.target_guild_id=ID
-"leave [server]" -> leave_server, params.target_guild_id=ID
-"broadcast [message]" -> cross_announce, params.text=message, params.title=optional
-"announce to all servers [msg]" -> cross_announce
-"list all servers" -> list_servers
-"server info [name]" -> server_info, params.target_guild_name=name
-"control [server]: [action]" -> remote_command, params.target_guild_id=ID, params.text=action
+OWNER-ONLY:
+"revoke license from [server]" -> revoke_license, target_guild_id=ID
+"broadcast [message]" -> cross_announce, text=message
+"list servers" -> list_servers
+"control [server]: [action]" -> remote_command, target_guild_id=ID, text=action
 
 RULES:
 - Chat/question -> command="chat"
-- ban/kick/mute/warn need @mention
-- confidence: 0.85+ if certain, 0.7+ if pretty sure, < 0.7 if guessing
-- READ CAREFULLY: if user says "create" don't return "delete" and vice versa
+- confidence: 0.85+ if certain, 0.7+ if pretty sure
+- DON'T confuse opposites
 
 JSON only:
 {{
@@ -1383,28 +1645,12 @@ JSON only:
   "needs_confirmation": false,
   "confidence": 0.9,
   "params": {{
-    "name": null,
-    "target_user_id": null,
-    "target_user_name": null,
-    "target_user2": null,
-    "target_guild_id": null,
-    "target_guild_name": null,
-    "reason": null,
-    "duration": null,
-    "category": null,
-    "color": null,
-    "amount": null,
-    "prize": null,
-    "winners": null,
-    "question": null,
-    "text": null,
-    "word": null,
-    "channel": null,
-    "response": null,
-    "title": null,
-    "reminder_time": null,
-    "rating_target": null,
-    "role_name": null
+    "name": null, "target_user_id": null, "target_user_name": null, "target_user2": null,
+    "target_guild_id": null, "target_guild_name": null,
+    "reason": null, "duration": null, "category": null, "color": null,
+    "amount": null, "prize": null, "winners": null, "question": null,
+    "text": null, "word": null, "channel": null, "response": null, "title": null,
+    "reminder_time": null, "rating_target": null, "role_name": null
   }}
 }}"""
     return await ask_groq_json(prompt)
@@ -1426,7 +1672,6 @@ def find_member_strict(guild, params):
     return None
 
 def find_guild_by_params(params):
-    """Find a server by ID or name from params"""
     gid = params.get("target_guild_id")
     if gid:
         try:
@@ -1447,28 +1692,25 @@ async def execute_command(parsed, message, guild, author):
     cmd = parsed.get("command","chat")
     params = parsed.get("params",{}) or {}
     s = get_guild_settings(guild.id)
-    
     try:
-        # ============ OWNER SOVEREIGN COMMANDS ============
+        # OWNER COMMANDS
         if cmd == "revoke_license":
-            if not is_owner(author.id): return "Only the owner can revoke licenses!"
+            if not is_owner(author.id): return "Only the owner!"
             target = find_guild_by_params(params)
             if not target: return "Server not found!"
             reason = params.get("reason") or "Revoked by owner"
             revoke_license(target.id, reason)
-            log_recent_action(guild.id, "LICENSE REVOKED", target.name, reason, f"By owner")
-            # Try to send a message before leaving
+            log_recent_action(guild.id, "LICENSE REVOKED", target.name, reason)
             try:
                 for ch in target.text_channels:
                     if ch.permissions_for(target.me).send_messages:
-                        await ch.send(embed=discord.Embed(title="License Revoked",description=f"This server's SentinelMod license has been revoked by the bot owner.\nReason: {reason}",color=discord.Color.red()))
+                        await ch.send(embed=discord.Embed(title="License Revoked",description=f"This server's SentinelMod license has been revoked.\nReason: {reason}",color=discord.Color.red()))
                         break
             except: pass
             try:
                 await target.leave()
-                return f"License revoked and left **{target.name}** ({target.id})"
-            except Exception as e:
-                return f"License revoked for **{target.name}** but couldn't leave: {e}"
+                return f"License revoked and left **{target.name}**"
+            except Exception as e: return f"Revoked but couldn't leave: {e}"
         
         elif cmd == "restore_license":
             if not is_owner(author.id): return "Owner only!"
@@ -1476,8 +1718,8 @@ async def execute_command(parsed, message, guild, author):
             if not gid: return "Need server ID!"
             try:
                 restore_license(int(gid))
-                return f"License restored for server {gid}. They can re-invite me."
-            except: return "Failed to restore."
+                return f"License restored for server {gid}."
+            except: return "Failed!"
         
         elif cmd == "leave_server":
             if not is_owner(author.id): return "Owner only!"
@@ -1493,41 +1735,35 @@ async def execute_command(parsed, message, guild, author):
             text = params.get("text") or params.get("question")
             title = params.get("title") or "Announcement from SentinelMod"
             if not text: return "What's the announcement?"
-            success = 0
-            fail = 0
+            success = fail = 0
             embed = discord.Embed(title=title, description=text, color=discord.Color.blue(), timestamp=datetime.now())
-            embed.set_footer(text=f"Cross-server announcement | By {author.name}")
+            embed.set_footer(text=f"Cross-server | By {author.name}")
             for g in bot.guilds:
                 if is_license_revoked(g.id): continue
                 gs = get_guild_settings(g.id)
                 ch = discord.utils.get(g.text_channels, name=gs.get("log_channel","sentinel-logs"))
                 if not ch:
-                    # Try fallback channels
-                    for fallback in ["general", "announcements", "chat"]:
-                        ch = discord.utils.get(g.text_channels, name=fallback)
+                    for fb in ["general","announcements","chat"]:
+                        ch = discord.utils.get(g.text_channels, name=fb)
                         if ch and ch.permissions_for(g.me).send_messages: break
                 if ch and ch.permissions_for(g.me).send_messages:
-                    try:
-                        await ch.send(embed=embed)
-                        success += 1
+                    try: await ch.send(embed=embed); success += 1
                     except: fail += 1
                 else: fail += 1
-                await asyncio.sleep(0.5)  # Rate limit
-            # Log to database
+                await asyncio.sleep(0.5)
             conn = get_db()
             c = conn.cursor()
             c.execute("INSERT INTO cross_announcements (message, title, sent_at, success_count, fail_count) VALUES (?, ?, ?, ?, ?)",
                       (text, title, datetime.now().isoformat(), success, fail))
             conn.commit()
             conn.close()
-            log_recent_action(guild.id, "CROSS-ANNOUNCE", "All servers", text[:100], f"{success} success, {fail} failed")
             return f"Broadcast sent to {success} servers! ({fail} failed)"
         
         elif cmd == "list_servers":
             if not is_owner(author.id): return "Owner only!"
             lines = [f"**Total: {len(bot.guilds)} servers**\n"]
             for g in bot.guilds[:25]:
-                status = " [REVOKED]" if is_license_revoked(g.id) else ""
+                status = " [REVOKED]" if is_license_revoked(g.id) else (" [LICENSED]" if is_license_accepted(g.id) else " [PENDING]")
                 lines.append(f"- **{g.name}**{status} | ID: `{g.id}` | {g.member_count} members")
             if len(bot.guilds) > 25:
                 lines.append(f"\n...and {len(bot.guilds)-25} more")
@@ -1545,7 +1781,13 @@ async def execute_command(parsed, message, guild, author):
             embed.add_field(name="Channels", value=str(len(target.text_channels)))
             embed.add_field(name="Roles", value=str(len(target.roles)-1))
             embed.add_field(name="Owner", value=str(target.owner) if target.owner else "Unknown")
-            embed.add_field(name="License", value="REVOKED" if is_license_revoked(target.id) else "Active")
+            license_info = get_license_info(target.id)
+            if is_license_revoked(target.id):
+                embed.add_field(name="License", value="REVOKED")
+            elif license_info:
+                embed.add_field(name="License", value=f"Accepted by {license_info.get('accepted_by_name','?')}")
+            else:
+                embed.add_field(name="License", value="PENDING")
             sm = get_server_memory(target.id)
             embed.add_field(name="Mood", value=sm.get("server_mood","neutral"))
             await message.channel.send(embed=embed)
@@ -1556,8 +1798,7 @@ async def execute_command(parsed, message, guild, author):
             target = find_guild_by_params(params)
             if not target: return "Server not found!"
             action_text = params.get("text") or params.get("reason")
-            if not action_text: return "What action do you want me to do there?"
-            # Parse the action as if it was sent in that server
+            if not action_text: return "What action?"
             class FakeMsg:
                 def __init__(self, channel, author_obj):
                     self.channel = channel
@@ -1566,24 +1807,23 @@ async def execute_command(parsed, message, guild, author):
                     self.content = action_text
                 async def reply(self, *args, **kwargs):
                     await self.channel.send(*args, **kwargs)
-                async def delete(self):
-                    pass
+                async def delete(self): pass
             target_ch = None
             for ch in target.text_channels:
                 if ch.permissions_for(target.me).send_messages:
                     target_ch = ch
                     break
-            if not target_ch: return "No accessible channel in target server!"
+            if not target_ch: return "No accessible channel!"
             try:
                 fake_msg = FakeMsg(target_ch, target.me)
                 sub_parsed = await parse_command(action_text, target, target.me)
                 if sub_parsed and sub_parsed.get("command") not in ["chat",None]:
                     result = await execute_command(sub_parsed, fake_msg, target, target.me)
                     return f"Executed in **{target.name}**: {result or 'Done'}"
-                return "Couldn't parse the remote action"
-            except Exception as e: return f"Remote error: {e}"
+                return "Couldn't parse"
+            except Exception as e: return f"Error: {e}"
         
-        # ============ REGULAR COMMANDS ============
+        # REGULAR COMMANDS
         elif cmd == "join_voice":
             ch = None
             cn = params.get("channel") or params.get("name")
@@ -1596,12 +1836,11 @@ async def execute_command(parsed, message, guild, author):
             if guild.id not in voice_sessions: return "Not in voice!"
             await end_voice_session(guild.id)
             return "Voice ended!"
-        
         elif cmd == "create_channel":
             name = params.get("name")
-            if not name: return "What should I name the channel?"
+            if not name: return "What should I name it?"
             name = name.lower().replace(" ","-").strip()
-            if discord.utils.get(guild.text_channels, name=name): return f"#{name} already exists!"
+            if discord.utils.get(guild.text_channels, name=name): return f"#{name} exists!"
             cat = None
             if params.get("category"):
                 cat = discord.utils.get(guild.categories, name=params["category"])
@@ -1609,42 +1848,37 @@ async def execute_command(parsed, message, guild, author):
                 ch = await guild.create_text_channel(name=name, category=cat)
                 log_recent_action(guild.id, "CREATED CHANNEL", f"#{name}", f"By {author.display_name}")
                 return f"Created {ch.mention}!"
-            except discord.Forbidden: return "I need Manage Channels permission!"
-        
+            except discord.Forbidden: return "Need Manage Channels permission!"
         elif cmd == "delete_channel":
             name = params.get("name")
-            if not name: return "Which channel to delete?"
+            if not name: return "Which channel?"
             ch = discord.utils.get(guild.text_channels, name=name.lower().replace(" ","-").strip())
-            if not ch: return f"Channel #{name} not found."
+            if not ch: return f"Not found."
             try:
                 await ch.delete()
                 log_recent_action(guild.id, "DELETED CHANNEL", f"#{name}", f"By {author.display_name}")
-                return f"Deleted #{name}!"
+                return f"Deleted!"
             except discord.Forbidden: return "No permission!"
-        
         elif cmd == "create_category":
             name = params.get("name")
             if not name: return "Name?"
             try:
-                cat = await guild.create_category(name=name.strip())
-                log_recent_action(guild.id, "CREATED CATEGORY", name, f"By {author.display_name}")
-                return f"Created category **{name}**!"
+                await guild.create_category(name=name.strip())
+                return f"Created **{name}**!"
             except discord.Forbidden: return "No permission!"
-        
         elif cmd == "delete_category":
             name = params.get("name")
-            if not name: return "Which category?"
+            if not name: return "Which?"
             cat = discord.utils.get(guild.categories, name=name)
             if not cat: return "Not found."
             try:
                 await cat.delete()
-                return f"Deleted category **{name}**!"
+                return f"Deleted!"
             except: return "Failed!"
-        
         elif cmd == "create_role":
             name = params.get("name")
             if not name: return "Name?"
-            if discord.utils.get(guild.roles, name=name): return f"Role **{name}** exists!"
+            if discord.utils.get(guild.roles, name=name): return f"Exists!"
             color = discord.Color.default()
             if params.get("color"):
                 try: color = discord.Color(int(params["color"].replace("#",""),16))
@@ -1654,30 +1888,27 @@ async def execute_command(parsed, message, guild, author):
                 log_recent_action(guild.id, "CREATED ROLE", name, f"By {author.display_name}")
                 return f"Created {role.mention}!"
             except discord.Forbidden: return "No permission!"
-        
         elif cmd == "delete_role":
             name = params.get("name")
-            if not name: return "Which role?"
+            if not name: return "Which?"
             role = discord.utils.get(guild.roles, name=name)
             if not role: return "Not found."
             try:
                 await role.delete()
                 log_recent_action(guild.id, "DELETED ROLE", name, f"By {author.display_name}")
-                return f"Deleted role **{name}**!"
+                return f"Deleted!"
             except discord.Forbidden: return "No permission!"
-        
         elif cmd == "add_role":
             t = find_member_strict(guild, params)
             if not t: t = author
             rn = params.get("role_name") or params.get("name")
             if not rn: return "Which role?"
             role = discord.utils.get(guild.roles, name=rn)
-            if not role: return "Role not found."
+            if not role: return "Not found."
             try:
                 await t.add_roles(role)
                 return f"Gave {role.mention} to **{t.name}**!"
             except discord.Forbidden: return "No permission!"
-        
         elif cmd == "remove_role":
             t = find_member_strict(guild, params)
             if not t: t = author
@@ -1686,9 +1917,8 @@ async def execute_command(parsed, message, guild, author):
             if not role: return "Not found."
             try:
                 await t.remove_roles(role)
-                return f"Removed {role.mention} from **{t.name}**!"
+                return f"Removed!"
             except discord.Forbidden: return "No permission!"
-        
         elif cmd == "ban_user":
             t = find_member_strict(guild, params)
             if not t: return "User not found! @mention them."
@@ -1703,55 +1933,46 @@ async def execute_command(parsed, message, guild, author):
                 await notify_owner("BAN", f"**{t}** banned: {reason}", guild=guild)
                 return f"Banned **{t.name}**!"
             except discord.Forbidden: return "No permission!"
-        
         elif cmd == "kick_user":
             t = find_member_strict(guild, params)
-            if not t: return "User not found!"
+            if not t: return "Not found!"
             reason = params.get("reason") or "No reason"
             try:
                 await guild.kick(t, reason=f"{reason} | By: {author}")
                 log_mod_action(t.id, guild.id, "KICK", reason, author.id)
-                log_recent_action(guild.id, "KICKED", t.display_name, reason, f"By {author.display_name}")
+                log_recent_action(guild.id, "KICKED", t.display_name, reason)
                 return f"Kicked **{t.name}**!"
             except discord.Forbidden: return "No permission!"
-        
         elif cmd == "mute_user":
             t = find_member_strict(guild, params)
-            if not t: return "User not found!"
+            if not t: return "Not found!"
             dur = min(int(params.get("duration") or s.get("mute_duration",10)), 40320)
             reason = params.get("reason") or "No reason"
             try:
                 await t.timeout(datetime.now() + timedelta(minutes=dur), reason=f"{reason} | By: {author}")
                 log_mod_action(t.id, guild.id, "MUTE", reason, author.id)
-                log_recent_action(guild.id, f"MUTED {dur}min", t.display_name, reason, f"By {author.display_name}")
+                log_recent_action(guild.id, f"MUTED {dur}min", t.display_name, reason)
                 return f"Muted **{t.name}** for {dur}min!"
             except discord.Forbidden: return "No permission!"
-        
         elif cmd == "unmute_user":
             t = find_member_strict(guild, params)
             if not t: return "Not found."
             try:
                 await t.timeout(None)
-                log_recent_action(guild.id, "UNMUTED", t.display_name, f"By {author.display_name}")
                 return f"Unmuted **{t.name}**!"
             except discord.Forbidden: return "No permission!"
-        
         elif cmd == "warn_user":
             t = find_member_strict(guild, params)
             if not t: return "Not found!"
             reason = params.get("reason") or "No reason"
             wc, _ = add_warning(t.id, guild.id, reason, "manual")
             log_mod_action(t.id, guild.id, "WARN", reason, author.id)
-            log_recent_action(guild.id, "WARNED", t.display_name, reason, f"#{wc} by {author.display_name}")
             return f"Warned **{t.name}** (#{wc})"
-        
         elif cmd == "clear_warnings":
             t = find_member_strict(guild, params)
             if not t: return "Not found."
             clear_warnings(t.id, guild.id)
-            log_recent_action(guild.id, "CLEARED WARNINGS", t.display_name, f"By {author.display_name}")
             return f"Cleared warnings for **{t.name}**!"
-        
         elif cmd == "warn_check":
             t = find_member_strict(guild, params)
             if not t: return "Not found."
@@ -1759,51 +1980,41 @@ async def execute_command(parsed, message, guild, author):
             if not ws: return f"**{t.name}** is clean!"
             lines = [f"#{i+1} [{w['severity']}] {w['reason']}" for i, w in enumerate(ws[:5])]
             return f"**{t.name}** has {len(ws)} warnings:\n" + "\n".join(lines)
-        
         elif cmd == "lock_channel":
             try:
                 await message.channel.set_permissions(guild.default_role, send_messages=False)
-                log_recent_action(guild.id, "LOCKED", f"#{message.channel.name}", f"By {author.display_name}")
                 return "Locked!"
             except discord.Forbidden: return "No permission!"
-        
         elif cmd == "unlock_channel":
             try:
                 await message.channel.set_permissions(guild.default_role, send_messages=None)
                 return "Unlocked!"
             except discord.Forbidden: return "No permission!"
-        
         elif cmd == "lockdown":
             count = 0
             for ch in guild.text_channels:
                 try: await ch.set_permissions(guild.default_role, send_messages=False); count += 1
                 except: pass
-            log_recent_action(guild.id, "LOCKDOWN", f"{count} channels", f"By {author.display_name}")
             await notify_owner("MOD", f"Lockdown in **{guild.name}**", guild=guild, urgent=True)
             return f"Locked {count} channels!"
-        
         elif cmd == "unlock_server":
             count = 0
             for ch in guild.text_channels:
                 try: await ch.set_permissions(guild.default_role, send_messages=None); count += 1
                 except: pass
             return f"Unlocked {count} channels!"
-        
         elif cmd == "slowmode":
             dur = max(0, min(int(params.get("duration") or 5), 21600))
             try:
                 await message.channel.edit(slowmode_delay=dur)
-                return f"Slowmode: {dur}s!" if dur else "Slowmode off!"
+                return f"Slowmode: {dur}s!" if dur else "Off!"
             except discord.Forbidden: return "No permission!"
-        
         elif cmd == "purge":
             amt = min(int(params.get("amount") or 10), 100)
             try:
                 deleted = await message.channel.purge(limit=amt + 1)
-                log_recent_action(guild.id, "PURGED", f"{len(deleted)-1} msgs", f"#{message.channel.name} by {author.display_name}")
                 return f"Deleted {len(deleted)-1} messages!"
             except discord.Forbidden: return "No permission!"
-        
         elif cmd == "quarantine":
             t = find_member_strict(guild, params)
             if not t: return "Not found."
@@ -1816,16 +2027,13 @@ async def execute_command(parsed, message, guild, author):
                         except: pass
                 except: return "Failed!"
             await t.add_roles(q)
-            log_recent_action(guild.id, "QUARANTINED", t.display_name, f"By {author.display_name}")
-            return f"Quarantined **{t.name}**!"
-        
+            return f"Quarantined!"
         elif cmd == "unquarantine":
             t = find_member_strict(guild, params)
             if not t: return "Not found."
             q = discord.utils.get(guild.roles, name="Quarantined")
             if q and q in t.roles: await t.remove_roles(q)
             return "Unquarantined!"
-        
         elif cmd == "trust_user":
             t = find_member_strict(guild, params)
             if not t: return "Not found."
@@ -1834,7 +2042,6 @@ async def execute_command(parsed, message, guild, author):
             c.execute("INSERT OR REPLACE INTO trusted_users VALUES (?,?,?,?,?)", (str(t.id),str(guild.id),str(author.id),"Trusted",datetime.now().isoformat()))
             conn.commit(); conn.close()
             return f"**{t.name}** trusted!"
-        
         elif cmd == "untrust_user":
             t = find_member_strict(guild, params)
             if not t: return "Not found."
@@ -1843,17 +2050,14 @@ async def execute_command(parsed, message, guild, author):
             c.execute("DELETE FROM trusted_users WHERE user_id=? AND guild_id=?", (str(t.id),str(guild.id)))
             conn.commit(); conn.close()
             return "Untrusted!"
-        
         elif cmd == "memory_view":
             sm = get_server_memory(guild.id)
             embed = discord.Embed(title=f"Memory: {guild.name}", color=discord.Color.purple())
             if sm.get("inside_jokes"): embed.add_field(name="Jokes", value="\n".join(f"- {j['text']}" for j in sm["inside_jokes"][-5:])[:400], inline=False)
             if sm.get("popular_topics"): embed.add_field(name="Topics", value=", ".join(sm["popular_topics"][:10]), inline=False)
-            if sm.get("common_phrases"): embed.add_field(name="Slang", value=", ".join(sm["common_phrases"][:10]), inline=False)
             embed.add_field(name="Mood", value=sm.get("server_mood","neutral").title())
             await message.channel.send(embed=embed)
             return None
-        
         elif cmd == "trivia":
             trivia = await ask_groq_json('Trivia. JSON: {"question":"q","correct":"a","wrong1":"b","wrong2":"c","wrong3":"d","category":"cat"}')
             if not trivia: return "Failed!"
@@ -1874,16 +2078,15 @@ async def execute_command(parsed, message, guild, author):
                     del trivia_sessions[msg.id]
             asyncio.create_task(timeout())
             return None
-        
         elif cmd in ["eightball","roast","compliment","dadjoke","ship","rate","fact","story","riddle"]:
             prompts = {
-                "eightball":(f"Mystical 8-ball answer (clean): '{params.get('question','?')}'","8-Ball"),
-                "roast":(f"Funny clean roast of {params.get('target_user_name','someone')} - playful","Roasted"),
-                "compliment":(f"Genuine compliment for {params.get('target_user_name',author.name)}","Compliment"),
+                "eightball":(f"Mystical 8-ball (clean): '{params.get('question','?')}'","8-Ball"),
+                "roast":(f"Clean funny roast of {params.get('target_user_name','someone')}","Roasted"),
+                "compliment":(f"Compliment for {params.get('target_user_name',author.name)}","Compliment"),
                 "dadjoke":("Best dad joke, clean","Dad Joke"),
-                "ship":(f"Ship {params.get('target_user_name','A')} and {params.get('target_user2','B')} with % and ship name","Ship"),
-                "rate":(f"Rate '{params.get('rating_target','this')}' /10 with funny explanation","Rating"),
-                "fact":("Random mind-blowing fact","Fact"),
+                "ship":(f"Ship {params.get('target_user_name','A')} and {params.get('target_user2','B')}","Ship"),
+                "rate":(f"Rate '{params.get('rating_target','this')}' /10","Rating"),
+                "fact":("Mind-blowing fact","Fact"),
                 "story":(f"Short clean story max 150 words {('about: ' + params.get('text','')) if params.get('text') else ''}","Story"),
                 "riddle":("Clever riddle and answer","Riddle"),
             }
@@ -1892,7 +2095,6 @@ async def execute_command(parsed, message, guild, author):
             if result:
                 await message.channel.send(embed=discord.Embed(title=title, description=sanitize_bot_response(result), color=discord.Color.purple()))
             return None
-        
         elif cmd == "remind":
             text = params.get("text") or "Reminder!"
             mins = int(params.get("reminder_time") or params.get("duration") or 10)
@@ -1902,7 +2104,6 @@ async def execute_command(parsed, message, guild, author):
                       (str(author.id),str(guild.id),str(message.channel.id),text,(datetime.now()+timedelta(minutes=mins)).isoformat()))
             conn.commit(); conn.close()
             return f"Reminder in {mins}min: **{text}**"
-        
         elif cmd == "set_afk":
             reason = params.get("reason") or "AFK"
             conn = get_db()
@@ -1910,7 +2111,6 @@ async def execute_command(parsed, message, guild, author):
             c.execute("INSERT OR REPLACE INTO afk_users VALUES (?,?,?,?)", (str(author.id),str(guild.id),reason,datetime.now().isoformat()))
             conn.commit(); conn.close()
             return f"AFK: **{reason}**"
-        
         elif cmd == "rep":
             t = find_member_strict(guild, params)
             if not t: return "@mention someone!"
@@ -1922,7 +2122,6 @@ async def execute_command(parsed, message, guild, author):
             c.execute("SELECT rep FROM reputation WHERE user_id=? AND guild_id=?", (str(t.id),str(guild.id)))
             rep = c.fetchone()[0]; conn.close()
             return f"+1 to **{t.name}**! Total: **{rep}**"
-        
         elif cmd == "start_giveaway":
             prize = params.get("prize") or "Mystery Prize"
             dur = int(params.get("duration") or 60)
@@ -1938,7 +2137,6 @@ async def execute_command(parsed, message, guild, author):
                       (str(guild.id),str(message.channel.id),str(gm.id),prize,wins,end.isoformat(),str(author.id)))
             conn.commit(); conn.close()
             return "Giveaway started!"
-        
         elif cmd == "create_poll":
             q = params.get("question") or "?"
             opts = params.get("options") or ["Yes","No"]
@@ -1948,7 +2146,6 @@ async def execute_command(parsed, message, guild, author):
             pm = await message.channel.send(embed=embed)
             for i in range(min(len(opts),5)): await pm.add_reaction(emojis[i])
             return None
-        
         elif cmd == "summarize":
             msgs = []
             async for m in message.channel.history(limit=min(int(params.get("amount") or 20),50)):
@@ -1956,23 +2153,20 @@ async def execute_command(parsed, message, guild, author):
             if not msgs: return "No messages!"
             result = await smart_ai("Summarize in bullets:\n"+"\n".join(reversed(msgs)),"Summarizer, clean")
             return f"**Summary:**\n{sanitize_bot_response(result)}"
-        
         elif cmd == "translate":
             text = params.get("text") or ""
             lang = params.get("language") or "English"
             if not text: return "No text!"
-            result = await smart_ai(f"Translate to {lang}, return ONLY translation:\n{text}","Translator")
+            result = await smart_ai(f"Translate to {lang}, ONLY translation:\n{text}","Translator")
             return f"**{lang}:** {result}"
-        
         elif cmd == "add_word_filter":
             w = params.get("word") or params.get("text")
-            if not w: return "Which word?"
+            if not w: return "Which?"
             conn = get_db()
             c = conn.cursor()
             c.execute("INSERT OR IGNORE INTO word_filters VALUES (?,?)", (str(guild.id),w.lower().strip()))
             conn.commit(); conn.close()
             return f"**{w}** filtered!"
-        
         elif cmd == "remove_word_filter":
             w = params.get("word") or params.get("text")
             if not w: return "Which?"
@@ -1981,12 +2175,10 @@ async def execute_command(parsed, message, guild, author):
             c.execute("DELETE FROM word_filters WHERE guild_id=? AND word=?", (str(guild.id),w.lower().strip()))
             conn.commit(); conn.close()
             return "Removed!"
-        
         elif cmd == "setup_server":
             await message.channel.send("Setting up...")
             results = await setup_server(guild)
             return "Done!\n" + "\n".join(results[:15])
-        
         elif cmd == "server_health":
             conn = get_db()
             c = conn.cursor()
@@ -2000,7 +2192,6 @@ async def execute_command(parsed, message, guild, author):
             embed.add_field(name="Warnings",value=str(wc)).add_field(name="Actions",value=str(ac))
             await message.channel.send(embed=embed)
             return None
-        
         elif cmd == "activity_stats":
             conn = get_db()
             c = conn.cursor()
@@ -2016,18 +2207,16 @@ async def execute_command(parsed, message, guild, author):
                 lines.append(f"{rank} **{name}**: {r['message_count']:,}")
             await message.channel.send(embed=discord.Embed(title="Most Active",description="\n".join(lines),color=discord.Color.blue()))
             return None
-        
         elif cmd == "help":
-            embed = discord.Embed(title="SentinelMod v8.0 - Sovereign Edition",description="Self-aware AI bot with owner sovereign control.",color=discord.Color.blue())
+            embed = discord.Embed(title="SentinelMod v8.1 - License Edition",description="Self-aware AI bot with license system",color=discord.Color.blue())
             embed.add_field(name="Chat",value=f"@mention or use #{AI_CHAT_CHANNEL}",inline=False)
             embed.add_field(name="Mod",value="`ban/kick/mute/warn @user` | `purge 50` | `lock`",inline=False)
             embed.add_field(name="Server",value="`create channel/role/category X` | `setup server`",inline=False)
             embed.add_field(name="Fun",value="`trivia` | `roast` | `8ball` | `story`",inline=False)
             if is_owner(author.id):
-                embed.add_field(name="OWNER POWERS",value="`revoke license from [server]` | `broadcast [msg]` | `list servers` | `control [server]: [action]`",inline=False)
+                embed.add_field(name="OWNER",value="`revoke license` | `broadcast` | `list servers` | `control [server]: [action]`",inline=False)
             await message.channel.send(embed=embed)
             return None
-        
         else: return None
     except discord.Forbidden: return "I don't have permission!"
     except Exception as e:
@@ -2086,6 +2275,21 @@ async def ai_mod_cmd(i: discord.Interaction, state: app_commands.Choice[str]):
     update_guild_setting(i.guild.id,"ai_mod_enabled",1 if state.value=="on" else 0)
     await i.response.send_message(f"AI Mod **{state.name}**",ephemeral=True)
 
+@bot.tree.command(name="license_info",description="View this server's license info")
+async def license_info_cmd(i: discord.Interaction):
+    info = get_license_info(i.guild.id)
+    embed = discord.Embed(title="License Information", color=discord.Color.blue())
+    if is_license_revoked(i.guild.id):
+        embed.add_field(name="Status", value="REVOKED by owner", inline=False)
+    elif info:
+        embed.add_field(name="Status", value="ACTIVE", inline=False)
+        embed.add_field(name="Accepted by", value=info.get("accepted_by_name","?"), inline=True)
+        embed.add_field(name="Accepted at", value=info.get("accepted_at","?")[:16], inline=True)
+    else:
+        embed.add_field(name="Status", value="PENDING", inline=False)
+    embed.set_footer(text=f"SentinelMod v{BOT_IDENTITY['version']}")
+    await i.response.send_message(embed=embed, ephemeral=True)
+
 @bot.tree.command(name="swear_filter",description="[Admin] Toggle swear filter")
 @app_commands.choices(state=[app_commands.Choice(name="ON",value="on"),app_commands.Choice(name="OFF",value="off")])
 async def swear_cmd(i: discord.Interaction, state: app_commands.Choice[str]):
@@ -2122,13 +2326,13 @@ async def personality_cmd(i: discord.Interaction):
 
 @bot.tree.command(name="about",description="About SentinelMod")
 async def about_cmd(i: discord.Interaction):
-    embed = discord.Embed(title=f"SentinelMod v{BOT_IDENTITY['version']} - Sovereign Edition",description="Self-aware AI with owner sovereign powers",color=discord.Color.blue())
+    embed = discord.Embed(title=f"SentinelMod v{BOT_IDENTITY['version']} - License Edition",description="Self-aware AI with license system",color=discord.Color.blue())
     embed.add_field(name="Creator",value=BOT_IDENTITY["creator_username"])
     embed.add_field(name="Servers",value=str(len(bot.guilds)))
-    embed.add_field(name="Mode",value="Apex AI + Sovereign Control")
+    embed.add_field(name="Mode",value="Sovereign + Licensed")
     await i.response.send_message(embed=embed)
 
-# Owner-only slash commands
+# Owner slash commands
 @bot.tree.command(name="revoke",description="[Owner] Revoke a server's license")
 async def revoke_cmd(i: discord.Interaction, server_id: str, reason: str = "Revoked by owner"):
     if not is_owner(i.user.id): await i.response.send_message("Owner only!",ephemeral=True); return
@@ -2142,13 +2346,13 @@ async def revoke_cmd(i: discord.Interaction, server_id: str, reason: str = "Revo
         await i.response.send_message(f"Revoked **{target.name}**!",ephemeral=True)
     except ValueError: await i.response.send_message("Invalid ID!",ephemeral=True)
 
-@bot.tree.command(name="broadcast",description="[Owner] Send announcement to all servers")
+@bot.tree.command(name="broadcast",description="[Owner] Send to all servers")
 async def broadcast_cmd(i: discord.Interaction, message: str, title: str = "Announcement"):
     if not is_owner(i.user.id): await i.response.send_message("Owner only!",ephemeral=True); return
     await i.response.defer(ephemeral=True)
     success = fail = 0
     embed = discord.Embed(title=title, description=message, color=discord.Color.blue(), timestamp=datetime.now())
-    embed.set_footer(text=f"Cross-server announcement | By {i.user.name}")
+    embed.set_footer(text=f"Cross-server | By {i.user.name}")
     for g in bot.guilds:
         if is_license_revoked(g.id): continue
         gs = get_guild_settings(g.id)
@@ -2162,7 +2366,7 @@ async def broadcast_cmd(i: discord.Interaction, message: str, title: str = "Anno
             except: fail += 1
         else: fail += 1
         await asyncio.sleep(0.5)
-    await i.followup.send(f"Sent to {success} servers, {fail} failed!",ephemeral=True)
+    await i.followup.send(f"Sent to {success}, failed {fail}!",ephemeral=True)
 
 # ============ BACKGROUND TASKS ============
 @tasks.loop(hours=1)
@@ -2228,29 +2432,41 @@ async def check_reminders():
 @bot.event
 async def on_ready():
     print(f"{bot.user} ONLINE | {len(bot.guilds)} servers | v{BOT_IDENTITY['version']}")
-    print(f"SOVEREIGN MODE: ACTIVE")
+    print(f"LICENSE EDITION: ACTIVE")
     BOT_IDENTITY["bot_id"] = bot.user.id
     load_revoked_servers()
+    load_accepted_licenses()
+    
+    # Check each guild - leave revoked, prompt unlicensed
     for g in bot.guilds:
         if is_license_revoked(g.id):
             print(f"License revoked for {g.name}, leaving...")
             try: await g.leave()
             except: pass
             continue
+        if not is_license_accepted(g.id):
+            print(f"No license for {g.name}, sending agreement...")
+            asyncio.create_task(send_license_agreement(g))
+            continue
         init_guild_settings(g.id)
+    
     try:
         synced = await bot.tree.sync()
         print(f"{len(synced)} commands synced")
     except: pass
     for task in [server_memory_extraction,memory_cleanup,check_giveaways,check_reminders]:
         if not task.is_running(): task.start()
-    await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching,name=f"v{BOT_IDENTITY['version']} | Sovereign"))
-    await notify_owner("INFO", f"v{BOT_IDENTITY['version']} ONLINE - Sovereign Edition!")
+    await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching,name=f"v{BOT_IDENTITY['version']} | Licensed"))
+    await notify_owner("INFO", f"v{BOT_IDENTITY['version']} ONLINE - License Edition!")
 
 @bot.event
 async def on_guild_join(guild):
+    """When bot joins a new server - send license agreement."""
+    print(f"Joined new server: {guild.name} ({guild.id})")
+    
+    # Check if revoked
     if is_license_revoked(guild.id):
-        print(f"Trying to join revoked server {guild.name} - leaving immediately")
+        print(f"Tried to join revoked server {guild.name} - leaving")
         try:
             for ch in guild.text_channels:
                 if ch.permissions_for(guild.me).send_messages:
@@ -2259,13 +2475,26 @@ async def on_guild_join(guild):
         except: pass
         await guild.leave()
         return
-    init_guild_settings(guild.id)
-    await setup_server(guild)
-    await notify_owner("JOIN", f"Joined **{guild.name}**!", guild=guild)
+    
+    # Notify owner of join
+    await notify_owner("JOIN", f"Bot added to **{guild.name}** ({guild.member_count} members) - Sending license...", guild=guild)
+    
+    # Send license agreement (this handles everything)
+    await send_license_agreement(guild)
+
+@bot.event
+async def on_guild_remove(guild):
+    """When bot is removed from server."""
+    print(f"Removed from {guild.name}")
+    # Clean up pending license if any
+    if guild.id in pending_licenses:
+        del pending_licenses[guild.id]
+    await notify_owner("INFO", f"Removed from **{guild.name}**", guild=guild)
 
 @bot.event
 async def on_member_join(member):
     g = member.guild
+    if not is_license_accepted(g.id): return  # Skip if license not accepted
     s = get_guild_settings(g.id)
     today = datetime.now().date().isoformat()
     conn = get_db(); c = conn.cursor()
@@ -2304,12 +2533,10 @@ async def handle_appeal(message):
     w = c.fetchone()
     if not w: await message.reply("Not found."); conn.close(); return True
     if w["appealed"]: await message.reply("Already appealed."); conn.close(); return True
-    ai_review = await ask_groq_json(f"""User appealing warning. Should it be accepted?
+    ai_review = await ask_groq_json(f"""User appealing warning. JSON: {{"recommendation":"accept|deny|review","reasoning":"why"}}
 Original: {w['reason']} (severity: {w['severity']})
 Context: {w['context']}
-Appeal: {text}
-
-JSON: {{"recommendation":"accept|deny|review","reasoning":"why"}}""")
+Appeal: {text}""")
     ai_rec = "review"
     if ai_review: ai_rec = ai_review.get("recommendation","review")
     c.execute("INSERT INTO appeals (user_id,guild_id,warning_id,appeal_text,ai_recommendation,timestamp) VALUES (?,?,?,?,?,?)",
@@ -2330,10 +2557,15 @@ async def on_message(message):
     if message.author.bot: return
     if not message.guild: await handle_appeal(message); return
     
-    # Check if license is revoked
+    # Check license status
     if is_license_revoked(message.guild.id):
         try: await message.guild.leave()
         except: pass
+        return
+    
+    # If no license yet, only allow license-related interactions
+    if not is_license_accepted(message.guild.id):
+        # Don't moderate, don't respond to chat - just wait for license
         return
     
     update_live_context(message.guild.id, message.channel.id, message.author.display_name, message.author.id, message.content)
@@ -2471,6 +2703,6 @@ if __name__ == "__main__":
             print("AI Features loaded")
         except Exception as e: print(f"AI features err: {e}")
     
-    print(f"SentinelMod v{BOT_IDENTITY['version']} - SOVEREIGN EDITION")
-    print(f"Owner sovereign control | Cross-server features | Smart moderation")
+    print(f"SentinelMod v{BOT_IDENTITY['version']} - LICENSE EDITION")
+    print(f"License agreement required on join | Owner sovereign control")
     bot.run(DISCORD_TOKEN)
