@@ -13,6 +13,7 @@ from discord.ext import commands, tasks
 from discord import app_commands
 import aiohttp
 import json
+import image_moderation
 import os
 import asyncio
 import sqlite3
