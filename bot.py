@@ -3193,11 +3193,10 @@ async def check_reminders():
         try:
             ch = bot.get_channel(int(rem["channel_id"]))
             if ch:
-                await ch.send(f"⏰ {rem['user_id'] and f'<@{rem[chr(117)ser_id]}>'}: **{rem['reminder']}**")
+                await ch.send(f"⏰ <@{rem['user_id']}>: **{rem['reminder']}**")
         except: pass
         c.execute("UPDATE reminders SET active=0 WHERE id=?", (rem["id"],))
     conn.commit(); conn.close()
-
 
 # ============ EVENTS ============
 @bot.event
