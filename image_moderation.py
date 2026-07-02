@@ -1,8 +1,8 @@
 # image_moderation.py
 # ================================
 # FULLY SELF-CONTAINED AI Image Moderation
-# Just drop this file next to bot.py - it auto-hooks itself in!
-# No changes needed to bot.py
+# EVERYONE gets moderated. Only manually trusted users are exempt.
+# Just drop this file next to bot.py
 # ================================
 
 import aiohttp
@@ -23,6 +23,7 @@ from discord import app_commands
 # ============ CONFIG ============
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 OPENROUTER_KEY = os.getenv("OPENROUTER_KEY", "")
+BOT_OWNER_ID = int(os.getenv("OWNER_ID", "1268285209867059372"))
 
 _image_cache: dict[str, tuple] = {}
 CACHE_TTL = 3600
@@ -239,20 +240,18 @@ def check_image_spam(user_id: int, guild_id: int, num_images: int = 1) -> bool:
     return len(_user_image_tracker[key]) >= 10
 
 
-# ============ AUTO-HOOK INTO BOT ============
+# ============ HELPERS ============
 
 _bot_ref = None
 _is_setup = False
 
 def _get_db():
-    """Get database connection."""
     conn = sqlite3.connect("sentinel.db", check_same_thread=False)
     conn.row_factory = sqlite3.Row
     return conn
 
 
 def _get_setting(guild_id):
-    """Check if image mod is enabled for guild."""
     try:
         conn = _get_db()
         c = conn.cursor()
@@ -260,10 +259,9 @@ def _get_setting(guild_id):
         row = c.fetchone()
         conn.close()
         if row is None:
-            return True  # Default ON
+            return True
         return bool(row["image_moderation"])
     except sqlite3.OperationalError:
-        # Column doesn't exist yet - add it
         try:
             conn = _get_db()
             c = conn.cursor()
@@ -287,6 +285,7 @@ def _set_setting(guild_id, value):
 
 
 def _is_trusted(user_id, guild_id):
+    """Check if user is in the trusted_users table."""
     try:
         conn = _get_db()
         c = conn.cursor()
@@ -295,16 +294,6 @@ def _is_trusted(user_id, guild_id):
         conn.close()
         return result is not None
     except: return False
-
-
-def _has_mod(member):
-    if member.guild_permissions.administrator: return True
-    if member.guild_permissions.ban_members or member.guild_permissions.manage_messages:
-        return True
-    for role in member.roles:
-        if "mod" in role.name.lower() or "admin" in role.name.lower():
-            return True
-    return False
 
 
 def _add_warning(uid, gid, reason, severity):
@@ -339,7 +328,6 @@ def _log_action(uid, gid, action, reason):
 
 
 async def _alert_mods(guild, embed):
-    """Send alert to log channel."""
     for ch_name in ["sentinel-logs", "mod-logs", "logs", "audit-log"]:
         ch = discord.utils.get(guild.text_channels, name=ch_name)
         if ch:
@@ -350,11 +338,9 @@ async def _alert_mods(guild, embed):
 
 
 async def _notify_owner(alert_type, message_text, guild=None, urgent=False):
-    """Try to notify bot owner."""
     if not _bot_ref: return
     try:
-        owner_id = int(os.getenv("OWNER_ID", "1268285209867059372"))
-        owner = await _bot_ref.fetch_user(owner_id)
+        owner = await _bot_ref.fetch_user(BOT_OWNER_ID)
         if owner:
             embed = discord.Embed(
                 title=f"{alert_type}{' [URGENT]' if urgent else ''}",
@@ -369,7 +355,7 @@ async def _notify_owner(alert_type, message_text, guild=None, urgent=False):
 
 
 async def _moderate_images(message):
-    """Main image moderation handler."""
+    """EVERYONE gets moderated. Only trusted users are exempt."""
     if not message.guild or message.author.bot:
         return False
     
@@ -383,10 +369,11 @@ async def _moderate_images(message):
     if not _get_setting(guild.id):
         return False
     
+    # ONLY exemption: trusted users
     if _is_trusted(author.id, guild.id):
         return False
-    if _has_mod(author):
-        return False
+    
+    # EVERYONE ELSE gets moderated - admins, mods, server owner, bot owner, everyone.
     
     # Image spam check
     if check_image_spam(author.id, guild.id, len(image_urls)):
@@ -445,24 +432,48 @@ async def _moderate_images(message):
     cat_str = ", ".join(categories) if categories else "content"
     full_reason = f"Image: {cat_str} - {reason}"
     
+    # Track if we can actually punish them (Discord role hierarchy)
+    can_punish = True
+    try:
+        # Bot can't punish users with higher/equal role or server owner
+        if author.id == guild.owner_id:
+            can_punish = False
+        elif author.top_role >= guild.me.top_role:
+            can_punish = False
+    except:
+        pass
+    
     if severity == "ban" or "csam" in categories:
         try: await message.delete()
         except: pass
-        try:
-            await guild.ban(author, reason=f"CRITICAL: {full_reason}", delete_message_days=1)
-        except: pass
-        _log_action(author.id, guild.id, "AUTO-BAN (IMAGE)", full_reason)
+        
+        banned = False
+        if can_punish:
+            try:
+                await guild.ban(author, reason=f"CRITICAL: {full_reason}", delete_message_days=1)
+                banned = True
+                _log_action(author.id, guild.id, "AUTO-BAN (IMAGE)", full_reason)
+            except: pass
+        
+        if not banned:
+            _log_action(author.id, guild.id, "IMAGE VIOLATION (CANT PUNISH)", full_reason)
         
         embed = discord.Embed(
-            title="🚨 IMAGE BAN",
-            description=f"Auto-banned **{author}** for image violation",
+            title="🚨 CRITICAL IMAGE VIOLATION" + (" - AUTO-BAN" if banned else " (CANNOT BAN - HIGHER ROLE)"),
+            description=f"**{author}** posted forbidden content",
             color=discord.Color.dark_red()
         )
+        embed.add_field(name="User", value=author.mention, inline=True)
+        embed.add_field(name="Banned?", value="YES" if banned else "NO (role hierarchy)", inline=True)
         embed.add_field(name="Categories", value=cat_str, inline=False)
         embed.add_field(name="Reason", value=reason, inline=False)
         embed.add_field(name="Confidence", value=f"{confidence:.0%}")
         await _alert_mods(guild, embed)
-        await _notify_owner("CRITICAL", f"Image auto-ban in **{guild.name}**: {author}", guild=guild, urgent=True)
+        await _notify_owner(
+            "CRITICAL",
+            f"CRITICAL image violation in **{guild.name}** by {author}" + (" (auto-banned)" if banned else " (COULD NOT BAN)"),
+            guild=guild, urgent=True
+        )
         return True
     
     elif severity in ["critical", "high"]:
@@ -478,19 +489,23 @@ async def _moderate_images(message):
             )
         except: pass
         
-        mute_dur = 60 if severity == "critical" else 30
-        try:
-            await author.timeout(
-                datetime.now() + timedelta(minutes=mute_dur),
-                reason=full_reason
-            )
-        except: pass
+        muted = False
+        if can_punish:
+            mute_dur = 60 if severity == "critical" else 30
+            try:
+                await author.timeout(
+                    datetime.now() + timedelta(minutes=mute_dur),
+                    reason=full_reason
+                )
+                muted = True
+            except: pass
         
         embed = discord.Embed(
-            title=f"🖼️ Image Removed - {severity.upper()}",
+            title=f"🖼️ Image Removed - {severity.upper()}" + ("" if muted else " (COULD NOT MUTE)"),
             color=discord.Color.red() if severity == "critical" else discord.Color.orange()
         )
         embed.add_field(name="User", value=author.mention, inline=True)
+        embed.add_field(name="Muted?", value="YES" if muted else "NO", inline=True)
         embed.add_field(name="Warning #", value=str(wc), inline=True)
         embed.add_field(name="Confidence", value=f"{confidence:.0%}", inline=True)
         embed.add_field(name="Categories", value=cat_str, inline=False)
@@ -498,6 +513,13 @@ async def _moderate_images(message):
         if worst_result.get("detected_text"):
             embed.add_field(name="Text in image", value=worst_result["detected_text"][:200], inline=False)
         await _alert_mods(guild, embed)
+        
+        if not can_punish:
+            await _notify_owner(
+                "MOD",
+                f"Couldn't punish **{author}** in **{guild.name}** (role hierarchy): {reason}",
+                guild=guild
+            )
         return True
     
     elif severity == "medium":
@@ -530,15 +552,12 @@ async def _moderate_images(message):
 # ============ AUTO-SETUP ============
 
 def setup(bot):
-    """Called automatically by discord.py when using bot.load_extension()
-    OR manually if imported. Sets up event listener and slash command."""
     global _bot_ref, _is_setup
     if _is_setup:
         return
     _bot_ref = bot
     _is_setup = True
     
-    # Ensure column exists
     try:
         conn = _get_db()
         c = conn.cursor()
@@ -547,12 +566,11 @@ def setup(bot):
             conn.commit()
             print("[image_mod] Added image_moderation column to DB")
         except sqlite3.OperationalError:
-            pass  # Already exists
+            pass
         conn.close()
     except Exception as e:
         print(f"[image_mod] DB setup err: {e}")
     
-    # Hook into on_message via listener (doesn't replace existing on_message!)
     @bot.listen('on_message')
     async def _image_mod_listener(message):
         try:
@@ -566,7 +584,6 @@ def setup(bot):
         except Exception as e:
             print(f"[image_mod] Listener err: {e}")
     
-    # Register slash command
     @bot.tree.command(name="image_mod", description="[Admin] Toggle AI image moderation")
     @app_commands.choices(state=[
         app_commands.Choice(name="ON", value="on"),
@@ -582,7 +599,6 @@ def setup(bot):
             ephemeral=True
         )
     
-    # Cache cleanup task
     @tasks.loop(hours=1)
     async def _cache_cleanup():
         now = time.time()
@@ -597,17 +613,13 @@ def setup(bot):
     if not _cache_cleanup.is_running():
         _cache_cleanup.start()
     
-    print("[image_mod] ✅ Auto-hooked into bot! Image moderation is ACTIVE")
+    print("[image_mod] ✅ Auto-hooked! EVERYONE moderated except trusted users.")
 
 
-# ============ AUTO-INITIALIZE ON IMPORT ============
-# This runs when bot.py does `import image_moderation` (if it does)
-# Since your bot.py doesn't import this, we use a different approach below
+# ============ AUTO-HOOK ============
 
 def _auto_hook():
-    """Try to auto-detect and hook into a running bot."""
     import sys
-    # Check if bot.py is loaded and has a 'bot' variable
     for module_name, module in list(sys.modules.items()):
         if module is None: continue
         if hasattr(module, 'bot') and isinstance(getattr(module, 'bot', None), commands.Bot):
@@ -618,11 +630,10 @@ def _auto_hook():
     return False
 
 
-# Try auto-hook after a delay (gives bot.py time to load)
 import threading
 def _delayed_hook():
     import time as _time
-    for attempt in range(30):  # Try for 30 seconds
+    for attempt in range(30):
         _time.sleep(1)
         try:
             if _auto_hook():
