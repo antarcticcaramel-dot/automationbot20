@@ -3,6 +3,7 @@
 # SentinelMod AI Image Moderation
 # EVERYONE gets moderated except manually trusted users.
 # Strong scam/crypto/phishing screenshot detection.
+# Logs ONLY to sentinel-logs channel. No owner DMs.
 # ================================
 
 import aiohttp
@@ -23,7 +24,6 @@ from discord import app_commands
 # ============ CONFIG ============
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 OPENROUTER_KEY = os.getenv("OPENROUTER_KEY", "")
-BOT_OWNER_ID = int(os.getenv("OWNER_ID", "1268285209867059372"))
 
 _image_cache: dict[str, tuple] = {}
 CACHE_TTL = 3600
@@ -47,10 +47,7 @@ SCAM_TEXT_PATTERNS = [
 ]
 
 def scam_text_override(result: dict) -> dict:
-    """
-    If the vision model sees text/explanation containing obvious scam markers,
-    force it to scam even if the AI was too soft.
-    """
+    """Force scam flag if obvious scam text is detected."""
     combined = " ".join([
         str(result.get("detected_text", "")),
         str(result.get("explanation", "")),
@@ -91,7 +88,6 @@ async def analyze_with_groq_vision(image_url: str, prompt: str) -> dict | None:
         "Content-Type": "application/json"
     }
 
-    # Includes newer and older Groq vision-capable models.
     models = [
         "meta-llama/llama-4-scout-17b-16e-instruct",
         "meta-llama/llama-4-maverick-17b-128e-instruct",
@@ -256,7 +252,7 @@ OTHER BAD CONTENT:
 - Server invite spam or advertisement images
 
 IMPORTANT:
-- Be STRICT with scam screenshots. If it looks like a crypto/money giveaway, fake withdrawal, or fake celebrity post, flag it.
+- Be STRICT with scam screenshots.
 - Read all text in the image carefully.
 - Real users almost never post legitimate "Withdrawal Success $5600 USDT" screenshots in random Discord servers.
 - Do NOT let scams pass just because it is a screenshot of Twitter/X.
@@ -339,7 +335,6 @@ NOTE: This is an NSFW channel. Adult content may be allowed, BUT still flag:
         "explanation": str(result.get("explanation", ""))[:1000],
     }
 
-    # Hard override for obvious scam wording.
     normalized = scam_text_override(normalized)
 
     _image_cache[cache_key] = (normalized, time.time())
@@ -355,7 +350,6 @@ NOTE: This is an NSFW channel. Adult content may be allowed, BUT still flag:
 def extract_image_urls(message) -> list[str]:
     urls = []
 
-    # Attachments
     for attachment in message.attachments:
         try:
             if attachment.content_type and attachment.content_type.startswith("image/"):
@@ -365,7 +359,6 @@ def extract_image_urls(message) -> list[str]:
         except:
             pass
 
-    # Embeds
     for embed in message.embeds:
         try:
             if embed.image and embed.image.url:
@@ -375,12 +368,10 @@ def extract_image_urls(message) -> list[str]:
         except:
             pass
 
-    # Direct image links
     url_pattern = r'https?://\S+\.(?:png|jpg|jpeg|gif|webp|bmp)(?:\?\S*)?'
     for match in re.finditer(url_pattern, message.content or "", re.IGNORECASE):
         urls.append(match.group())
 
-    # Discord CDN / media links without normal extension sometimes
     host_patterns = [
         r'https?://cdn\.discordapp\.com/attachments/\S+',
         r'https?://media\.discordapp\.net/attachments/\S+',
@@ -410,7 +401,6 @@ def message_might_have_image(message) -> bool:
     return False
 
 
-# ============ SPAM ============
 def check_image_spam(user_id: int, guild_id: int, num_images: int = 1) -> bool:
     key = f"{guild_id}:{user_id}"
     now = time.time()
@@ -478,10 +468,7 @@ def _set_setting(guild_id, value):
 
 
 def _is_trusted(user_id, guild_id):
-    """
-    ONLY trusted users are exempt.
-    Admins, server owner, bot owner, mods, and everyone else are moderated.
-    """
+    """ONLY trusted users are exempt."""
     try:
         conn = _get_db()
         c = conn.cursor()
@@ -533,6 +520,7 @@ def _log_action(uid, gid, action, reason):
 
 
 async def _alert_mods(guild, embed):
+    """Send to sentinel-logs or similar. NO owner DMs."""
     for ch_name in ["sentinel-logs", "mod-logs", "logs", "audit-log"]:
         ch = discord.utils.get(guild.text_channels, name=ch_name)
         if ch:
@@ -546,39 +534,7 @@ async def _alert_mods(guild, embed):
                 pass
 
 
-async def _notify_owner(alert_type, message_text, guild=None, urgent=False):
-    if not _bot_ref:
-        return
-
-    try:
-        owner = await _bot_ref.fetch_user(BOT_OWNER_ID)
-        if not owner:
-            return
-
-        embed = discord.Embed(
-            title=f"{alert_type}{' [URGENT]' if urgent else ''}",
-            description=message_text[:2000],
-            color=discord.Color.red() if urgent else discord.Color.orange(),
-            timestamp=datetime.now()
-        )
-
-        if guild:
-            embed.add_field(name="Server", value=guild.name)
-
-        await owner.send(embed=embed)
-
-    except discord.HTTPException as e:
-        if e.status == 429:
-            await asyncio.sleep(getattr(e, "retry_after", 5) + 1)
-    except:
-        pass
-
-
 def _can_punish(member, guild):
-    """
-    Discord role hierarchy may prevent punishment, but moderation still happens:
-    the image is deleted and alerts are sent.
-    """
     try:
         if not guild.me:
             return False
@@ -596,7 +552,6 @@ async def _moderate_images(message):
     if not message.guild:
         return False
 
-    # Only skip SentinelMod itself to prevent self-loop.
     if _bot_ref and _bot_ref.user and message.author.id == _bot_ref.user.id:
         return False
 
@@ -610,11 +565,10 @@ async def _moderate_images(message):
     if not _get_setting(guild.id):
         return False
 
-    # The ONLY exemption.
     if _is_trusted(author.id, guild.id):
         return False
 
-    # Image spam.
+    # Image spam
     if check_image_spam(author.id, guild.id, len(image_urls)):
         try:
             await message.delete()
@@ -629,7 +583,7 @@ async def _moderate_images(message):
                 pass
 
         try:
-            await message.channel.send(f"{author.mention} slow down with the images!", delete_after=10)
+            await message.channel.send(f"{author.mention} slow down with the images!", delete_after=5)
         except:
             pass
 
@@ -654,12 +608,10 @@ async def _moderate_images(message):
         "ban": 5
     }
 
-    # Max 5 images per message.
     for url in image_urls[:5]:
         try:
             result = await asyncio.wait_for(analyze_image(url, channel_is_nsfw), timeout=35.0)
 
-            # Debug logs so you can see why it did/didn't catch.
             print("[IMAGE MOD RESULT]")
             print(f"User: {author} | Guild: {guild.name}")
             print(f"Safe: {result.get('safe')}")
@@ -685,7 +637,6 @@ async def _moderate_images(message):
     if not worst_result:
         return False
 
-    # Run override again on final result.
     worst_result = scam_text_override(worst_result)
 
     if worst_result.get("safe", True):
@@ -701,7 +652,6 @@ async def _moderate_images(message):
     scam_categories = ["scam", "phishing", "crypto_scam", "fake_giveaway", "impersonation", "malicious_link"]
     is_scam = any(cat in categories for cat in scam_categories)
 
-    # Stricter scam threshold.
     if is_scam:
         if confidence < 0.45:
             return False
@@ -744,7 +694,7 @@ async def _moderate_images(message):
             color=discord.Color.dark_red()
         )
         embed.add_field(name="User", value=getattr(author, "mention", str(author)), inline=True)
-        embed.add_field(name="Banned?", value="YES" if banned else "NO - role hierarchy/server owner", inline=True)
+        embed.add_field(name="Banned?", value="YES" if banned else "NO", inline=True)
         embed.add_field(name="Categories", value=cat_str[:1000], inline=False)
         embed.add_field(name="Reason", value=reason[:1000], inline=False)
         embed.add_field(name="Confidence", value=f"{confidence:.0%}", inline=True)
@@ -754,13 +704,6 @@ async def _moderate_images(message):
             embed.add_field(name="Explanation", value=explanation[:1000], inline=False)
 
         await _alert_mods(guild, embed)
-        await _notify_owner(
-            "CRITICAL",
-            f"Critical image violation in **{guild.name}** by {author}: {reason}",
-            guild=guild,
-            urgent=True
-        )
-
         return True
 
     # ============ CRITICAL / HIGH ============
@@ -785,7 +728,7 @@ async def _moderate_images(message):
         try:
             await message.channel.send(
                 f"{author.mention} That image was removed: **{reason}** | Warning #{wc}",
-                delete_after=15
+                delete_after=5
             )
         except:
             pass
@@ -807,14 +750,6 @@ async def _moderate_images(message):
             embed.add_field(name="Explanation", value=explanation[:1000], inline=False)
 
         await _alert_mods(guild, embed)
-
-        if is_scam or not can_punish:
-            await _notify_owner(
-                "MOD",
-                f"Image removed in **{guild.name}** from {author}: {reason}",
-                guild=guild
-            )
-
         return True
 
     # ============ MEDIUM ============
@@ -830,11 +765,24 @@ async def _moderate_images(message):
         try:
             await message.channel.send(
                 f"{author.mention} Please don't post that here: **{reason}**",
-                delete_after=12
+                delete_after=5
             )
         except:
             pass
 
+        embed = discord.Embed(
+            title="🖼️ Image Removed - MEDIUM",
+            color=discord.Color.orange()
+        )
+        embed.add_field(name="User", value=getattr(author, "mention", str(author)), inline=True)
+        embed.add_field(name="Warning #", value=str(wc), inline=True)
+        embed.add_field(name="Confidence", value=f"{confidence:.0%}", inline=True)
+        embed.add_field(name="Categories", value=cat_str[:1000], inline=False)
+        embed.add_field(name="Reason", value=reason[:1000], inline=False)
+        if detected_text:
+            embed.add_field(name="Detected Text", value=detected_text[:1000], inline=False)
+
+        await _alert_mods(guild, embed)
         return True
 
     # ============ LOW ============
@@ -849,7 +797,7 @@ async def _moderate_images(message):
         try:
             await message.channel.send(
                 f"{author.mention} That image isn't appropriate here.",
-                delete_after=8
+                delete_after=5
             )
         except:
             pass
@@ -877,7 +825,6 @@ def setup(bot):
             if not message.guild:
                 return
 
-            # Do not skip all bots. Only skip this bot itself.
             if _bot_ref and _bot_ref.user and message.author.id == _bot_ref.user.id:
                 return
 
@@ -922,7 +869,7 @@ def setup(bot):
     if not _cache_cleanup.is_running():
         _cache_cleanup.start()
 
-    print("[image_mod] ✅ Loaded. EVERYONE moderated except trusted users. Strong scam detection active.")
+    print("[image_mod] ✅ Loaded. Logs only to sentinel-logs. No owner DMs.")
 
 
 # ============ AUTO HOOK ============
@@ -954,6 +901,6 @@ def _delayed_hook():
         except:
             pass
 
-    print("[image_mod] ⚠️ Could not auto-hook. Add `import image_moderation` to bot.py or use run_bot.py.")
+    print("[image_mod] ⚠️ Could not auto-hook. Add `import image_moderation` to bot.py.")
 
 threading.Thread(target=_delayed_hook, daemon=True).start()
