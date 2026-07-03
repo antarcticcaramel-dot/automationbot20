@@ -18,7 +18,6 @@ import os
 import asyncio
 import sqlite3
 import time
-import smart_rules
 import threading
 import random
 import re
