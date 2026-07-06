@@ -3527,16 +3527,16 @@ async def on_message(message):
 
 
 
-    # ============ OWNER HANDLING ============
-       if owner_talking and (is_ai_ch or is_mentioned):
+       # ============ OWNER HANDLING ============
+    if owner_talking and (is_ai_ch or is_mentioned):
         content = message.content.replace(f"<@{bot.user.id}>", "").strip()
         if not content:
             await message.reply("Yeah Boss? 👑")
             return
-        
+
         if await answer_rules_question(message, content, server_rules):
             return
-        
+
         parsed = None
         if likely_command(content):
             try:
