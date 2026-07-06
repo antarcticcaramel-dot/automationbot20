@@ -3439,8 +3439,7 @@ async def on_message(message):
     is_mentioned = bot.user in message.mentions
     speak_vc = guild.id in voice_sessions
 
-   if await answer_rules_question(message, content, server_rules):
-            return
+
 
     # ============ OWNER HANDLING ============
     if owner_talking and (is_ai_ch or is_mentioned):
