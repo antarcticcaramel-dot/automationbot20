@@ -23,6 +23,7 @@ import random
 import re
 import io
 import hashlib
+import smart_rules
 from datetime import datetime, timedelta
 from collections import defaultdict, deque
 import dashboard
