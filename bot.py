@@ -352,6 +352,88 @@ def get_recent_actions_text(guild_id, limit=15):
     )
 
 # ============ RULES SYSTEM ============
+async def find_rules_channel(guild) -> discord.TextChannel | None:
+    """Smart detection of the server's rules channel."""
+    # 1. Check by common names
+    for name in RULES_CHANNEL_NAMES:
+        ch = discord.utils.get(guild.text_channels, name=name)
+        if ch and guild.me.permissions_in(ch).read_messages:
+            return ch
+    # 2. Check channel topics/names containing 'rule'
+    for ch in guild.text_channels:
+        if not guild.me.permissions_in(ch).read_messages:
+            continue
+        if 'rule' in ch.name.lower() or 'guideline' in ch.name.lower():
+            return ch
+        if ch.topic and ('rule' in ch.topic.lower() or 'guideline' in ch.topic.lower()):
+            return ch
+    return None
+
+
+async def read_server_rules(guild) -> str:
+    """Read and cache the server's rules."""
+    gid = str(guild.id)
+    # Return cached if fresh
+    if gid in server_rules_cache:
+        return server_rules_cache[gid]
+
+    rules_ch = await find_rules_channel(guild)
+    if not rules_ch:
+        return ""
+
+    rules_text = []
+    try:
+        async for msg in rules_ch.history(limit=30, oldest_first=True):
+            if msg.content and len(msg.content.strip()) > 10:
+                rules_text.append(msg.content[:500])
+            for embed in msg.embeds:
+                if embed.description:
+                    rules_text.append(embed.description[:500])
+                for field in embed.fields:
+                    rules_text.append(f"{field.name}: {field.value}"[:300])
+    except Exception as e:
+        print(f"Rules read err: {e}")
+        return ""
+
+    combined = "\n\n".join(rules_text)[:3000]
+    if combined:
+        server_rules_cache[gid] = combined
+    return combined
+
+
+async def refresh_rules_cache(guild):
+    """Force refresh the rules cache."""
+    gid = str(guild.id)
+    if gid in server_rules_cache:
+        del server_rules_cache[gid]
+    return await read_server_rules(guild)
+
+
+async def check_against_server_rules(content: str, author_name: str, guild) -> dict:
+    """Use AI to check message against server's own rules."""
+    rules = await read_server_rules(guild)
+    if not rules or len(rules.strip()) < 20:
+        return {"violates": False, "reason": "", "rule": ""}
+
+    content_safe = sanitize_for_prompt(content)
+    prompt = f"""Check if this message violates these server rules.
+
+SERVER RULES:
+{rules[:2000]}
+
+MESSAGE from {author_name}: "{content_safe}"
+
+JSON ONLY:
+{{"violates": true/false, "rule": "which rule number/name if violated", "reason": "brief explanation", "severity": "low|medium|high"}}
+
+Be conservative - only flag CLEAR violations of EXPLICIT rules. If unsure, say false."""
+
+    result = await ask_groq_json(prompt)
+    if not result:
+        return {"violates": False, "reason": "", "rule": ""}
+    return result
+
+
 async def answer_rules_question(message, content: str, server_rules: str) -> bool:
     """Detect if someone is asking about rules and answer conversationally."""
     rules_keywords = [
@@ -365,6 +447,10 @@ async def answer_rules_question(message, content: str, server_rules: str) -> boo
 
     rules_ch = await find_rules_channel(message.guild)
     ch_name = rules_ch.name if rules_ch else "rules"
+
+    # Load rules if not already loaded
+    if not server_rules or len(server_rules.strip()) < 20:
+        server_rules = await read_server_rules(message.guild)
 
     if not server_rules or len(server_rules.strip()) < 20:
         await message.reply(f"I couldn't find any rules! Check #{ch_name}")
@@ -395,7 +481,7 @@ User's question: "{content}"
 Answer conversationally:
 - "what are the rules" = short friendly summary, list rule titles only, NOT a wall of text
 - "can I do X" = direct yes/no based on the rules
-- "what happens if I break X" = explain the consequence  
+- "what happens if I break X" = explain the consequence
 - If rules don't mention what they ask, say so honestly
 - Point them to #{ch_name} for the full list
 - 2-4 sentences for simple questions
@@ -3442,12 +3528,15 @@ async def on_message(message):
 
 
     # ============ OWNER HANDLING ============
-    if owner_talking and (is_ai_ch or is_mentioned):
+       if owner_talking and (is_ai_ch or is_mentioned):
         content = message.content.replace(f"<@{bot.user.id}>", "").strip()
         if not content:
             await message.reply("Yeah Boss? 👑")
             return
-            
+        
+        if await answer_rules_question(message, content, server_rules):
+            return
+        
         parsed = None
         if likely_command(content):
             try:
@@ -3479,12 +3568,15 @@ async def on_message(message):
         return
 
     # ============ MOD HANDLING ============
-    if is_mod and (is_ai_ch or is_mentioned):
+       if is_mod and (is_ai_ch or is_mentioned):
         content = message.content.replace(f"<@{bot.user.id}>", "").strip()
         if not content:
             if is_mentioned: await message.reply("What's up? 👮")
             return
-            
+        
+        if await answer_rules_question(message, content, server_rules):
+            return
+        
         parsed = None
         if likely_command(content):
             try:
@@ -3520,13 +3612,16 @@ async def on_message(message):
         return
 
     # ============ REGULAR USER HANDLING ============
-    if is_ai_ch or is_mentioned:
+       if is_ai_ch or is_mentioned:
         content = message.content.replace(f"<@{bot.user.id}>", "").strip()
         if not content:
             if is_mentioned:
                 await message.reply(random.choice(["Hey! 👋", "What's up?", "I'm here!"]))
             return
-            
+
+        if await answer_rules_question(message, content, server_rules):
+            return
+
         # Allow certain commands for regular users
         user_allowed_cmds = [
             "trivia", "eightball", "roast", "compliment", "dadjoke", "ship",
