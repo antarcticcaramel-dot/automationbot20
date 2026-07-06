@@ -372,12 +372,48 @@ async def find_rules_channel(guild) -> discord.TextChannel | None:
 
 
 async def read_server_rules(guild) -> str:
-    """Read and cache the server's rules."""
+    """Read and cache the server's rules. Prefers smart_rules extraction if available."""
     gid = str(guild.id)
+
     # Return cached if fresh
     if gid in server_rules_cache:
         return server_rules_cache[gid]
 
+    # Try smart_rules first - it has better extraction (embeds, pins, bot messages)
+    try:
+        import smart_rules
+        rules_data = await smart_rules.load_and_extract_rules(guild)
+        rules = rules_data.get("rules", [])
+        
+        if rules:
+            # Build readable text from structured rules
+            lines = []
+            summary = rules_data.get("summary", "")
+            if summary:
+                lines.append(f"Summary: {summary}\n")
+            for r in rules:
+                num = r.get("number", "?")
+                title = r.get("title", "")
+                desc = r.get("description", "")
+                lines.append(f"Rule {num}: {title}\n{desc}")
+            combined = "\n\n".join(lines)[:3000]
+            if combined:
+                server_rules_cache[gid] = combined
+                print(f"DEBUG: Loaded {len(rules)} rules from smart_rules for {guild.name}")
+                return combined
+        
+        # If smart_rules got raw content but no structured rules
+        raw = rules_data.get("raw", "")
+        if raw and len(raw.strip()) > 20:
+            combined = raw[:3000]
+            server_rules_cache[gid] = combined
+            return combined
+    except ImportError:
+        pass
+    except Exception as e:
+        print(f"smart_rules load err: {e}")
+
+    # Fallback - original basic reading
     rules_ch = await find_rules_channel(guild)
     if not rules_ch:
         return ""
@@ -403,10 +439,17 @@ async def read_server_rules(guild) -> str:
 
 
 async def refresh_rules_cache(guild):
-    """Force refresh the rules cache."""
+    """Force refresh - clears both bot.py cache and smart_rules cache."""
     gid = str(guild.id)
+    # Clear bot.py cache
     if gid in server_rules_cache:
         del server_rules_cache[gid]
+    # Clear smart_rules cache too
+    try:
+        import smart_rules
+        smart_rules._rules_cache.pop(gid, None)
+    except ImportError:
+        pass
     return await read_server_rules(guild)
 
 
