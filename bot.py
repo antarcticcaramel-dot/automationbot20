@@ -437,76 +437,75 @@ Be conservative - only flag CLEAR violations of EXPLICIT rules. If unsure, say f
 
 async def answer_rules_question(message, content: str, server_rules: str) -> bool:
     """Detect if someone is asking about rules and answer conversationally."""
-    rules_keywords = [
-        'rule', 'rules', 'allowed', 'allow', 'banned', 'can i', 'am i allowed',
-        'is it ok', 'is it okay', 'permitted', 'forbid', 'forbidden',
-        'guidelines', 'what can', 'what cant', "what can't",
-        'against the rules', 'violate', 'what are the'
-    ]
-    if not any(kw in content.lower() for kw in rules_keywords):
-        return False
+    try:
+        rules_keywords = [
+            'rule', 'rules', 'allowed', 'allow', 'banned', 'can i', 'am i allowed',
+            'is it ok', 'is it okay', 'permitted', 'forbid', 'forbidden',
+            'guidelines', 'what can', 'what cant', "what can't",
+            'against the rules', 'violate', 'what are the'
+        ]
+        if not any(kw in content.lower() for kw in rules_keywords):
+            return False
 
-    rules_ch = await find_rules_channel(message.guild)
-    ch_name = rules_ch.name if rules_ch else "rules"
+        print(f"DEBUG: Rules question detected from {message.author}: {content}")
 
-    # Load rules if not already loaded
-    if not server_rules or len(server_rules.strip()) < 20:
-        server_rules = await read_server_rules(message.guild)
+        rules_ch = await find_rules_channel(message.guild)
+        ch_name = rules_ch.name if rules_ch else "rules"
 
-    if not server_rules or len(server_rules.strip()) < 20:
-        await message.reply(f"I couldn't find any rules! Check #{ch_name}")
+        if not server_rules or len(server_rules.strip()) < 20:
+            print("DEBUG: Loading rules from cache/channel...")
+            server_rules = await read_server_rules(message.guild)
+
+        if not server_rules or len(server_rules.strip()) < 20:
+            await message.reply("I couldn't find any rules yet! Please use `/reload_rules` or `/set_rules_channel` first.")
+            return True
+
+        rule_num_match = re.search(r'rule\s*#?(\d+)', content.lower())
+        specific_num = rule_num_match.group(1) if rule_num_match else None
+
+        if specific_num:
+            prompt = f"""The user is asking about Rule {specific_num}.
+
+SERVER RULES:
+{server_rules[:2500]}
+
+User's question: "{content}"
+
+Explain Rule {specific_num} clearly and conversationally. If it doesn't exist, say so. Be friendly. NEVER swear."""
+        else:
+            prompt = f"""The user is asking about this server's rules.
+
+SERVER RULES:
+{server_rules[:2500]}
+
+User's question: "{content}"
+
+Answer conversationally and helpfully:
+- Give a short friendly summary if they ask "what are the rules"
+- Give direct yes/no answers for "can I do X"
+- Point them to #{ch_name} for the full list
+- Be friendly and direct. NEVER swear."""
+
+        system = "You are SentinelMod. Answer questions about server rules clearly, conversationally, and helpfully. Be direct and friendly. NEVER swear."
+
+        sent_msg = await message.reply("*looking up the rules...*")
+        response = await smart_ai(prompt, system, max_tokens=400, temperature=0.7)
+        
+        if not response or not response.strip():
+            response = f"Check out #{ch_name} for the full server rules!"
+        else:
+            response = sanitize_bot_response(response.strip())
+
+        await sent_msg.edit(content=response)
+        print("DEBUG: Rules answer sent successfully")
         return True
 
-    rule_num_match = re.search(r'rule\s*#?(\d+)', content.lower())
-    specific_num = rule_num_match.group(1) if rule_num_match else None
-
-    if specific_num:
-        prompt = f"""The user is asking about Rule {specific_num}.
-
-SERVER RULES:
-{server_rules[:3000]}
-
-User's question: "{content}"
-
-Find rule {specific_num} and explain it conversationally.
-If it doesn't exist, say so and list what rules do exist.
-Be friendly and direct. NEVER swear."""
-    else:
-        prompt = f"""The user is asking about this server's rules.
-
-SERVER RULES:
-{server_rules[:3000]}
-
-User's question: "{content}"
-
-Answer conversationally:
-- "what are the rules" = short friendly summary, list rule titles only, NOT a wall of text
-- "can I do X" = direct yes/no based on the rules
-- "what happens if I break X" = explain the consequence
-- If rules don't mention what they ask, say so honestly
-- Point them to #{ch_name} for the full list
-- 2-4 sentences for simple questions
-- NEVER swear"""
-
-    system = """You are SentinelMod, this server's AI moderator.
-You know the server rules inside and out.
-Answer rule questions clearly, conversationally and helpfully.
-Never be preachy. Be direct and friendly. NEVER swear."""
-
-    sent_msg = await message.reply("*checking the rules...*")
-    try:
-        response = await asyncio.wait_for(
-            smart_ai(prompt, system, max_tokens=400, temperature=0.7),
-            timeout=20.0
-        )
-        if not response:
-            response = f"Check out #{ch_name} for the full rules!"
-        response = sanitize_bot_response(response.strip())
-        await sent_msg.edit(content=response)
-    except asyncio.TimeoutError:
-        await sent_msg.edit(content=f"Check out #{ch_name} for the server rules!")
-
-    return True
+    except Exception as e:
+        print(f"ERROR in answer_rules_question: {type(e).__name__}: {e}")
+        import traceback
+        traceback.print_exc()
+        await message.reply("Sorry, I had trouble reading the rules. Try running `/reload_rules` first.")
+        return True
 # ============ DATABASE ============
 def init_database():
     conn = sqlite3.connect("sentinel.db", check_same_thread=False)
