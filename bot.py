@@ -3447,9 +3447,6 @@ async def on_message(message):
         if not content:
             await message.reply("Yeah Boss? 👑")
             return
-
-            if await answer_rules_question(message, content, server_rules):
-            return
             
         parsed = None
         if likely_command(content):
@@ -3486,9 +3483,6 @@ async def on_message(message):
         content = message.content.replace(f"<@{bot.user.id}>", "").strip()
         if not content:
             if is_mentioned: await message.reply("What's up? 👮")
-            return
-
-            if await answer_rules_question(message, content, server_rules):
             return
             
         parsed = None
@@ -3531,9 +3525,6 @@ async def on_message(message):
         if not content:
             if is_mentioned:
                 await message.reply(random.choice(["Hey! 👋", "What's up?", "I'm here!"]))
-            return
-
-            if await answer_rules_question(message, content, server_rules):
             return
             
         # Allow certain commands for regular users
