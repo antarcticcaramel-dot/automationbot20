@@ -358,11 +358,11 @@ async def find_rules_channel(guild) -> discord.TextChannel | None:
     # 1. Check by common names
     for name in RULES_CHANNEL_NAMES:
         ch = discord.utils.get(guild.text_channels, name=name)
-        if ch and guild.me.permissions_in(ch).read_messages:
+        if ch and ch.permissions_for(guild.me).read_messages:
             return ch
     # 2. Check channel topics/names containing 'rule'
     for ch in guild.text_channels:
-        if not guild.me.permissions_in(ch).read_messages:
+        if not ch.permissions_for(guild.me).read_messages:
             continue
         if 'rule' in ch.name.lower() or 'guideline' in ch.name.lower():
             return ch
