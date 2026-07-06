@@ -3525,9 +3525,10 @@ async def on_message(message):
     is_mentioned = bot.user in message.mentions
     speak_vc = guild.id in voice_sessions
 
+    # Get server rules for moderation context
+    server_rules = server_rules_cache.get(str(guild.id), "")
 
-
-       # ============ OWNER HANDLING ============
+    # ============ OWNER HANDLING ============
     if owner_talking and (is_ai_ch or is_mentioned):
         content = message.content.replace(f"<@{bot.user.id}>", "").strip()
         if not content:
@@ -3568,15 +3569,15 @@ async def on_message(message):
         return
 
     # ============ MOD HANDLING ============
-       if is_mod and (is_ai_ch or is_mentioned):
+    if is_mod and (is_ai_ch or is_mentioned):
         content = message.content.replace(f"<@{bot.user.id}>", "").strip()
         if not content:
             if is_mentioned: await message.reply("What's up? 👮")
             return
-        
+
         if await answer_rules_question(message, content, server_rules):
             return
-        
+
         parsed = None
         if likely_command(content):
             try:
@@ -3612,7 +3613,7 @@ async def on_message(message):
         return
 
     # ============ REGULAR USER HANDLING ============
-       if is_ai_ch or is_mentioned:
+    if is_ai_ch or is_mentioned:
         content = message.content.replace(f"<@{bot.user.id}>", "").strip()
         if not content:
             if is_mentioned:
