@@ -490,64 +490,111 @@ async def answer_rules_question(message, content: str, server_rules: str) -> boo
         if not any(kw in content.lower() for kw in rules_keywords):
             return False
 
-        print(f"DEBUG: Rules question detected from {message.author}: {content}")
+        print(f"DEBUG: Rules question from {message.author}: {content}")
 
         rules_ch = await find_rules_channel(message.guild)
         ch_name = rules_ch.name if rules_ch else "rules"
 
         if not server_rules or len(server_rules.strip()) < 20:
-            print("DEBUG: Loading rules from cache/channel...")
             server_rules = await read_server_rules(message.guild)
 
         if not server_rules or len(server_rules.strip()) < 20:
             await message.reply("I couldn't find any rules yet! Please use `/reload_rules` or `/set_rules_channel` first.")
             return True
 
-        rule_num_match = re.search(r'rule\s*#?(\d+)', content.lower())
+        content_lower = content.lower()
+
+        # Detect intent
+        wants_full_list = any(phrase in content_lower for phrase in [
+            'in order', 'list', 'all the rules', 'all rules', 'every rule',
+            'tell me the rules', 'show me the rules', 'show the rules',
+            'what are the rules', 'what are all', 'full list'
+        ])
+        
+        rule_num_match = re.search(r'rule\s*#?(\d+)', content_lower)
         specific_num = rule_num_match.group(1) if rule_num_match else None
 
+        # Handle specific rule number
         if specific_num:
-            prompt = f"""The user is asking about Rule {specific_num}.
+            prompt = f"""User asked about Rule {specific_num}.
 
 SERVER RULES:
 {server_rules[:2500]}
 
 User's question: "{content}"
 
-Explain Rule {specific_num} clearly and conversationally. If it doesn't exist, say so. Be friendly. NEVER swear."""
+Find Rule {specific_num} and quote it EXACTLY, then briefly explain what it means in plain English.
+If it doesn't exist, say so and list the numbers that do exist.
+Keep it under 4 sentences. NEVER swear."""
+        
+        # Handle "list all rules" type questions
+        elif wants_full_list:
+            prompt = f"""User wants to see the full rules list.
+
+SERVER RULES:
+{server_rules[:2800]}
+
+User's question: "{content}"
+
+LIST OUT every rule with its number and title, in order.
+Format like:
+**1.** [Rule title]
+**2.** [Rule title]
+etc.
+
+Do NOT give a summary. Do NOT be vague. LIST THE ACTUAL RULES.
+At the end, add ONE short line saying they can check #{ch_name} for full details.
+NEVER swear."""
+        
+        # General "can I do X" type questions
         else:
-            prompt = f"""The user is asking about this server's rules.
+            prompt = f"""User asked about the server rules.
 
 SERVER RULES:
 {server_rules[:2500]}
 
 User's question: "{content}"
 
-Answer conversationally and helpfully:
-- Give a short friendly summary if they ask "what are the rules"
-- Give direct yes/no answers for "can I do X"
-- Point them to #{ch_name} for the full list
-- Be friendly and direct. NEVER swear."""
+Answer their SPECIFIC question directly using the actual rules.
+- If they ask "can I X" -> Check the rules and answer YES or NO with the rule that covers it
+- If they ask "what's allowed" -> List what IS allowed based on the rules (be specific, quote rules)
+- If the rules don't cover their question, say so honestly
+- Quote actual rule text when relevant
+- Be direct. No vague fluff. 2-4 sentences.
+- NEVER swear."""
 
-        system = "You are SentinelMod. Answer questions about server rules clearly, conversationally, and helpfully. Be direct and friendly. NEVER swear."
+        system = """You are SentinelMod, this server's AI moderator.
+You know the server rules and answer questions about them directly and helpfully.
+NEVER give vague generic answers - always reference SPECIFIC rules.
+When asked to list rules, LIST THEM. Don't summarize.
+NEVER swear."""
 
-        sent_msg = await message.reply("*looking up the rules...*")
-        response = await smart_ai(prompt, system, max_tokens=400, temperature=0.7)
+        sent_msg = await message.reply("*checking the rules...*")
+        response = await smart_ai(prompt, system, max_tokens=800, temperature=0.5)
         
         if not response or not response.strip():
             response = f"Check out #{ch_name} for the full server rules!"
         else:
             response = sanitize_bot_response(response.strip())
 
-        await sent_msg.edit(content=response)
-        print("DEBUG: Rules answer sent successfully")
+        # Handle long responses
+        if len(response) > 2000:
+            chunks = [response[i:i+2000] for i in range(0, len(response), 2000)]
+            await sent_msg.edit(content=chunks[0])
+            for chunk in chunks[1:]:
+                await message.channel.send(chunk)
+        else:
+            await sent_msg.edit(content=response)
+        
         return True
 
     except Exception as e:
         print(f"ERROR in answer_rules_question: {type(e).__name__}: {e}")
         import traceback
         traceback.print_exc()
-        await message.reply("Sorry, I had trouble reading the rules. Try running `/reload_rules` first.")
+        try:
+            await message.reply("Sorry, I had trouble reading the rules. Try `/reload_rules` first.")
+        except: pass
         return True
 # ============ DATABASE ============
 def init_database():
