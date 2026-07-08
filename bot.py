@@ -359,20 +359,104 @@ def get_recent_actions_text(guild_id, limit=15):
 
 # ============ RULES SYSTEM ============
 async def find_rules_channel(guild) -> discord.TextChannel | None:
-    """Smart detection of the server's rules channel."""
-    # 1. Check by common names
-    for name in RULES_CHANNEL_NAMES:
-        ch = discord.utils.get(guild.text_channels, name=name)
+    """AI-powered detection of the server's rules channel."""
+    # Check cache first
+    cache_key = f"rules_ch_{guild.id}"
+    if cache_key in server_rules_cache:
+        cached_name = server_rules_cache[cache_key]
+        ch = discord.utils.get(guild.text_channels, name=cached_name)
         if ch and ch.permissions_for(guild.me).read_messages:
             return ch
-    # 2. Check channel topics/names containing 'rule'
+    
+    # Get all readable text channels
+    readable_channels = []
     for ch in guild.text_channels:
-        if not ch.permissions_for(guild.me).read_messages:
-            continue
-        if 'rule' in ch.name.lower() or 'guideline' in ch.name.lower():
-            return ch
-        if ch.topic and ('rule' in ch.topic.lower() or 'guideline' in ch.topic.lower()):
-            return ch
+        try:
+            if ch.permissions_for(guild.me).read_messages:
+                readable_channels.append({
+                    "id": ch.id,
+                    "name": ch.name,
+                    "topic": (ch.topic or "")[:100],
+                    "category": ch.category.name if ch.category else "None"
+                })
+        except: pass
+    
+    if not readable_channels:
+        return None
+    
+    # If only a few channels, sample content from each
+    if len(readable_channels) <= 20:
+        channel_samples = []
+        for ch_data in readable_channels:
+            ch = guild.get_channel(ch_data["id"])
+            if not ch: continue
+            try:
+                sample_content = []
+                async for msg in ch.history(limit=3, oldest_first=True):
+                    if msg.content and len(msg.content) > 20:
+                        sample_content.append(msg.content[:150])
+                    for embed in msg.embeds:
+                        if embed.title:
+                            sample_content.append(f"[Embed: {embed.title[:100]}]")
+                        if embed.description:
+                            sample_content.append(f"[Desc: {embed.description[:100]}]")
+                
+                channel_samples.append({
+                    "name": ch_data["name"],
+                    "topic": ch_data["topic"],
+                    "sample": " | ".join(sample_content[:3])[:300]
+                })
+            except: pass
+        
+        prompt = f"""Analyze these Discord channels and identify which ONE is the SERVER RULES channel.
+
+Channels may have creative names with emojis, special characters, or non-English words.
+Focus on the CONTENT and PURPOSE, not just the name.
+
+CHANNELS:
+{json.dumps(channel_samples, indent=2)[:3000]}
+
+Return JSON only:
+{{"rules_channel_name": "exact_channel_name_or_null", "confidence": 0.0-1.0, "reason": "brief explanation"}}
+
+The rules channel usually contains:
+- Numbered lists of rules
+- "Be respectful", "No spam", "Follow ToS" type content
+- Server guidelines or code of conduct
+- Punishment info
+
+If NONE of these channels look like a rules channel, return null."""
+
+    else:
+        # Too many channels - just send names
+        prompt = f"""Analyze these Discord channel names and identify which ONE is most likely the SERVER RULES channel.
+
+Channels may have creative names with emojis or non-English words. Look at meaning, not just keywords.
+
+CHANNELS:
+{json.dumps([{"name": c["name"], "topic": c["topic"]} for c in readable_channels], indent=2)[:3000]}
+
+Return JSON:
+{{"rules_channel_name": "exact_channel_name_or_null", "confidence": 0.0-1.0, "reason": "brief"}}"""
+    
+    result = await ask_groq_json(prompt)
+    if not result or not result.get("rules_channel_name"):
+        # Fallback to Discord's official rules channel
+        if hasattr(guild, 'rules_channel') and guild.rules_channel:
+            return guild.rules_channel
+        return None
+    
+    if result.get("confidence", 0) < 0.6:
+        return None
+    
+    ch_name = result["rules_channel_name"]
+    ch = discord.utils.get(guild.text_channels, name=ch_name)
+    if ch and ch.permissions_for(guild.me).read_messages:
+        # Cache the result
+        server_rules_cache[cache_key] = ch_name
+        print(f"AI detected rules channel: #{ch_name} in {guild.name} (confidence: {result.get('confidence', 0)})")
+        return ch
+    
     return None
 
 
@@ -3706,6 +3790,479 @@ async def personality_cmd(i: discord.Interaction):
         embed=discord.Embed(title="🎭 Choose Personality", color=discord.Color.purple()),
         view=view, ephemeral=True
     )
+
+    def generate_line_graph(data_points: list, title: str, x_label: str = "Time", y_label: str = "Count", color: str = "#5865F2") -> io.BytesIO | None:
+    """Generate a line graph as a PNG image."""
+    try:
+        import matplotlib
+        matplotlib.use('Agg')  # Non-interactive backend
+        import matplotlib.pyplot as plt
+        from matplotlib.dates import DateFormatter
+        
+        if not data_points or len(data_points) < 2:
+            return None
+        
+        # Setup dark theme
+        plt.style.use('dark_background')
+        fig, ax = plt.subplots(figsize=(10, 5), facecolor='#2b2d31')
+        ax.set_facecolor('#2b2d31')
+        
+        # Extract x and y
+        x_vals = [p[0] for p in data_points]
+        y_vals = [p[1] for p in data_points]
+        
+        # Plot
+        ax.plot(x_vals, y_vals, color=color, linewidth=2.5, marker='o', markersize=6, markerfacecolor='white')
+        ax.fill_between(range(len(x_vals)), y_vals, alpha=0.3, color=color)
+        
+        # Styling
+        ax.set_title(title, color='white', fontsize=16, fontweight='bold', pad=15)
+        ax.set_xlabel(x_label, color='#b5bac1', fontsize=12)
+        ax.set_ylabel(y_label, color='#b5bac1', fontsize=12)
+        ax.grid(True, alpha=0.2, linestyle='--')
+        ax.tick_params(colors='#b5bac1')
+        
+        for spine in ax.spines.values():
+            spine.set_color('#404249')
+        
+        # Rotate x labels if strings
+        if isinstance(x_vals[0], str):
+            plt.xticks(rotation=45, ha='right')
+        
+        plt.tight_layout()
+        
+        # Save to bytes
+        buf = io.BytesIO()
+        plt.savefig(buf, format='png', dpi=100, bbox_inches='tight', facecolor='#2b2d31')
+        buf.seek(0)
+        plt.close(fig)
+        
+        return buf
+    except ImportError:
+        print("matplotlib not installed")
+        return None
+    except Exception as e:
+        print(f"Graph err: {e}")
+        return None
+
+
+@bot.tree.command(name="stats_graph", description="View activity graphs for this server")
+@app_commands.choices(graph_type=[
+    app_commands.Choice(name="Messages (Last 7 Days)", value="messages_7d"),
+    app_commands.Choice(name="Messages (Last 30 Days)", value="messages_30d"),
+    app_commands.Choice(name="Joins/Leaves (7 Days)", value="joins_leaves_7d"),
+    app_commands.Choice(name="Mod Actions (7 Days)", value="mod_7d"),
+    app_commands.Choice(name="All Activity (7 Days)", value="all_7d"),
+])
+async def stats_graph_cmd(i: discord.Interaction, graph_type: app_commands.Choice[str]):
+    await i.response.defer()
+    
+    guild = i.guild
+    
+    conn = get_db()
+    c = conn.cursor()
+    
+    days = 30 if "30d" in graph_type.value else 7
+    date_labels = []
+    for d in range(days - 1, -1, -1):
+        date = (datetime.now().date() - timedelta(days=d))
+        date_labels.append(date.isoformat())
+    
+    if graph_type.value in ["messages_7d", "messages_30d"]:
+        data = []
+        for date_str in date_labels:
+            c.execute("SELECT messages FROM daily_stats WHERE guild_id=? AND date=?", (str(guild.id), date_str))
+            row = c.fetchone()
+            count = row["messages"] if row else 0
+            display_date = datetime.fromisoformat(date_str).strftime("%m/%d")
+            data.append((display_date, count))
+        
+        graph = generate_line_graph(data, f"📊 Messages - Last {days} Days", "Date", "Messages", "#5865F2")
+        title = f"Messages - Last {days} Days"
+        
+        embed = discord.Embed(title=f"📈 {title}", color=discord.Color.blurple())
+        total = sum(d[1] for d in data)
+        avg = total // len(data) if data else 0
+        peak = max(d[1] for d in data) if data else 0
+        embed.add_field(name="Total", value=f"{total:,}", inline=True)
+        embed.add_field(name="Daily Average", value=f"{avg:,}", inline=True)
+        embed.add_field(name="Peak Day", value=f"{peak:,}", inline=True)
+    
+    elif graph_type.value == "joins_leaves_7d":
+        joins_data = []
+        leaves_data = []
+        for date_str in date_labels:
+            c.execute("SELECT joins, leaves FROM daily_stats WHERE guild_id=? AND date=?", (str(guild.id), date_str))
+            row = c.fetchone()
+            joins = row["joins"] if row else 0
+            leaves = row["leaves"] if row else 0
+            display_date = datetime.fromisoformat(date_str).strftime("%m/%d")
+            joins_data.append((display_date, joins))
+            leaves_data.append((display_date, leaves))
+        
+        # Multi-line graph
+        try:
+            import matplotlib
+            matplotlib.use('Agg')
+            import matplotlib.pyplot as plt
+            
+            plt.style.use('dark_background')
+            fig, ax = plt.subplots(figsize=(10, 5), facecolor='#2b2d31')
+            ax.set_facecolor('#2b2d31')
+            
+            x_vals = [d[0] for d in joins_data]
+            ax.plot(x_vals, [d[1] for d in joins_data], color='#57F287', linewidth=2.5, marker='o', label='Joins')
+            ax.plot(x_vals, [d[1] for d in leaves_data], color='#ED4245', linewidth=2.5, marker='o', label='Leaves')
+            
+            ax.set_title("📊 Member Activity - Last 7 Days", color='white', fontsize=16, fontweight='bold', pad=15)
+            ax.set_xlabel("Date", color='#b5bac1', fontsize=12)
+            ax.set_ylabel("Members", color='#b5bac1', fontsize=12)
+            ax.legend(facecolor='#2b2d31', edgecolor='#404249', labelcolor='white')
+            ax.grid(True, alpha=0.2, linestyle='--')
+            ax.tick_params(colors='#b5bac1')
+            for spine in ax.spines.values():
+                spine.set_color('#404249')
+            plt.xticks(rotation=45, ha='right')
+            plt.tight_layout()
+            
+            graph = io.BytesIO()
+            plt.savefig(graph, format='png', dpi=100, bbox_inches='tight', facecolor='#2b2d31')
+            graph.seek(0)
+            plt.close(fig)
+        except:
+            graph = None
+        
+        title = "Joins vs Leaves - Last 7 Days"
+        embed = discord.Embed(title=f"📈 {title}", color=discord.Color.green())
+        total_joins = sum(d[1] for d in joins_data)
+        total_leaves = sum(d[1] for d in leaves_data)
+        embed.add_field(name="🟢 Total Joins", value=f"{total_joins}", inline=True)
+        embed.add_field(name="🔴 Total Leaves", value=f"{total_leaves}", inline=True)
+        embed.add_field(name="📊 Net Growth", value=f"{total_joins - total_leaves:+}", inline=True)
+    
+    elif graph_type.value == "mod_7d":
+        data = []
+        for date_str in date_labels:
+            c.execute("SELECT mod_actions FROM daily_stats WHERE guild_id=? AND date=?", (str(guild.id), date_str))
+            row = c.fetchone()
+            count = row["mod_actions"] if row else 0
+            display_date = datetime.fromisoformat(date_str).strftime("%m/%d")
+            data.append((display_date, count))
+        
+        graph = generate_line_graph(data, "🛡️ Mod Actions - Last 7 Days", "Date", "Actions", "#ED4245")
+        title = "Mod Actions - Last 7 Days"
+        
+        embed = discord.Embed(title=f"📈 {title}", color=discord.Color.red())
+        total = sum(d[1] for d in data)
+        avg = total // len(data) if data else 0
+        embed.add_field(name="Total Actions", value=f"{total}", inline=True)
+        embed.add_field(name="Daily Average", value=f"{avg}", inline=True)
+        embed.add_field(name="Peak Day", value=f"{max(d[1] for d in data) if data else 0}", inline=True)
+    
+    elif graph_type.value == "all_7d":
+        # Multi-line: messages, joins, leaves, mod actions
+        try:
+            import matplotlib
+            matplotlib.use('Agg')
+            import matplotlib.pyplot as plt
+            
+            all_data = {"messages": [], "joins": [], "leaves": [], "mod_actions": []}
+            for date_str in date_labels:
+                c.execute("SELECT messages, joins, leaves, mod_actions FROM daily_stats WHERE guild_id=? AND date=?", (str(guild.id), date_str))
+                row = c.fetchone()
+                for key in all_data:
+                    all_data[key].append(row[key] if row else 0)
+            
+            display_dates = [datetime.fromisoformat(d).strftime("%m/%d") for d in date_labels]
+            
+            plt.style.use('dark_background')
+            fig, ax = plt.subplots(figsize=(12, 6), facecolor='#2b2d31')
+            ax.set_facecolor('#2b2d31')
+            
+            # Normalize messages (usually much higher) - use secondary y-axis
+            ax2 = ax.twinx()
+            ax2.plot(display_dates, all_data["messages"], color='#5865F2', linewidth=2.5, marker='o', label='Messages', alpha=0.7)
+            ax2.set_ylabel('Messages', color='#5865F2', fontsize=11)
+            ax2.tick_params(axis='y', colors='#5865F2')
+            
+            ax.plot(display_dates, all_data["joins"], color='#57F287', linewidth=2, marker='s', label='Joins')
+            ax.plot(display_dates, all_data["leaves"], color='#ED4245', linewidth=2, marker='v', label='Leaves')
+            ax.plot(display_dates, all_data["mod_actions"], color='#FEE75C', linewidth=2, marker='^', label='Mod Actions')
+            
+            ax.set_title("📊 All Server Activity - Last 7 Days", color='white', fontsize=16, fontweight='bold', pad=15)
+            ax.set_xlabel("Date", color='#b5bac1', fontsize=12)
+            ax.set_ylabel("Count", color='#b5bac1', fontsize=12)
+            ax.legend(loc='upper left', facecolor='#2b2d31', edgecolor='#404249', labelcolor='white')
+            ax2.legend(loc='upper right', facecolor='#2b2d31', edgecolor='#404249', labelcolor='white')
+            ax.grid(True, alpha=0.2, linestyle='--')
+            ax.tick_params(colors='#b5bac1')
+            for spine in ax.spines.values():
+                spine.set_color('#404249')
+            for spine in ax2.spines.values():
+                spine.set_color('#404249')
+            plt.xticks(rotation=45, ha='right')
+            plt.tight_layout()
+            
+            graph = io.BytesIO()
+            plt.savefig(graph, format='png', dpi=100, bbox_inches='tight', facecolor='#2b2d31')
+            graph.seek(0)
+            plt.close(fig)
+        except Exception as e:
+            print(f"All graph err: {e}")
+            graph = None
+        
+        title = "All Server Activity - Last 7 Days"
+        embed = discord.Embed(title=f"📈 {title}", color=discord.Color.purple())
+        embed.add_field(name="💬 Messages", value=f"{sum(all_data['messages']):,}", inline=True)
+        embed.add_field(name="🟢 Joins", value=f"{sum(all_data['joins'])}", inline=True)
+        embed.add_field(name="🔴 Leaves", value=f"{sum(all_data['leaves'])}", inline=True)
+        embed.add_field(name="🛡️ Mod Actions", value=f"{sum(all_data['mod_actions'])}", inline=True)
+    
+    conn.close()
+    
+    embed.set_footer(text=f"{guild.name} • Data from bot's database")
+    
+    if graph:
+        file = discord.File(graph, filename="graph.png")
+        embed.set_image(url="attachment://graph.png")
+        await i.followup.send(embed=embed, file=file)
+    else:
+        embed.description = "⚠️ Graph generation failed (matplotlib not installed?)"
+        await i.followup.send(embed=embed)
+
+    @bot.tree.command(name="scan_server", description="[Admin] AI scan the entire server for bad content")
+@app_commands.describe(
+    limit_per_channel="How many messages to scan per channel (default: 50, max: 200)",
+    delete_bad="Delete bad messages found? (default: False)"
+)
+async def scan_server_cmd(i: discord.Interaction, limit_per_channel: int = 50, delete_bad: bool = False):
+    if not i.user.guild_permissions.administrator and not is_owner(i.user.id):
+        await i.response.send_message("Admin only!", ephemeral=True)
+        return
+    
+    await i.response.defer()
+    
+    limit_per_channel = min(max(limit_per_channel, 10), 200)
+    guild = i.guild
+    
+    status_msg = await i.followup.send(
+        embed=discord.Embed(
+            title="🔍 Server Scan Starting...",
+            description=f"Scanning {len(guild.text_channels)} channels\n"
+                       f"Messages per channel: {limit_per_channel}\n"
+                       f"Delete bad content: {'✅' if delete_bad else '❌ (report only)'}",
+            color=discord.Color.blue()
+        )
+    )
+    
+    total_scanned = 0
+    total_bad = 0
+    total_deleted = 0
+    total_images = 0
+    total_bad_images = 0
+    findings = []
+    channels_scanned = 0
+    
+    for channel in guild.text_channels:
+        if not channel.permissions_for(guild.me).read_message_history:
+            continue
+        
+        channels_scanned += 1
+        
+        # Update status every few channels
+        if channels_scanned % 5 == 0:
+            try:
+                await status_msg.edit(embed=discord.Embed(
+                    title="🔍 Scanning...",
+                    description=f"Progress: {channels_scanned}/{len(guild.text_channels)} channels\n"
+                               f"Messages scanned: {total_scanned:,}\n"
+                               f"Bad content found: {total_bad}\n"
+                               f"Images scanned: {total_images}",
+                    color=discord.Color.orange()
+                ))
+            except: pass
+        
+        try:
+            channel_bad_count = 0
+            async for msg in channel.history(limit=limit_per_channel):
+                if msg.author.bot: continue
+                
+                total_scanned += 1
+                
+                # Skip trusted users
+                if is_user_trusted(msg.author.id, guild.id):
+                    continue
+                
+                # Check message content
+                if msg.content and len(msg.content.strip()) > 5:
+                    # Quick pattern checks first (fast)
+                    is_bad = False
+                    bad_reason = ""
+                    severity = "medium"
+                    
+                    # Hard delete patterns
+                    for pattern, reason, action in HARD_DELETE_PATTERNS:
+                        if re.search(pattern, msg.content):
+                            is_bad = True
+                            bad_reason = reason
+                            severity = "critical"
+                            break
+                    
+                    if not is_bad:
+                        for pattern, reason, sev in SOFT_VIOLATION_PATTERNS:
+                            if re.search(pattern, msg.content):
+                                is_bad = True
+                                bad_reason = reason
+                                severity = sev
+                                break
+                    
+                    # Swear check
+                    if not is_bad:
+                        has_swear, matched = contains_swear(msg.content)
+                        if has_swear:
+                            is_bad = True
+                            bad_reason = f"Profanity: '{matched}'"
+                            severity = "medium"
+                    
+                    # AI check for subtle content
+                    if not is_bad and len(msg.content) > 20:
+                        try:
+                            ai_result = await ask_groq_json(f"""Is this Discord message harmful, hateful, or breaking rules?
+
+MESSAGE: "{sanitize_for_prompt(msg.content)}"
+
+JSON: {{"is_bad": true/false, "reason": "brief reason if bad", "severity": "low|medium|high|critical"}}
+
+Only flag CLEAR violations: hate speech, threats, doxxing, scams, harassment.
+Do NOT flag: casual chat, jokes, opinions, mild rudeness.""")
+                            
+                            if ai_result and ai_result.get("is_bad"):
+                                is_bad = True
+                                bad_reason = ai_result.get("reason", "AI flagged")
+                                severity = ai_result.get("severity", "medium")
+                        except: pass
+                    
+                    if is_bad:
+                        total_bad += 1
+                        channel_bad_count += 1
+                        findings.append({
+                            "channel": channel.name,
+                            "author": str(msg.author),
+                            "author_id": msg.author.id,
+                            "content": msg.content[:200],
+                            "reason": bad_reason,
+                            "severity": severity,
+                            "url": msg.jump_url,
+                            "type": "text"
+                        })
+                        
+                        if delete_bad:
+                            try:
+                                await msg.delete()
+                                total_deleted += 1
+                                add_warning(msg.author.id, guild.id, f"Server scan: {bad_reason}", severity, 0.9, msg.content[:200])
+                            except: pass
+                
+                # Check attachments (images)
+                if msg.attachments:
+                    for att in msg.attachments:
+                        if att.content_type and att.content_type.startswith('image/'):
+                            total_images += 1
+                            
+                            try:
+                                # Use image moderation if available
+                                if hasattr(image_moderation, 'check_image'):
+                                    img_result = await image_moderation.check_image(att.url)
+                                    if img_result and img_result.get("is_bad"):
+                                        total_bad_images += 1
+                                        findings.append({
+                                            "channel": channel.name,
+                                            "author": str(msg.author),
+                                            "author_id": msg.author.id,
+                                            "content": f"[Image: {att.filename}]",
+                                            "reason": img_result.get("reason", "Inappropriate image"),
+                                            "severity": "high",
+                                            "url": msg.jump_url,
+                                            "type": "image"
+                                        })
+                                        
+                                        if delete_bad:
+                                            try:
+                                                await msg.delete()
+                                                total_deleted += 1
+                                            except: pass
+                            except: pass
+                
+                await asyncio.sleep(0.05)  # Rate limit protection
+            
+            await asyncio.sleep(0.3)  # Between channels
+            
+        except discord.Forbidden:
+            continue
+        except Exception as e:
+            print(f"Scan err in #{channel.name}: {e}")
+            continue
+    
+    # Build final report
+    result_embed = discord.Embed(
+        title="✅ Server Scan Complete",
+        color=discord.Color.green() if total_bad == 0 else discord.Color.red()
+    )
+    result_embed.add_field(name="📊 Channels Scanned", value=f"{channels_scanned}", inline=True)
+    result_embed.add_field(name="💬 Messages Scanned", value=f"{total_scanned:,}", inline=True)
+    result_embed.add_field(name="🖼️ Images Scanned", value=f"{total_images}", inline=True)
+    result_embed.add_field(name="⚠️ Bad Content Found", value=f"{total_bad}", inline=True)
+    result_embed.add_field(name="🖼️ Bad Images", value=f"{total_bad_images}", inline=True)
+    result_embed.add_field(name="🗑️ Deleted", value=f"{total_deleted}", inline=True)
+    
+    if findings:
+        # Group by severity
+        critical = [f for f in findings if f["severity"] == "critical"]
+        high = [f for f in findings if f["severity"] == "high"]
+        medium = [f for f in findings if f["severity"] == "medium"]
+        
+        result_embed.add_field(
+            name="🚨 Severity Breakdown",
+            value=f"🔴 Critical: {len(critical)}\n🟠 High: {len(high)}\n🟡 Medium: {len(medium)}",
+            inline=False
+        )
+    
+    result_embed.set_footer(text=f"Scan by {i.user.display_name}")
+    
+    await status_msg.edit(embed=result_embed)
+    
+    # Send detailed findings to log channel
+    if findings:
+        s = get_guild_settings(guild.id)
+        log_ch = discord.utils.get(guild.text_channels, name=s.get("log_channel", "sentinel-logs"))
+        if log_ch:
+            # Send summary
+            await log_ch.send(embed=result_embed)
+            
+            # Send findings in chunks (max 10 per embed)
+            for chunk_start in range(0, min(len(findings), 50), 10):
+                chunk = findings[chunk_start:chunk_start+10]
+                findings_embed = discord.Embed(
+                    title=f"📋 Scan Findings ({chunk_start+1}-{chunk_start+len(chunk)})",
+                    color=discord.Color.red()
+                )
+                for f in chunk:
+                    emoji = {"critical": "🔴", "high": "🟠", "medium": "🟡", "low": "🟢"}.get(f["severity"], "⚪")
+                    findings_embed.add_field(
+                        name=f"{emoji} #{f['channel']} - {f['author']}",
+                        value=f"**Type:** {f['type']}\n**Reason:** {f['reason']}\n**Content:** ||{f['content'][:150]}||\n[Jump]({f['url']})",
+                        inline=False
+                    )
+                try:
+                    await log_ch.send(embed=findings_embed)
+                except: pass
+            
+            if len(findings) > 50:
+                await log_ch.send(f"...and {len(findings) - 50} more findings not shown")
+    
+    log_recent_action(guild.id, "SERVER SCAN", "Full Server", 
+                     f"{total_bad} bad items found by {i.user.display_name}", 
+                     f"Deleted: {total_deleted}")
 
 @bot.tree.command(name="about", description="About SentinelMod")
 async def about_cmd(i: discord.Interaction):
