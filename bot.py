@@ -3142,7 +3142,7 @@ async def systeminfo_cmd(i: discord.Interaction):
         is_bot_owner = is_owner(i.user.id)
         guild = i.guild
         
-        # ============ OWNER VIEW - FULL SYSTEM DASHBOARD ============
+      
         if is_bot_owner:
             # Bot info
             owner = await bot.fetch_user(BOT_IDENTITY["creator_discord_id"])
