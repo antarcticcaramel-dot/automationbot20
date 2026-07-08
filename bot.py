@@ -3134,6 +3134,321 @@ async def license_info_cmd(i: discord.Interaction):
     embed.set_footer(text=f"SentinelMod v{BOT_IDENTITY['version']}")
     await i.response.send_message(embed=embed, ephemeral=True)
 
+    @bot.tree.command(name="systeminfo", description="View bot & system stats dashboard")
+async def systeminfo_cmd(i: discord.Interaction):
+    await i.response.defer()
+    
+    try:
+        is_bot_owner = is_owner(i.user.id)
+        guild = i.guild
+        
+        # ============ OWNER VIEW - FULL SYSTEM DASHBOARD ============
+        if is_bot_owner:
+            # Bot info
+            owner = await bot.fetch_user(BOT_IDENTITY["creator_discord_id"])
+            owner_name = str(owner) if owner else "Unknown"
+            created = bot.user.created_at.strftime("%d.%m.%Y\n%H:%M:%S")
+            
+            # Uptime
+            uptime_seconds = int(time_module.time() - BOT_START_TIME)
+            hours = uptime_seconds // 3600
+            minutes = (uptime_seconds % 3600) // 60
+            seconds = uptime_seconds % 60
+            uptime_str = f"{hours}h {minutes}m {seconds}s"
+            
+            # Ping
+            gateway_ping = round(bot.latency * 1000, 2)
+            rest_start = time_module.time()
+            try:
+                await bot.http.get_user(bot.user.id)
+                rest_ping = round((time_module.time() - rest_start) * 1000, 2)
+            except:
+                rest_ping = 0.0
+            
+            shard_info = f"{bot.shard_id or 0}/{bot.shard_count or 1}"
+            server_count = len(bot.guilds)
+            user_count = sum(g.member_count or 0 for g in bot.guilds)
+            cmd_count = len(bot.tree.get_commands())
+            py_version = f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
+            dpy_version = discord.__version__
+            
+            # CPU
+            cpu_freq = psutil.cpu_freq()
+            cpu_str = f"@ {cpu_freq.current:.1f}MHz" if cpu_freq else "N/A"
+            cpu_percent = psutil.cpu_percent(interval=0.5)
+            
+            # RAM
+            mem = psutil.virtual_memory()
+            ram_used_mb = mem.used // (1024 * 1024)
+            ram_total_mb = mem.total // (1024 * 1024)
+            ram_str = f"Used: {ram_used_mb}MB / {ram_total_mb}MB ({mem.percent}%)"
+            
+            # Swap
+            swap = psutil.swap_memory()
+            swap_used_mb = swap.used // (1024 * 1024)
+            swap_total_mb = swap.total // (1024 * 1024)
+            swap_str = f"Used: {swap_used_mb}MB / {swap_total_mb}MB"
+            
+            # Disk
+            disk = psutil.disk_usage('/')
+            disk_used_gb = disk.used / (1024 ** 3)
+            disk_total_gb = disk.total / (1024 ** 3)
+            disk_free_gb = disk.free / (1024 ** 3)
+            disk_str = f"Used: {disk_used_gb:.2f}GB / {disk_total_gb:.2f}GB\nFree: {disk_free_gb:.2f}GB"
+            
+            # Process info
+            process = psutil.Process()
+            threads = process.num_threads()
+            proc_uptime_sec = int(time_module.time() - process.create_time())
+            p_hours = proc_uptime_sec // 3600
+            p_minutes = (proc_uptime_sec % 3600) // 60
+            p_seconds = proc_uptime_sec % 60
+            proc_uptime = f"{p_hours}h {p_minutes}m {p_seconds}s"
+            pid = process.pid
+            
+            # Date/time
+            now = datetime.now()
+            date_str = now.strftime("%d.%m.%Y")
+            time_str = now.strftime("%H:%M:%S")
+            try:
+                import time as tt
+                timezone = tt.tzname[0]
+            except:
+                timezone = "UTC"
+            
+            # Main embed
+            embed = discord.Embed(
+                title="🤖 Bot & System Dashboard (OWNER VIEW)",
+                color=discord.Color.from_rgb(88, 101, 242)
+            )
+            embed.set_thumbnail(url=bot.user.display_avatar.url)
+            
+            embed.add_field(name="👑 Owner", value=f"```\n{owner_name}\n```", inline=True)
+            embed.add_field(name="🤖 Created", value=f"```\n{created}\n```", inline=True)
+            embed.add_field(name="🟢 Uptime", value=f"```\n{uptime_str}\n```", inline=True)
+            
+            embed.add_field(name="📶 Gateway Ping", value=f"```\n{gateway_ping}ms\n```", inline=True)
+            embed.add_field(name="🌐 REST Ping", value=f"```\n{rest_ping}ms\n```", inline=True)
+            embed.add_field(name="🔗 Shard", value=f"```\n{shard_info}\n```", inline=True)
+            
+            embed.add_field(name="🛡️ Servers", value=f"```\n{server_count}\n```", inline=True)
+            embed.add_field(name="👥 Total Users", value=f"```\n{user_count:,}\n```", inline=True)
+            embed.add_field(name="⚙️ Commands", value=f"```\n{cmd_count}\n```", inline=True)
+            
+            embed.add_field(name="📄 discord.py", value=f"```\n{dpy_version}\n```", inline=True)
+            embed.add_field(name="🐍 Python", value=f"```\n{py_version}\n```", inline=True)
+            embed.add_field(name="💻 CPU %", value=f"```\n{cpu_percent}%\n```", inline=True)
+            
+            embed.add_field(name="🧠 CPU", value=f"```\n{cpu_str}\n```", inline=False)
+            embed.add_field(name="💾 RAM", value=f"```\n{ram_str}\n```", inline=False)
+            embed.add_field(name="🔄 Swap", value=f"```\n{swap_str}\n```", inline=False)
+            embed.add_field(name="💿 Disk", value=f"```\n{disk_str}\n```", inline=False)
+            
+            embed.add_field(name="🧵 Threads", value=f"```\n{threads}\n```", inline=True)
+            embed.add_field(name="📈 Proc Uptime", value=f"```\n{proc_uptime}\n```", inline=True)
+            embed.add_field(name="🆔 PID", value=f"```\n{pid}\n```", inline=True)
+            
+            embed.add_field(name="📅 Date", value=f"```\n{date_str}\n```", inline=True)
+            embed.add_field(name="⏰ Time", value=f"```\n{time_str}\n```", inline=True)
+            embed.add_field(name="🌍 Timezone", value=f"```\n{timezone}\n```", inline=True)
+            
+            embed.set_footer(text=f"SentinelMod v{BOT_IDENTITY['version']} • OWNER DASHBOARD")
+            
+            # Extra global stats
+            extra_embed = discord.Embed(
+                title="⚙️ Global Bot Statistics",
+                color=discord.Color.from_rgb(88, 101, 242)
+            )
+            extra_embed.add_field(name="🌐 Platform", value=f"```\n{platform.system()} {platform.release()}\n```", inline=True)
+            extra_embed.add_field(name="🏗️ Architecture", value=f"```\n{platform.machine()}\n```", inline=True)
+            extra_embed.add_field(name="💻 Processor", value=f"```\n{platform.processor()[:40] or 'Unknown'}\n```", inline=False)
+            
+            try:
+                net = psutil.net_io_counters()
+                sent_mb = net.bytes_sent / (1024 * 1024)
+                recv_mb = net.bytes_recv / (1024 * 1024)
+                extra_embed.add_field(name="📤 Network Sent", value=f"```\n{sent_mb:.2f} MB\n```", inline=True)
+                extra_embed.add_field(name="📥 Network Recv", value=f"```\n{recv_mb:.2f} MB\n```", inline=True)
+            except: pass
+            
+            # Global DB stats
+            try:
+                conn = get_db()
+                c = conn.cursor()
+                c.execute("SELECT COUNT(*) FROM warnings")
+                total_warnings = c.fetchone()[0]
+                c.execute("SELECT COUNT(*) FROM mod_actions")
+                total_actions = c.fetchone()[0]
+                c.execute("SELECT COUNT(*) FROM message_archive")
+                total_archived = c.fetchone()[0]
+                c.execute("SELECT COUNT(*) FROM accepted_licenses")
+                licensed = c.fetchone()[0]
+                c.execute("SELECT COUNT(*) FROM revoked_licenses")
+                revoked = c.fetchone()[0]
+                c.execute("SELECT COUNT(DISTINCT user_id) FROM message_stats")
+                unique_users = c.fetchone()[0]
+                conn.close()
+                
+                extra_embed.add_field(name="⚠️ Total Warnings", value=f"```\n{total_warnings:,}\n```", inline=True)
+                extra_embed.add_field(name="🛡️ Mod Actions", value=f"```\n{total_actions:,}\n```", inline=True)
+                extra_embed.add_field(name="💬 Messages Archived", value=f"```\n{total_archived:,}\n```", inline=True)
+                extra_embed.add_field(name="✅ Licensed Servers", value=f"```\n{licensed}\n```", inline=True)
+                extra_embed.add_field(name="🚫 Revoked Licenses", value=f"```\n{revoked}\n```", inline=True)
+                extra_embed.add_field(name="👤 Unique Users Tracked", value=f"```\n{unique_users:,}\n```", inline=True)
+            except: pass
+            
+            extra_embed.set_footer(text=f"Made with ❤️ by {BOT_IDENTITY['creator_username']}")
+            
+            await i.followup.send(embeds=[embed, extra_embed])
+            return
+        
+        # ============ REGULAR USER VIEW - GUILD-SPECIFIC ============
+        if not guild:
+            await i.followup.send("This command works best in a server!", ephemeral=True)
+            return
+        
+        # Guild info
+        guild_created = guild.created_at.strftime("%d.%m.%Y")
+        guild_owner = str(guild.owner) if guild.owner else "Unknown"
+        member_count = guild.member_count
+        online_count = sum(1 for m in guild.members if m.status != discord.Status.offline) if guild.members else 0
+        bot_count = sum(1 for m in guild.members if m.bot)
+        human_count = member_count - bot_count
+        
+        # Channel counts
+        text_channels = len(guild.text_channels)
+        voice_channels = len(guild.voice_channels)
+        categories = len(guild.categories)
+        
+        # Roles
+        role_count = len(guild.roles) - 1  # Exclude @everyone
+        
+        # Emojis
+        emoji_count = len(guild.emojis)
+        
+        # Boost info
+        boost_level = guild.premium_tier
+        boost_count = guild.premium_subscription_count or 0
+        
+        # Bot uptime
+        uptime_seconds = int(time_module.time() - BOT_START_TIME)
+        hours = uptime_seconds // 3600
+        minutes = (uptime_seconds % 3600) // 60
+        uptime_str = f"{hours}h {minutes}m"
+        
+        # Ping
+        gateway_ping = round(bot.latency * 1000, 2)
+        
+        # This server's stats from DB
+        conn = get_db()
+        c = conn.cursor()
+        
+        c.execute("SELECT COUNT(*) FROM warnings WHERE guild_id=?", (str(guild.id),))
+        guild_warnings = c.fetchone()[0]
+        
+        c.execute("SELECT COUNT(*) FROM mod_actions WHERE guild_id=?", (str(guild.id),))
+        guild_actions = c.fetchone()[0]
+        
+        c.execute("SELECT COUNT(*) FROM message_archive WHERE guild_id=?", (str(guild.id),))
+        guild_archived = c.fetchone()[0]
+        
+        c.execute("SELECT SUM(message_count) FROM message_stats WHERE guild_id=?", (str(guild.id),))
+        total_messages = c.fetchone()[0] or 0
+        
+        c.execute("SELECT COUNT(*) FROM trusted_users WHERE guild_id=?", (str(guild.id),))
+        trusted_count = c.fetchone()[0]
+        
+        # Today's stats
+        today = datetime.now().date().isoformat()
+        c.execute("SELECT messages, joins, leaves, mod_actions FROM daily_stats WHERE guild_id=? AND date=?",
+                  (str(guild.id), today))
+        today_row = c.fetchone()
+        today_messages = today_row["messages"] if today_row else 0
+        today_joins = today_row["joins"] if today_row else 0
+        today_leaves = today_row["leaves"] if today_row else 0
+        today_actions = today_row["mod_actions"] if today_row else 0
+        
+        conn.close()
+        
+        # Server memory
+        sm = get_server_memory(guild.id)
+        server_mood = sm.get("server_mood", "neutral").title()
+        
+        # Rules
+        rules_ch = await find_rules_channel(guild)
+        rules_loaded = "✅" if str(guild.id) in server_rules_cache else "❌"
+        
+        # License status
+        if is_license_accepted(guild.id):
+            license_status = "✅ Active"
+        elif is_license_revoked(guild.id):
+            license_status = "🚫 Revoked"
+        else:
+            license_status = "⏳ Pending"
+        
+        # Build embed
+        embed = discord.Embed(
+            title=f"📊 {guild.name} - Server Dashboard",
+            color=discord.Color.from_rgb(88, 101, 242)
+        )
+        if guild.icon:
+            embed.set_thumbnail(url=guild.icon.url)
+        
+        # Server info
+        embed.add_field(name="👑 Server Owner", value=f"```\n{guild_owner}\n```", inline=True)
+        embed.add_field(name="📅 Created", value=f"```\n{guild_created}\n```", inline=True)
+        embed.add_field(name="📜 License", value=f"```\n{license_status}\n```", inline=True)
+        
+        # Members
+        embed.add_field(name="👥 Total Members", value=f"```\n{member_count:,}\n```", inline=True)
+        embed.add_field(name="👤 Humans", value=f"```\n{human_count:,}\n```", inline=True)
+        embed.add_field(name="🤖 Bots", value=f"```\n{bot_count:,}\n```", inline=True)
+        
+        # Channels
+        embed.add_field(name="💬 Text Channels", value=f"```\n{text_channels}\n```", inline=True)
+        embed.add_field(name="🔊 Voice Channels", value=f"```\n{voice_channels}\n```", inline=True)
+        embed.add_field(name="📁 Categories", value=f"```\n{categories}\n```", inline=True)
+        
+        # Roles/Emojis/Boost
+        embed.add_field(name="🎭 Roles", value=f"```\n{role_count}\n```", inline=True)
+        embed.add_field(name="😀 Emojis", value=f"```\n{emoji_count}\n```", inline=True)
+        embed.add_field(name="💎 Boost Lv{}", value=f"```\n{boost_count} boosts\n```".format(boost_level), inline=True)
+        
+        # Bot activity in this server
+        embed.add_field(name="⚠️ Total Warnings", value=f"```\n{guild_warnings:,}\n```", inline=True)
+        embed.add_field(name="🛡️ Mod Actions", value=f"```\n{guild_actions:,}\n```", inline=True)
+        embed.add_field(name="✅ Trusted Users", value=f"```\n{trusted_count}\n```", inline=True)
+        
+        # Messages
+        embed.add_field(name="💬 Messages Tracked", value=f"```\n{total_messages:,}\n```", inline=True)
+        embed.add_field(name="📚 Messages Archived", value=f"```\n{guild_archived:,}\n```", inline=True)
+        embed.add_field(name="🎨 Server Mood", value=f"```\n{server_mood}\n```", inline=True)
+        
+        # Today's stats
+        embed.add_field(name="📅 Today's Messages", value=f"```\n{today_messages:,}\n```", inline=True)
+        embed.add_field(name="➕ Joined Today", value=f"```\n{today_joins}\n```", inline=True)
+        embed.add_field(name="➖ Left Today", value=f"```\n{today_leaves}\n```", inline=True)
+        
+        # Rules & bot info
+        embed.add_field(name="📋 Rules Channel", value=f"```\n{'#' + rules_ch.name if rules_ch else 'Not found'}\n```", inline=True)
+        embed.add_field(name="💾 Rules Loaded", value=f"```\n{rules_loaded}\n```", inline=True)
+        embed.add_field(name="⚡ Actions Today", value=f"```\n{today_actions}\n```", inline=True)
+        
+        # Bot info footer row
+        embed.add_field(name="🟢 Bot Uptime", value=f"```\n{uptime_str}\n```", inline=True)
+        embed.add_field(name="📶 Ping", value=f"```\n{gateway_ping}ms\n```", inline=True)
+        embed.add_field(name="🤖 Bot Version", value=f"```\nv{BOT_IDENTITY['version']}\n```", inline=True)
+        
+        embed.set_footer(text=f"SentinelMod v{BOT_IDENTITY['version']} • Made by {BOT_IDENTITY['creator_username']}")
+        
+        await i.followup.send(embed=embed)
+        
+    except Exception as e:
+        print(f"systeminfo err: {e}")
+        import traceback
+        traceback.print_exc()
+        await i.followup.send(f"Error getting stats: {e}", ephemeral=True)
+
 @bot.tree.command(name="swear_filter", description="[Admin] Toggle swear filter")
 @app_commands.choices(state=[
     app_commands.Choice(name="ON", value="on"),
