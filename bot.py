@@ -23,10 +23,15 @@ import random
 import re
 import io
 import hashlib
-import smart_rules
 from datetime import datetime, timedelta
 from collections import defaultdict, deque
 import dashboard
+import psutil
+import platform
+import sys
+import time as time_module
+
+BOT_START_TIME = time_module.time()
 
 try:
     import ai_features
