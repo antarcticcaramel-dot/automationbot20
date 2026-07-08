@@ -3791,52 +3791,52 @@ async def personality_cmd(i: discord.Interaction):
         view=view, ephemeral=True
     )
 
-   def generate_line_graph(data_points: list, title: str, x_label: str = "Time", y_label: str = "Count", color: str = "#5865F2") -> io.BytesIO | None:
+def generate_line_graph(data_points: list, title: str, x_label: str = "Time", y_label: str = "Count", color: str = "#5865F2") -> io.BytesIO | None:
     """Generate a line graph as a PNG image."""
     try:
         import matplotlib
         matplotlib.use('Agg')
         import matplotlib.pyplot as plt
         from matplotlib.dates import DateFormatter
-        
+
         if not data_points or len(data_points) < 2:
             return None
-        
+
         # Setup dark theme
         plt.style.use('dark_background')
         fig, ax = plt.subplots(figsize=(10, 5), facecolor='#2b2d31')
         ax.set_facecolor('#2b2d31')
-        
+
         # Extract x and y
         x_vals = [p[0] for p in data_points]
         y_vals = [p[1] for p in data_points]
-        
+
         # Plot
         ax.plot(x_vals, y_vals, color=color, linewidth=2.5, marker='o', markersize=6, markerfacecolor='white')
         ax.fill_between(range(len(x_vals)), y_vals, alpha=0.3, color=color)
-        
+
         # Styling
         ax.set_title(title, color='white', fontsize=16, fontweight='bold', pad=15)
         ax.set_xlabel(x_label, color='#b5bac1', fontsize=12)
         ax.set_ylabel(y_label, color='#b5bac1', fontsize=12)
         ax.grid(True, alpha=0.2, linestyle='--')
         ax.tick_params(colors='#b5bac1')
-        
+
         for spine in ax.spines.values():
             spine.set_color('#404249')
-        
+
         # Rotate x labels if strings
         if isinstance(x_vals[0], str):
             plt.xticks(rotation=45, ha='right')
-        
+
         plt.tight_layout()
-        
+
         # Save to bytes
         buf = io.BytesIO()
         plt.savefig(buf, format='png', dpi=100, bbox_inches='tight', facecolor='#2b2d31')
         buf.seek(0)
         plt.close(fig)
-        
+
         return buf
     except ImportError:
         print("matplotlib not installed")
