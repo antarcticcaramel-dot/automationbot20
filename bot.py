@@ -4030,7 +4030,7 @@ async def stats_graph_cmd(i: discord.Interaction, graph_type: app_commands.Choic
         embed.description = "⚠️ Graph generation failed (matplotlib not installed?)"
         await i.followup.send(embed=embed)
 
-    @bot.tree.command(name="scan_server", description="[Admin] AI scan the entire server for bad content")
+@bot.tree.command(name="scan_server", description="[Admin] AI scan the entire server for bad content")
 @app_commands.describe(
     limit_per_channel="How many messages to scan per channel (default: 50, max: 200)",
     delete_bad="Delete bad messages found? (default: False)"
