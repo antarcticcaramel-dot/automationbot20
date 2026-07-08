@@ -3791,11 +3791,11 @@ async def personality_cmd(i: discord.Interaction):
         view=view, ephemeral=True
     )
 
-    def generate_line_graph(data_points: list, title: str, x_label: str = "Time", y_label: str = "Count", color: str = "#5865F2") -> io.BytesIO | None:
+   def generate_line_graph(data_points: list, title: str, x_label: str = "Time", y_label: str = "Count", color: str = "#5865F2") -> io.BytesIO | None:
     """Generate a line graph as a PNG image."""
     try:
         import matplotlib
-        matplotlib.use('Agg')  # Non-interactive backend
+        matplotlib.use('Agg')
         import matplotlib.pyplot as plt
         from matplotlib.dates import DateFormatter
         
