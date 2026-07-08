@@ -3134,7 +3134,7 @@ async def license_info_cmd(i: discord.Interaction):
     embed.set_footer(text=f"SentinelMod v{BOT_IDENTITY['version']}")
     await i.response.send_message(embed=embed, ephemeral=True)
 
-    @bot.tree.command(name="systeminfo", description="View bot & system stats dashboard")
+@bot.tree.command(name="systeminfo", description="View bot & system stats dashboard")
 async def systeminfo_cmd(i: discord.Interaction):
     await i.response.defer()
     
