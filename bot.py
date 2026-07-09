@@ -4195,74 +4195,46 @@ JSON: {{"is_bad": true/false, "reason": "brief reason if bad", "severity": "low|
 Only flag CLEAR violations: hate speech, threats, doxxing, scams, harassment.
 Do NOT flag: casual chat, jokes, opinions, mild rudeness.""")
                             
-                            if ai_result and ai_result.get("is_bad"):
-                                is_bad = True
-                                bad_reason = ai_result.get("reason", "AI flagged")
-                                severity = ai_result.get("severity", "medium")
-                        except: pass
-                    
-                    if is_bad:
-                        total_bad += 1
-                        channel_bad_count += 1
-                        findings.append({
-                            "channel": channel.name,
-                            "author": str(msg.author),
-                            "author_id": msg.author.id,
-                            "content": msg.content[:200],
-                            "reason": bad_reason,
-                            "severity": severity,
-                            "url": msg.jump_url,
-                            "type": "text"
-                        })
-                        
-                        if delete_bad:
-                            try:
-                                await msg.delete()
-                                total_deleted += 1
-                                add_warning(msg.author.id, guild.id, f"Server scan: {bad_reason}", severity, 0.9, msg.content[:200])
-                            except: pass
-                
                 # Check attachments (images)
-    # Check attachments (images)
-if msg.attachments:
-    for att in msg.attachments:
-        if att.content_type and att.content_type.startswith('image/'):
-            total_images += 1
-            
-            try:
-                img_result = await ai_scan_image(att.url)
-                
-                if img_result.get("is_bad"):
-                    total_bad_images += 1
-                    total_bad += 1
-                    findings.append({
-                        "channel": channel.name,
-                        "author": str(msg.author),
-                        "author_id": msg.author.id,
-                        "content": f"[Image: {att.filename}] - {img_result.get('category', 'bad')}",
-                        "reason": img_result.get("reason", "Inappropriate image"),
-                        "severity": img_result.get("severity", "high"),
-                        "url": msg.jump_url,
-                        "type": "image",
-                        "image_url": att.url
-                    })
-                    
-                    if delete_bad:
-                        try:
-                            await msg.delete()
-                            total_deleted += 1
-                            add_warning(
-                                msg.author.id, guild.id,
-                                f"Bad image ({img_result.get('category')}): {img_result.get('reason')}",
-                                img_result.get("severity", "high"),
-                                img_result.get("confidence", 0.8),
-                                f"[Image] {img_result.get('reason')}"
-                            )
-                        except: pass
-                
-                await asyncio.sleep(0.5)  # Rate limit for vision API
-            except Exception as e:
-                print(f"Image scan err: {e}")
+                if msg.attachments:
+                    for att in msg.attachments:
+                        if att.content_type and att.content_type.startswith('image/'):
+                            total_images += 1
+                            
+                            try:
+                                img_result = await ai_scan_image(att.url)
+                                
+                                if img_result.get("is_bad"):
+                                    total_bad_images += 1
+                                    total_bad += 1
+                                    findings.append({
+                                        "channel": channel.name,
+                                        "author": str(msg.author),
+                                        "author_id": msg.author.id,
+                                        "content": f"[Image: {att.filename}] - {img_result.get('category', 'bad')}",
+                                        "reason": img_result.get("reason", "Inappropriate image"),
+                                        "severity": img_result.get("severity", "high"),
+                                        "url": msg.jump_url,
+                                        "type": "image",
+                                        "image_url": att.url
+                                    })
+                                    
+                                    if delete_bad:
+                                        try:
+                                            await msg.delete()
+                                            total_deleted += 1
+                                            add_warning(
+                                                msg.author.id, guild.id,
+                                                f"Bad image ({img_result.get('category')}): {img_result.get('reason')}",
+                                                img_result.get("severity", "high"),
+                                                img_result.get("confidence", 0.8),
+                                                f"[Image] {img_result.get('reason')}"
+                                            )
+                                        except: pass
+                                
+                                await asyncio.sleep(0.5)
+                            except Exception as e:
+                                print(f"Image scan err: {e}")
     
     # Build final report
     result_embed = discord.Embed(
