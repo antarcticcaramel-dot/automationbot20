@@ -4167,23 +4167,7 @@ async def scan_server_cmd(i: discord.Interaction, limit_per_channel: int = 50, d
                             severity = "critical"
                             break
                     
-                    if not is_bad:
-                        for pattern, reason, sev in SOFT_VIOLATION_PATTERNS:
-                            if re.search(pattern, msg.content):
-                                is_bad = True
-                                bad_reason = reason
-                                severity = sev
-                                break
-                    
-                    # Swear check
-                    if not is_bad:
-                        has_swear, matched = contains_swear(msg.content)
-                        if has_swear:
-                            is_bad = True
-                            bad_reason = f"Profanity: '{matched}'"
-                            severity = "medium"
-                    
-                    # AI check for subtle content
+                                       # AI check for subtle content
                     if not is_bad and len(msg.content) > 20:
                         try:
                             ai_result = await ask_groq_json(f"""Is this Discord message harmful, hateful, or breaking rules?
@@ -4195,6 +4179,33 @@ JSON: {{"is_bad": true/false, "reason": "brief reason if bad", "severity": "low|
 Only flag CLEAR violations: hate speech, threats, doxxing, scams, harassment.
 Do NOT flag: casual chat, jokes, opinions, mild rudeness.""")
                             
+                            if ai_result and ai_result.get("is_bad"):
+                                is_bad = True
+                                bad_reason = ai_result.get("reason", "AI flagged")
+                                severity = ai_result.get("severity", "medium")
+                        except: pass
+                    
+                    if is_bad:
+                        total_bad += 1
+                        channel_bad_count += 1
+                        findings.append({
+                            "channel": channel.name,
+                            "author": str(msg.author),
+                            "author_id": msg.author.id,
+                            "content": msg.content[:200],
+                            "reason": bad_reason,
+                            "severity": severity,
+                            "url": msg.jump_url,
+                            "type": "text"
+                        })
+                        
+                        if delete_bad:
+                            try:
+                                await msg.delete()
+                                total_deleted += 1
+                                add_warning(msg.author.id, guild.id, f"Server scan: {bad_reason}", severity, 0.9, msg.content[:200])
+                            except: pass
+                
                 # Check attachments (images)
                 if msg.attachments:
                     for att in msg.attachments:
@@ -4235,67 +4246,16 @@ Do NOT flag: casual chat, jokes, opinions, mild rudeness.""")
                                 await asyncio.sleep(0.5)
                             except Exception as e:
                                 print(f"Image scan err: {e}")
-    
-    # Build final report
-    result_embed = discord.Embed(
-        title="✅ Server Scan Complete",
-        color=discord.Color.green() if total_bad == 0 else discord.Color.red()
-    )
-    result_embed.add_field(name="📊 Channels Scanned", value=f"{channels_scanned}", inline=True)
-    result_embed.add_field(name="💬 Messages Scanned", value=f"{total_scanned:,}", inline=True)
-    result_embed.add_field(name="🖼️ Images Scanned", value=f"{total_images}", inline=True)
-    result_embed.add_field(name="⚠️ Bad Content Found", value=f"{total_bad}", inline=True)
-    result_embed.add_field(name="🖼️ Bad Images", value=f"{total_bad_images}", inline=True)
-    result_embed.add_field(name="🗑️ Deleted", value=f"{total_deleted}", inline=True)
-    
-    if findings:
-        # Group by severity
-        critical = [f for f in findings if f["severity"] == "critical"]
-        high = [f for f in findings if f["severity"] == "high"]
-        medium = [f for f in findings if f["severity"] == "medium"]
-        
-        result_embed.add_field(
-            name="🚨 Severity Breakdown",
-            value=f"🔴 Critical: {len(critical)}\n🟠 High: {len(high)}\n🟡 Medium: {len(medium)}",
-            inline=False
-        )
-    
-    result_embed.set_footer(text=f"Scan by {i.user.display_name}")
-    
-    await status_msg.edit(embed=result_embed)
-    
-    # Send detailed findings to log channel
-    if findings:
-        s = get_guild_settings(guild.id)
-        log_ch = discord.utils.get(guild.text_channels, name=s.get("log_channel", "sentinel-logs"))
-        if log_ch:
-            # Send summary
-            await log_ch.send(embed=result_embed)
+                
+                await asyncio.sleep(0.05)  # Rate limit between messages
             
-            # Send findings in chunks (max 10 per embed)
-            for chunk_start in range(0, min(len(findings), 50), 10):
-                chunk = findings[chunk_start:chunk_start+10]
-                findings_embed = discord.Embed(
-                    title=f"📋 Scan Findings ({chunk_start+1}-{chunk_start+len(chunk)})",
-                    color=discord.Color.red()
-                )
-                for f in chunk:
-                    emoji = {"critical": "🔴", "high": "🟠", "medium": "🟡", "low": "🟢"}.get(f["severity"], "⚪")
-                    findings_embed.add_field(
-                        name=f"{emoji} #{f['channel']} - {f['author']}",
-                        value=f"**Type:** {f['type']}\n**Reason:** {f['reason']}\n**Content:** ||{f['content'][:150]}||\n[Jump]({f['url']})",
-                        inline=False
-                    )
-                try:
-                    await log_ch.send(embed=findings_embed)
-                except: pass
+            await asyncio.sleep(0.3)  # Between channels
             
-            if len(findings) > 50:
-                await log_ch.send(f"...and {len(findings) - 50} more findings not shown")
-    
-    log_recent_action(guild.id, "SERVER SCAN", "Full Server", 
-                     f"{total_bad} bad items found by {i.user.display_name}", 
-                     f"Deleted: {total_deleted}")
+        except discord.Forbidden:
+            continue
+        except Exception as e:
+            print(f"Scan err in #{channel.name}: {e}")
+            continue
 
 @bot.tree.command(name="about", description="About SentinelMod")
 async def about_cmd(i: discord.Interaction):
