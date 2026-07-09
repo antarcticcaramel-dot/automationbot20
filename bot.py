@@ -1535,7 +1535,7 @@ def generate_smart_default(prompt):
     if "?" in prompt: return "Good question! Can you rephrase that?"
     return random.choice(["Tell me more!", "Interesting!", "Go on!"])
 
-    async def ai_scan_image(image_url: str) -> dict:
+async def ai_scan_image(image_url: str) -> dict:
     """Use AI vision to scan an image for bad content."""
     if not GROQ_API_KEY:
         return {"is_bad": False, "reason": "AI unavailable"}
