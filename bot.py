@@ -4164,44 +4164,46 @@ Do NOT flag: casual chat, jokes, opinions, mild rudeness.""")
                             except: pass
                 
                 # Check attachments (images)
-                if msg.attachments:
-                    for att in msg.attachments:
-                        if att.content_type and att.content_type.startswith('image/'):
-                            total_images += 1
-                            
-                            try:
-                                # Use image moderation if available
-                                if hasattr(image_moderation, 'check_image'):
-                                    img_result = await image_moderation.check_image(att.url)
-                                    if img_result and img_result.get("is_bad"):
-                                        total_bad_images += 1
-                                        findings.append({
-                                            "channel": channel.name,
-                                            "author": str(msg.author),
-                                            "author_id": msg.author.id,
-                                            "content": f"[Image: {att.filename}]",
-                                            "reason": img_result.get("reason", "Inappropriate image"),
-                                            "severity": "high",
-                                            "url": msg.jump_url,
-                                            "type": "image"
-                                        })
-                                        
-                                        if delete_bad:
-                                            try:
-                                                await msg.delete()
-                                                total_deleted += 1
-                                            except: pass
-                            except: pass
+    # Check attachments (images)
+if msg.attachments:
+    for att in msg.attachments:
+        if att.content_type and att.content_type.startswith('image/'):
+            total_images += 1
+            
+            try:
+                img_result = await ai_scan_image(att.url)
                 
-                await asyncio.sleep(0.05)  # Rate limit protection
-            
-            await asyncio.sleep(0.3)  # Between channels
-            
-        except discord.Forbidden:
-            continue
-        except Exception as e:
-            print(f"Scan err in #{channel.name}: {e}")
-            continue
+                if img_result.get("is_bad"):
+                    total_bad_images += 1
+                    total_bad += 1
+                    findings.append({
+                        "channel": channel.name,
+                        "author": str(msg.author),
+                        "author_id": msg.author.id,
+                        "content": f"[Image: {att.filename}] - {img_result.get('category', 'bad')}",
+                        "reason": img_result.get("reason", "Inappropriate image"),
+                        "severity": img_result.get("severity", "high"),
+                        "url": msg.jump_url,
+                        "type": "image",
+                        "image_url": att.url
+                    })
+                    
+                    if delete_bad:
+                        try:
+                            await msg.delete()
+                            total_deleted += 1
+                            add_warning(
+                                msg.author.id, guild.id,
+                                f"Bad image ({img_result.get('category')}): {img_result.get('reason')}",
+                                img_result.get("severity", "high"),
+                                img_result.get("confidence", 0.8),
+                                f"[Image] {img_result.get('reason')}"
+                            )
+                        except: pass
+                
+                await asyncio.sleep(0.5)  # Rate limit for vision API
+            except Exception as e:
+                print(f"Image scan err: {e}")
     
     # Build final report
     result_embed = discord.Embed(
