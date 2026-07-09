@@ -199,6 +199,188 @@ async def analyze_with_openrouter_vision(image_url: str, prompt: str) -> dict | 
 
     return None
 
+async def ai_scan_image(image_url: str) -> dict:
+    """Use AI vision to scan an image for scams, NSFW, violence, etc."""
+    if not GROQ_API_KEY:
+        return {"is_bad": False, "reason": "AI unavailable"}
+    
+    try:
+        # Use Groq's vision model (llama 3.2 vision)
+        headers = {"Authorization": f"Bearer {GROQ_API_KEY}", "Content-Type": "application/json"}
+        
+        prompt = """Analyze this image for Discord moderation.
+
+Flag if it contains ANY of these:
+- Scams (fake crypto, fake giveaways, fake login pages, fake withdrawals)
+- Phishing screenshots
+- NSFW/pornographic content
+- Gore or graphic violence
+- Hate symbols or extremist content
+- Doxxing (personal info like addresses, phones, IDs)
+- Fake Discord Nitro / free money offers
+- Malicious QR codes
+
+Return JSON ONLY:
+{
+  "is_bad": true/false,
+  "category": "scam|nsfw|violence|hate|doxxing|phishing|safe",
+  "reason": "brief explanation",
+  "severity": "low|medium|high|critical",
+  "confidence": 0.0-1.0
+}
+
+Be strict on scams and NSFW. If it looks like a fake crypto withdrawal or "free money" screenshot, flag as scam."""
+
+        payload = {
+            "model": "llama-3.2-90b-vision-preview",
+            "messages": [
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": prompt},
+                        {"type": "image_url", "image_url": {"url": image_url}}
+                    ]
+                }
+            ],
+            "temperature": 0.1,
+            "max_tokens": 500
+        }
+        
+        async with aiohttp.ClientSession() as session:
+            async with session.post(
+                "https://api.groq.com/openai/v1/chat/completions",
+                headers=headers,
+                json=payload,
+                timeout=aiohttp.ClientTimeout(total=30)
+            ) as resp:
+                if resp.status == 200:
+                    data = await resp.json()
+                    text = data["choices"][0]["message"]["content"].strip()
+                    text = re.sub(r'```(?:json)?', '', text).strip().rstrip('`').strip()
+                    match = re.search(r'\{.*\}', text, re.DOTALL)
+                    if match:
+                        try:
+                            result = json.loads(match.group())
+                            if result.get("confidence", 0) < 0.6:
+                                result["is_bad"] = False
+                            return result
+                        except: pass
+                else:
+                    # Fallback to smaller vision model
+                    payload["model"] = "llama-3.2-11b-vision-preview"
+                    async with session.post(
+                        "https://api.groq.com/openai/v1/chat/completions",
+                        headers=headers,
+                        json=payload,
+                        timeout=aiohttp.ClientTimeout(total=30)
+                    ) as resp2:
+                        if resp2.status == 200:
+                            data = await resp2.json()
+                            text = data["choices"][0]["message"]["content"].strip()
+                            text = re.sub(r'```(?:json)?', '', text).strip().rstrip('`').strip()
+                            match = re.search(r'\{.*\}', text, re.DOTALL)
+                            if match:
+                                try:
+                                    result = json.loads(match.group())
+                                    if result.get("confidence", 0) < 0.6:
+                                        result["is_bad"] = False
+                                    return result
+                                except: pass
+    except Exception as e:
+        print(f"AI image scan err: {e}")
+    
+    return {"is_bad": False, "reason": "Scan failed"}async def ai_scan_image(image_url: str) -> dict:
+    """Use AI vision to scan an image for scams, NSFW, violence, etc."""
+    if not GROQ_API_KEY:
+        return {"is_bad": False, "reason": "AI unavailable"}
+    
+    try:
+        # Use Groq's vision model (llama 3.2 vision)
+        headers = {"Authorization": f"Bearer {GROQ_API_KEY}", "Content-Type": "application/json"}
+        
+        prompt = """Analyze this image for Discord moderation.
+
+Flag if it contains ANY of these:
+- Scams (fake crypto, fake giveaways, fake login pages, fake withdrawals)
+- Phishing screenshots
+- NSFW/pornographic content
+- Gore or graphic violence
+- Hate symbols or extremist content
+- Doxxing (personal info like addresses, phones, IDs)
+- Fake Discord Nitro / free money offers
+- Malicious QR codes
+
+Return JSON ONLY:
+{
+  "is_bad": true/false,
+  "category": "scam|nsfw|violence|hate|doxxing|phishing|safe",
+  "reason": "brief explanation",
+  "severity": "low|medium|high|critical",
+  "confidence": 0.0-1.0
+}
+
+Be strict on scams and NSFW. If it looks like a fake crypto withdrawal or "free money" screenshot, flag as scam."""
+
+        payload = {
+            "model": "llama-3.2-90b-vision-preview",
+            "messages": [
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": prompt},
+                        {"type": "image_url", "image_url": {"url": image_url}}
+                    ]
+                }
+            ],
+            "temperature": 0.1,
+            "max_tokens": 500
+        }
+        
+        async with aiohttp.ClientSession() as session:
+            async with session.post(
+                "https://api.groq.com/openai/v1/chat/completions",
+                headers=headers,
+                json=payload,
+                timeout=aiohttp.ClientTimeout(total=30)
+            ) as resp:
+                if resp.status == 200:
+                    data = await resp.json()
+                    text = data["choices"][0]["message"]["content"].strip()
+                    text = re.sub(r'```(?:json)?', '', text).strip().rstrip('`').strip()
+                    match = re.search(r'\{.*\}', text, re.DOTALL)
+                    if match:
+                        try:
+                            result = json.loads(match.group())
+                            if result.get("confidence", 0) < 0.6:
+                                result["is_bad"] = False
+                            return result
+                        except: pass
+                else:
+                    # Fallback to smaller vision model
+                    payload["model"] = "llama-3.2-11b-vision-preview"
+                    async with session.post(
+                        "https://api.groq.com/openai/v1/chat/completions",
+                        headers=headers,
+                        json=payload,
+                        timeout=aiohttp.ClientTimeout(total=30)
+                    ) as resp2:
+                        if resp2.status == 200:
+                            data = await resp2.json()
+                            text = data["choices"][0]["message"]["content"].strip()
+                            text = re.sub(r'```(?:json)?', '', text).strip().rstrip('`').strip()
+                            match = re.search(r'\{.*\}', text, re.DOTALL)
+                            if match:
+                                try:
+                                    result = json.loads(match.group())
+                                    if result.get("confidence", 0) < 0.6:
+                                        result["is_bad"] = False
+                                    return result
+                                except: pass
+    except Exception as e:
+        print(f"AI image scan err: {e}")
+    
+    return {"is_bad": False, "reason": "Scan failed"}
+
 
 MODERATION_PROMPT = """You are an EXTREMELY STRICT Discord image moderator specializing in SCAM DETECTION.
 
