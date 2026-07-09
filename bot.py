@@ -1535,6 +1535,65 @@ def generate_smart_default(prompt):
     if "?" in prompt: return "Good question! Can you rephrase that?"
     return random.choice(["Tell me more!", "Interesting!", "Go on!"])
 
+    async def ai_scan_image(image_url: str) -> dict:
+    """Use AI vision to scan an image for bad content."""
+    if not GROQ_API_KEY:
+        return {"is_bad": False, "reason": "AI unavailable"}
+    
+    try:
+        headers = {"Authorization": f"Bearer {GROQ_API_KEY}", "Content-Type": "application/json"}
+        
+        prompt = """Analyze this image for Discord moderation.
+
+Flag if it contains ANY of these:
+- Scams (fake crypto, fake giveaways, fake login pages, fake withdrawals)
+- Phishing screenshots
+- NSFW/pornographic content
+- Gore or graphic violence
+- Hate symbols
+- Doxxing (personal info)
+- Fake Discord Nitro / free money offers
+
+Return JSON ONLY:
+{"is_bad": true/false, "category": "scam|nsfw|violence|hate|doxxing|phishing|safe", "reason": "brief", "severity": "low|medium|high|critical", "confidence": 0.0-1.0}"""
+
+        payload = {
+            "model": "llama-3.2-90b-vision-preview",
+            "messages": [{
+                "role": "user",
+                "content": [
+                    {"type": "text", "text": prompt},
+                    {"type": "image_url", "image_url": {"url": image_url}}
+                ]
+            }],
+            "temperature": 0.1,
+            "max_tokens": 500
+        }
+        
+        async with aiohttp.ClientSession() as session:
+            async with session.post(
+                "https://api.groq.com/openai/v1/chat/completions",
+                headers=headers, json=payload,
+                timeout=aiohttp.ClientTimeout(total=30)
+            ) as resp:
+                if resp.status == 200:
+                    data = await resp.json()
+                    text = data["choices"][0]["message"]["content"].strip()
+                    text = re.sub(r'```(?:json)?', '', text).strip().rstrip('`').strip()
+                    match = re.search(r'\{.*\}', text, re.DOTALL)
+                    if match:
+                        try:
+                            result = json.loads(match.group())
+                            if result.get("confidence", 0) < 0.6:
+                                result["is_bad"] = False
+                            return result
+                        except: pass
+    except Exception as e:
+        print(f"AI image scan err: {e}")
+    
+    return {"is_bad": False, "reason": "Scan failed"}
+
+
 async def ask_groq_json(prompt, system="Respond only in valid JSON."):
     if not GROQ_API_KEY: return None
     headers = {"Authorization": f"Bearer {GROQ_API_KEY}", "Content-Type": "application/json"}
