@@ -289,7 +289,7 @@ Be strict on scams and NSFW. If it looks like a fake crypto withdrawal or "free 
     except Exception as e:
         print(f"AI image scan err: {e}")
     
-    return {"is_bad": False, "reason": "Scan failed"}async def ai_scan_image(image_url: str) -> dict:
+        return {"is_bad": False, "reason": "Scan failed"}
     """Use AI vision to scan an image for scams, NSFW, violence, etc."""
     if not GROQ_API_KEY:
         return {"is_bad": False, "reason": "AI unavailable"}
