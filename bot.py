@@ -4527,11 +4527,11 @@ async def on_ready():
         print(f"[LICENSED] {g.name}")
 
     if WELCOME_LOADED:
-    try:
-        welcome_system.setup(bot)
-        print("welcome_system hooked")
-    except Exception as e:
-        print(f"welcome_system err: {e}")
+        try:
+            welcome_system.setup(bot)
+            print("welcome_system hooked")
+        except Exception as e:
+            print(f"welcome_system err: {e}")
     try:
         synced = await bot.tree.sync()
         print(f"Synced {len(synced)} slash commands")
