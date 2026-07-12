@@ -39,6 +39,12 @@ try:
 except ImportError:
     AI_FEATURES_LOADED = False
 
+try:
+    import welcome_system
+    WELCOME_LOADED = True
+except ImportError:
+    WELCOME_LOADED = False
+
 # ============ CONFIG ============
 DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
@@ -4589,24 +4595,6 @@ async def on_member_join(member):
     if await check_raid(member):
         await handle_raid(g, member)
         return
-
-    if s.get("welcome_enabled", 1):
-        wch = discord.utils.get(g.text_channels, name=s.get("welcome_channel", "welcome"))
-        if wch:
-            try:
-                w = await smart_ai(
-                    f"Write a warm 2-sentence welcome for {member.display_name} joining {g.name}. Be friendly and clean.",
-                    "You are a friendly greeter."
-                )
-                embed = discord.Embed(
-                    title=f"Welcome to {g.name}!",
-                    description=sanitize_bot_response(w) or f"Welcome {member.display_name}!",
-                    color=discord.Color.green()
-                )
-                embed.set_thumbnail(url=member.display_avatar.url)
-                await wch.send(content=member.mention, embed=embed)
-            except: pass
-
 
 @bot.event
 async def on_reaction_add(reaction, user):
