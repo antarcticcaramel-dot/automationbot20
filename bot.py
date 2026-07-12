@@ -19,6 +19,7 @@ import asyncio
 import sqlite3
 import time
 import threading
+import test_server
 import random
 import re
 import io
@@ -44,12 +45,6 @@ try:
     WELCOME_LOADED = True
 except ImportError:
     WELCOME_LOADED = False
-
-try:
-    import test_server
-    TEST_SERVER_LOADED = True
-except ImportError:
-    TEST_SERVER_LOADED = False
 
 # ============ CONFIG ============
 DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
@@ -4517,29 +4512,39 @@ async def on_ready():
     load_revoked_servers()
     load_accepted_licenses()
 
-    # ... your existing guild loop ...
+    # Staggered startup for each guild
+    for i, g in enumerate(bot.guilds):
+        if is_license_revoked(g.id):
+            print(f"[REVOKED] {g.name} - leaving...")
+            try: await g.leave()
+            except: pass
+            continue
+        if not is_license_accepted(g.id):
+            print(f"[PENDING] {g.name} - sending license agreement...")
+            await asyncio.sleep(i * 2)
+            asyncio.create_task(send_license_agreement(g))
+            continue
+        init_guild_settings(g.id)
+        print(f"[LICENSED] {g.name}")
 
     # Hook in all modules BEFORE syncing commands
-    if SMART_RULES_LOADED:
-        try:
-            smart_rules.setup(bot)
-            print("smart_rules hooked")
-        except Exception as e:
-            print(f"smart_rules err: {e}")
+    try:
+        smart_rules.setup(bot)
+        print("smart_rules hooked")
+    except Exception as e:
+        print(f"smart_rules err: {e}")
 
-    if WELCOME_LOADED:
-        try:
-            welcome_system.setup(bot)
-            print("welcome_system hooked")
-        except Exception as e:
-            print(f"welcome_system err: {e}")
+    try:
+        welcome_system.setup(bot)
+        print("welcome_system hooked")
+    except Exception as e:
+        print(f"welcome_system err: {e}")
 
-    if TEST_SERVER_LOADED:
-        try:
-            test_server.setup(bot)
-            print("test_server hooked")
-        except Exception as e:
-            print(f"test_server err: {e}")
+    try:
+        test_server.setup(bot)
+        print("test_server hooked")
+    except Exception as e:
+        print(f"test_server err: {e}")
 
     try:
         synced = await bot.tree.sync()
