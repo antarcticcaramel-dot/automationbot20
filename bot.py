@@ -45,6 +45,12 @@ try:
 except ImportError:
     WELCOME_LOADED = False
 
+try:
+    import test_server
+    TEST_SERVER_LOADED = True
+except ImportError:
+    TEST_SERVER_LOADED = False
+
 # ============ CONFIG ============
 DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
@@ -4511,20 +4517,15 @@ async def on_ready():
     load_revoked_servers()
     load_accepted_licenses()
 
-    # Staggered startup for each guild
-    for i, g in enumerate(bot.guilds):
-        if is_license_revoked(g.id):
-            print(f"[REVOKED] {g.name} - leaving...")
-            try: await g.leave()
-            except: pass
-            continue
-        if not is_license_accepted(g.id):
-            print(f"[PENDING] {g.name} - sending license agreement...")
-            await asyncio.sleep(i * 2)  # Stagger to avoid rate limits
-            asyncio.create_task(send_license_agreement(g))
-            continue
-        init_guild_settings(g.id)
-        print(f"[LICENSED] {g.name}")
+    # ... your existing guild loop ...
+
+    # Hook in all modules BEFORE syncing commands
+    if SMART_RULES_LOADED:
+        try:
+            smart_rules.setup(bot)
+            print("smart_rules hooked")
+        except Exception as e:
+            print(f"smart_rules err: {e}")
 
     if WELCOME_LOADED:
         try:
@@ -4532,6 +4533,14 @@ async def on_ready():
             print("welcome_system hooked")
         except Exception as e:
             print(f"welcome_system err: {e}")
+
+    if TEST_SERVER_LOADED:
+        try:
+            test_server.setup(bot)
+            print("test_server hooked")
+        except Exception as e:
+            print(f"test_server err: {e}")
+
     try:
         synced = await bot.tree.sync()
         print(f"Synced {len(synced)} slash commands")
