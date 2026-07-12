@@ -4526,8 +4526,8 @@ async def on_ready():
         init_guild_settings(g.id)
         print(f"[LICENSED] {g.name}")
 
-    if WELCOME_LOADED:
-    try:
+      if WELCOME_LOADED:
+        try:
         welcome_system.setup(bot)
         print("welcome_system hooked")
     except Exception as e:
