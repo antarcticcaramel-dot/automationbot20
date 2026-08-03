@@ -1,5 +1,5 @@
 # volaris_guard.py
-# Simple Volaris Guard integration for SentinelMod
+# Auto-setup version - just add `import volaris_guard` to bot.py
 
 import aiohttp
 import asyncio
@@ -8,6 +8,7 @@ import os
 import time
 import sqlite3
 import hashlib
+import threading
 from datetime import datetime, timedelta
 
 import discord
@@ -15,16 +16,38 @@ from discord.ext import commands
 from discord import app_commands
 
 # ============ CONFIG ============
-VOLARIS_API_KEY = os.getenv("VOLARIS_API_KEY", "")
+VOLARIS_API_KEY = os.getenv("VOLARIS_API_KEY", "").strip()
 VOLARIS_URL = "https://api.volarishq.uk/guard/moderate"
 
-_verdict_cache = {}
-CACHE_TTL = 3600
+_cache = {}
 _last_call = [0.0]
+_is_setup = False
+
+DEFAULT_POLICY = """# Discord Server Rules
+
+## VIOLATES
+- Slurs (racial, homophobic, transphobic, ableist)
+- Sexual content in non-NSFW channels
+- CSAM or sexualization of minors
+- Threats of violence, death threats
+- Doxxing (sharing personal info)
+- Scams (crypto scams, fake giveaways, phishing, fake nitro)
+- Malicious links (IP grabbers, token loggers)
+- Hate speech
+- Predatory behavior toward users
+- Self-harm encouragement
+
+## ALLOWED
+- Normal chat, memes, gaming
+- Strong opinions
+- Mild profanity
+
+Return "flagged" for clear violations.
+Return "safe" otherwise."""
 
 
-# ============ DB ============
-def _get_db():
+# ============ DATABASE ============
+def _db():
     conn = sqlite3.connect("sentinel.db", check_same_thread=False)
     conn.row_factory = sqlite3.Row
     return conn
@@ -32,7 +55,7 @@ def _get_db():
 
 def _ensure_col():
     try:
-        conn = _get_db()
+        conn = _db()
         c = conn.cursor()
         try:
             c.execute("ALTER TABLE guild_settings ADD COLUMN volaris_enabled INTEGER DEFAULT 1")
@@ -43,36 +66,34 @@ def _ensure_col():
     except: pass
 
 
-def _get_enabled(guild_id):
+def _enabled(gid):
     try:
-        conn = _get_db()
+        conn = _db()
         c = conn.cursor()
-        c.execute("SELECT volaris_enabled FROM guild_settings WHERE guild_id=?", (str(guild_id),))
+        c.execute("SELECT volaris_enabled FROM guild_settings WHERE guild_id=?", (str(gid),))
         row = c.fetchone()
         conn.close()
-        if row is None:
-            return True
-        return bool(row["volaris_enabled"])
+        return True if row is None else bool(row["volaris_enabled"])
     except:
         _ensure_col()
         return True
 
 
-def _set_enabled(guild_id, value):
+def _set_enabled(gid, val):
     try:
         _ensure_col()
-        conn = _get_db()
+        conn = _db()
         c = conn.cursor()
-        c.execute("INSERT OR IGNORE INTO guild_settings (guild_id) VALUES (?)", (str(guild_id),))
-        c.execute("UPDATE guild_settings SET volaris_enabled=? WHERE guild_id=?", (int(value), str(guild_id)))
+        c.execute("INSERT OR IGNORE INTO guild_settings (guild_id) VALUES (?)", (str(gid),))
+        c.execute("UPDATE guild_settings SET volaris_enabled=? WHERE guild_id=?", (int(val), str(gid)))
         conn.commit()
         conn.close()
     except: pass
 
 
-def _is_trusted(uid, gid):
+def _trusted(uid, gid):
     try:
-        conn = _get_db()
+        conn = _db()
         c = conn.cursor()
         c.execute("SELECT 1 FROM trusted_users WHERE user_id=? AND guild_id=?", (str(uid), str(gid)))
         r = c.fetchone()
@@ -82,9 +103,9 @@ def _is_trusted(uid, gid):
         return False
 
 
-def _add_warning(uid, gid, reason, severity):
+def _add_warn(uid, gid, reason, severity):
     try:
-        conn = _get_db()
+        conn = _db()
         c = conn.cursor()
         c.execute(
             "INSERT INTO warnings (user_id,guild_id,reason,severity,ai_confidence,context,timestamp) VALUES (?,?,?,?,?,?,?)",
@@ -99,54 +120,25 @@ def _add_warning(uid, gid, reason, severity):
         return 0
 
 
-# ============ DEFAULT POLICY ============
-DEFAULT_POLICY = """# Discord Community Rules
-
-## VIOLATES
-- Slurs (racial, homophobic, transphobic, ableist)
-- Sexual content in non-NSFW channels
-- CSAM (sexualization of minors)
-- Threats of violence or death threats
-- Doxxing (sharing personal info)
-- Scams (crypto scams, fake giveaways, phishing)
-- Fake nitro links, malicious URLs
-- Hate speech
-- Predatory behavior
-- Self-harm encouragement
-
-## ALLOWED
-- Normal chat, memes, gaming talk
-- Strong opinions (not attacking anyone)
-- Mild profanity
-
-Return "flagged" for clear violations.
-Return "review" for borderline cases.
-Return "safe" otherwise."""
-
-
 # ============ API CALL ============
-async def call_volaris(text=None, image_url=None):
-    """Call Volaris Guard API."""
+async def call_api(text=None, image_url=None):
     if not VOLARIS_API_KEY:
-        print("[volaris] No API key set")
+        print("[volaris] ❌ VOLARIS_API_KEY is empty!")
         return None
     if not text and not image_url:
         return None
     
-    # Cache
-    cache_key = hashlib.md5(f"{text or ''}|{image_url or ''}".encode()).hexdigest()
-    if cache_key in _verdict_cache:
-        cached, ts = _verdict_cache[cache_key]
-        if time.time() - ts < CACHE_TTL:
+    key = hashlib.md5(f"{text or ''}|{image_url or ''}".encode()).hexdigest()
+    if key in _cache:
+        cached, ts = _cache[key]
+        if time.time() - ts < 3600:
             return cached
     
-    # Rate limit
-    elapsed = time.time() - _last_call[0]
-    if elapsed < 0.8:
-        await asyncio.sleep(0.8 - elapsed)
+    since = time.time() - _last_call[0]
+    if since < 0.8:
+        await asyncio.sleep(0.8 - since)
     _last_call[0] = time.time()
     
-    # Build request
     body = {"policy": DEFAULT_POLICY}
     if text:
         body["text"] = text[:50000]
@@ -166,44 +158,62 @@ async def call_volaris(text=None, image_url=None):
                 json=body,
                 timeout=aiohttp.ClientTimeout(total=20)
             ) as resp:
+                text_body = await resp.text()
+                
                 if resp.status == 200:
-                    data = await resp.json()
-                    _verdict_cache[cache_key] = (data, time.time())
-                    return data
+                    try:
+                        data = json.loads(text_body)
+                        _cache[key] = (data, time.time())
+                        if len(_cache) > 500:
+                            oldest = min(_cache.keys(), key=lambda k: _cache[k][1])
+                            del _cache[oldest]
+                        return data
+                    except json.JSONDecodeError as e:
+                        print(f"[volaris] ❌ JSON parse error: {e}")
+                        return None
+                elif resp.status == 401:
+                    print(f"[volaris] ❌ 401 Invalid API key. Body: {text_body[:300]}")
+                elif resp.status == 402:
+                    print(f"[volaris] ❌ 402 Out of credits!")
+                elif resp.status == 403:
+                    print(f"[volaris] ❌ 403 Forbidden. Body: {text_body[:300]}")
+                elif resp.status == 429:
+                    print(f"[volaris] ⏳ 429 Rate limited")
+                    await asyncio.sleep(3)
                 else:
-                    err = await resp.text()
-                    print(f"[volaris] HTTP {resp.status}: {err[:300]}")
-                    return None
+                    print(f"[volaris] ❌ HTTP {resp.status}: {text_body[:300]}")
+    except asyncio.TimeoutError:
+        print(f"[volaris] ⏱️ Timeout")
     except Exception as e:
-        print(f"[volaris] Request error: {e}")
-        return None
+        print(f"[volaris] ❌ Exception: {type(e).__name__}: {e}")
+    
+    return None
 
 
 # ============ PARSE ============
-def parse_verdict(data):
-    """Parse Volaris response."""
+def parse(data):
     if not data:
         return None
     
     verdict = str(data.get("verdict", "safe")).lower()
-    score = float(data.get("score", 0.0))
-    categories_raw = data.get("categories", {})
-    reasoning = data.get("reasoning", "")
+    score = float(data.get("score", 0))
+    cats_raw = data.get("categories", {})
+    reasoning = str(data.get("reasoning", ""))
     
     flagged = verdict == "flagged"
     
     flagged_cats = []
-    if isinstance(categories_raw, dict):
-        for name, info in categories_raw.items():
+    if isinstance(cats_raw, dict):
+        for name, info in cats_raw.items():
             if isinstance(info, dict) and info.get("flagged"):
                 flagged_cats.append(name)
     
     severity = "none"
     if flagged:
-        cat_str = " ".join(flagged_cats).lower()
-        if "csam" in cat_str or "child" in cat_str:
+        cat_lower = " ".join(flagged_cats).lower()
+        if "csam" in cat_lower or "child" in cat_lower:
             severity = "critical"
-        elif any(c in cat_str for c in ["nsfw", "hate", "violence", "doxxing", "phishing", "scam", "self_harm"]):
+        elif any(c in cat_lower for c in ["nsfw", "hate", "violence", "doxxing", "phishing", "scam", "self_harm"]):
             severity = "high"
         elif score > 0.75:
             severity = "high"
@@ -224,7 +234,6 @@ def parse_verdict(data):
 
 # ============ ACTION ============
 async def take_action(message, verdict, source):
-    """Delete + warn based on verdict."""
     author = message.author
     guild = message.guild
     
@@ -234,12 +243,10 @@ async def take_action(message, verdict, source):
     cat_str = ", ".join(cats) if cats else "content"
     full_reason = f"Volaris ({source}): {cat_str} - {reasoning}"
     
-    # Delete
     try:
         await message.delete()
     except: pass
     
-    # Can we punish?
     can_punish = False
     try:
         if isinstance(author, discord.Member):
@@ -247,21 +254,19 @@ async def take_action(message, verdict, source):
                 can_punish = True
     except: pass
     
-    # Ban for critical
     if severity == "critical" and can_punish:
         try:
             await guild.ban(author, reason=full_reason[:500], delete_message_days=1)
-            await log_to_channel(guild, make_embed(author, verdict, source, "AUTO-BAN", discord.Color.dark_red()))
+            await log_msg(guild, embed_for(author, verdict, source, "AUTO-BAN", discord.Color.dark_red()))
             return
         except: pass
     
-    # Warn + timeout
-    wc = _add_warning(author.id, guild.id, full_reason, severity)
+    wc = _add_warn(author.id, guild.id, full_reason, severity)
     
     try:
         await message.channel.send(
-            f"{author.mention} That was flagged: **{reasoning[:120]}** | Warning #{wc}",
-            delete_after=6
+            f"{author.mention} Flagged: **{reasoning[:120]}** | Warning #{wc}",
+            delete_after=5
         )
     except: pass
     
@@ -278,30 +283,26 @@ async def take_action(message, verdict, source):
         "low": discord.Color.yellow()
     }.get(severity, discord.Color.orange())
     
-    await log_to_channel(guild, make_embed(author, verdict, source, "Flagged", color, wc, message.content))
+    await log_msg(guild, embed_for(author, verdict, source, "Flagged", color, wc, message.content))
 
 
-def make_embed(author, verdict, source, action, color, warning_num=None, msg_content=""):
-    embed = discord.Embed(
-        title=f"🛡️ Volaris - {action}",
-        color=color,
-        timestamp=datetime.now()
-    )
-    embed.add_field(name="User", value=getattr(author, "mention", str(author)), inline=True)
-    embed.add_field(name="Source", value=source, inline=True)
-    embed.add_field(name="Severity", value=verdict["severity"], inline=True)
-    if warning_num:
-        embed.add_field(name="Warning #", value=str(warning_num), inline=True)
-    embed.add_field(name="Score", value=f"{verdict['score']:.0%}", inline=True)
-    embed.add_field(name="Credits", value=str(verdict.get("credits", "?")), inline=True)
-    embed.add_field(name="Categories", value=", ".join(verdict["categories"]) or "None", inline=False)
-    embed.add_field(name="Reason", value=verdict["reasoning"][:1000] or "None", inline=False)
-    if msg_content:
-        embed.add_field(name="Message", value=f"||{msg_content[:500]}||", inline=False)
-    return embed
+def embed_for(author, verdict, source, action, color, wnum=None, content=""):
+    e = discord.Embed(title=f"🛡️ Volaris - {action}", color=color, timestamp=datetime.now())
+    e.add_field(name="User", value=getattr(author, "mention", str(author)), inline=True)
+    e.add_field(name="Source", value=source, inline=True)
+    e.add_field(name="Severity", value=verdict["severity"], inline=True)
+    if wnum:
+        e.add_field(name="Warning #", value=str(wnum), inline=True)
+    e.add_field(name="Score", value=f"{verdict['score']:.0%}", inline=True)
+    e.add_field(name="Credits", value=str(verdict.get("credits", "?")), inline=True)
+    e.add_field(name="Categories", value=", ".join(verdict["categories"]) or "None", inline=False)
+    e.add_field(name="Reason", value=(verdict["reasoning"] or "None")[:1000], inline=False)
+    if content:
+        e.add_field(name="Message", value=f"||{content[:500]}||", inline=False)
+    return e
 
 
-async def log_to_channel(guild, embed):
+async def log_msg(guild, embed):
     for name in ["sentinel-logs", "mod-logs", "logs"]:
         ch = discord.utils.get(guild.text_channels, name=name)
         if ch:
@@ -313,19 +314,15 @@ async def log_to_channel(guild, embed):
 
 # ============ MAIN CHECK ============
 async def check_message(message):
-    """Check a message with Volaris."""
     if not message.guild or message.author.bot:
-        return False
-    
-    if not _get_enabled(message.guild.id):
-        return False
-    
-    if _is_trusted(message.author.id, message.guild.id):
-        return False
+        return
+    if not _enabled(message.guild.id):
+        return
+    if _trusted(message.author.id, message.guild.id):
+        return
     
     text = message.content or ""
     
-    # Get first image
     image_url = None
     for att in message.attachments:
         try:
@@ -337,121 +334,73 @@ async def check_message(message):
                 break
         except: pass
     
-    if not image_url:
-        for embed in message.embeds:
-            try:
-                if embed.image and embed.image.url:
-                    image_url = embed.image.url
-                    break
-            except: pass
-    
-    # Skip empty
     if not text.strip() and not image_url:
-        return False
+        return
     if text and len(text.strip()) < 3 and not image_url:
-        return False
+        return
     
-    # Call API
-    result = await call_volaris(text=text if text.strip() else None, image_url=image_url)
+    result = await call_api(text=text if text.strip() else None, image_url=image_url)
     if not result:
-        return False
+        return
     
-    verdict = parse_verdict(result)
+    verdict = parse(result)
     if not verdict or not verdict["flagged"]:
-        return False
+        return
     
     source = "text+image" if (text.strip() and image_url) else ("image" if image_url else "text")
     await take_action(message, verdict, source)
-    return True
 
 
-# ============ SETUP FUNCTION ============
-def setup(bot):
-    """Call this from bot.py to register everything."""
-    print("[volaris] Setting up...")
+# ============ SETUP (called automatically) ============
+def _setup_bot(bot):
+    global _is_setup
+    if _is_setup:
+        return
+    _is_setup = True
+    
+    print("=" * 50)
+    print("[volaris] SETUP STARTED")
+    print(f"[volaris] API key set: {bool(VOLARIS_API_KEY)}")
+    if VOLARIS_API_KEY:
+        print(f"[volaris] Key preview: {VOLARIS_API_KEY[:15]}...")
+        print(f"[volaris] Key length: {len(VOLARIS_API_KEY)}")
+    print(f"[volaris] Endpoint: {VOLARIS_URL}")
+    
     _ensure_col()
     
-    # Register listener
     @bot.listen("on_message")
-    async def _volaris_msg_listener(message):
+    async def volaris_msg(message):
         try:
             await check_message(message)
         except Exception as e:
             print(f"[volaris] listener err: {e}")
     
-    # Register commands
     @bot.tree.command(name="volaris", description="[Admin] Toggle Volaris Guard")
     @app_commands.choices(state=[
         app_commands.Choice(name="ON", value="on"),
         app_commands.Choice(name="OFF", value="off")
     ])
-    async def volaris_toggle(i: discord.Interaction, state: app_commands.Choice[str]):
+    async def cmd_toggle(i: discord.Interaction, state: app_commands.Choice[str]):
         if not i.user.guild_permissions.administrator:
-            await i.response.send_message("Admin only!", ephemeral=True)
-            return
+            await i.response.send_message("Admin only!", ephemeral=True); return
         _set_enabled(i.guild.id, 1 if state.value == "on" else 0)
         await i.response.send_message(f"🛡️ Volaris **{state.name}**", ephemeral=True)
     
-    
-    @bot.tree.command(name="volaris_test", description="[Admin] Test Volaris API")
-    @app_commands.describe(text="Text to check")
-    async def volaris_test(i: discord.Interaction, text: str):
+    @bot.tree.command(name="volaris_debug", description="[Admin] Debug Volaris connection")
+    async def cmd_debug(i: discord.Interaction):
         if not i.user.guild_permissions.administrator:
-            await i.response.send_message("Admin only!", ephemeral=True)
-            return
+            await i.response.send_message("Admin only!", ephemeral=True); return
         
         await i.response.defer(ephemeral=True)
         
-        if not VOLARIS_API_KEY:
-            await i.followup.send("❌ VOLARIS_API_KEY not set in env vars!", ephemeral=True)
-            return
-        
-        result = await call_volaris(text=text)
-        
-        if not result:
-            await i.followup.send(
-                "❌ No response. Check console for `[volaris]` errors.\n"
-                f"Key set: {bool(VOLARIS_API_KEY)}\n"
-                f"Key preview: `{VOLARIS_API_KEY[:15]}...`" if VOLARIS_API_KEY else "Key: NOT SET",
-                ephemeral=True
-            )
-            return
-        
-        verdict = parse_verdict(result)
-        
-        embed = discord.Embed(
-            title="🧪 Volaris Test",
-            color=discord.Color.red() if verdict["flagged"] else discord.Color.green()
-        )
-        embed.add_field(name="Text", value=f"```{text[:500]}```", inline=False)
-        embed.add_field(name="Flagged?", value="YES ❌" if verdict["flagged"] else "NO ✅", inline=True)
-        embed.add_field(name="Score", value=f"{verdict['score']:.0%}", inline=True)
-        embed.add_field(name="Severity", value=verdict["severity"], inline=True)
-        embed.add_field(name="Categories", value=", ".join(verdict["categories"]) or "None", inline=False)
-        embed.add_field(name="Reasoning", value=verdict["reasoning"][:1000] or "None", inline=False)
-        embed.add_field(name="Credits", value=str(verdict["credits"]), inline=True)
-        embed.add_field(name="Raw", value=f"```json\n{json.dumps(result, indent=2)[:600]}\n```", inline=False)
-        
-        await i.followup.send(embed=embed, ephemeral=True)
-    
-    
-    @bot.tree.command(name="volaris_debug", description="[Admin] Debug Volaris")
-    async def volaris_debug(i: discord.Interaction):
-        if not i.user.guild_permissions.administrator:
-            await i.response.send_message("Admin only!", ephemeral=True)
-            return
-        
-        await i.response.defer(ephemeral=True)
-        
-        info = [
-            f"**Key set:** {'✅' if VOLARIS_API_KEY else '❌'}",
-            f"**Endpoint:** `{VOLARIS_URL}`",
-        ]
+        info = []
+        info.append(f"**API key set:** {'✅ YES' if VOLARIS_API_KEY else '❌ NO'}")
         if VOLARIS_API_KEY:
-            info.append(f"**Key preview:** `{VOLARIS_API_KEY[:15]}...`")
-            info.append(f"**Key length:** {len(VOLARIS_API_KEY)}")
-        
-        info.append("\n**Testing raw request...**")
+            info.append(f"**Preview:** `{VOLARIS_API_KEY[:15]}...`")
+            info.append(f"**Length:** {len(VOLARIS_API_KEY)}")
+        info.append(f"**Endpoint:** `{VOLARIS_URL}`")
+        info.append("")
+        info.append("**Making test request...**")
         
         try:
             headers = {"x-api-key": VOLARIS_API_KEY, "Content-Type": "application/json"}
@@ -459,15 +408,85 @@ def setup(bot):
                 async with session.post(
                     VOLARIS_URL,
                     headers=headers,
-                    json={"text": "test message"},
+                    json={"text": "hello"},
                     timeout=aiohttp.ClientTimeout(total=15)
                 ) as resp:
-                    info.append(f"**Status:** {resp.status}")
+                    info.append(f"**Status:** `{resp.status}`")
                     body = await resp.text()
-                    info.append(f"**Body:**\n```{body[:1500]}```")
+                    info.append(f"**Body:**\n```{body[:1200]}```")
         except Exception as e:
-            info.append(f"**Exception:** `{e}`")
+            info.append(f"**Exception:** `{type(e).__name__}: {e}`")
         
         await i.followup.send("\n".join(info)[:2000], ephemeral=True)
     
-    print("[volaris] ✅ Setup complete! Commands: /volaris /volaris_test /volaris_debug")
+    @bot.tree.command(name="volaris_test", description="[Admin] Test Volaris with a message")
+    @app_commands.describe(text="Text to check")
+    async def cmd_test(i: discord.Interaction, text: str):
+        if not i.user.guild_permissions.administrator:
+            await i.response.send_message("Admin only!", ephemeral=True); return
+        
+        await i.response.defer(ephemeral=True)
+        
+        result = await call_api(text=text)
+        if not result:
+            await i.followup.send("❌ No response. Run `/volaris_debug` first.", ephemeral=True)
+            return
+        
+        v = parse(result)
+        embed = discord.Embed(
+            title="🧪 Volaris Test",
+            color=discord.Color.red() if v["flagged"] else discord.Color.green()
+        )
+        embed.add_field(name="Text", value=f"```{text[:500]}```", inline=False)
+        embed.add_field(name="Flagged", value="YES ❌" if v["flagged"] else "NO ✅", inline=True)
+        embed.add_field(name="Severity", value=v["severity"], inline=True)
+        embed.add_field(name="Score", value=f"{v['score']:.0%}", inline=True)
+        embed.add_field(name="Categories", value=", ".join(v["categories"]) or "None", inline=False)
+        embed.add_field(name="Reasoning", value=(v["reasoning"] or "None")[:1000], inline=False)
+        embed.add_field(name="Credits", value=str(v["credits"]), inline=True)
+        
+        await i.followup.send(embed=embed, ephemeral=True)
+    
+    print("[volaris] ✅ SETUP COMPLETE")
+    print("[volaris] Commands: /volaris /volaris_debug /volaris_test")
+    print("=" * 50)
+
+
+# ============ AUTO HOOK ============
+def _find_and_setup():
+    """Aggressively find the bot instance and setup."""
+    import sys
+    for module_name, module in list(sys.modules.items()):
+        if module is None:
+            continue
+        try:
+            for attr_name in dir(module):
+                if attr_name.startswith('_'):
+                    continue
+                try:
+                    attr = getattr(module, attr_name)
+                    if isinstance(attr, commands.Bot):
+                        _setup_bot(attr)
+                        return True
+                except:
+                    continue
+        except:
+            continue
+    return False
+
+
+def _delayed_hook():
+    """Keep trying to hook for 60 seconds."""
+    for attempt in range(60):
+        time.sleep(1)
+        try:
+            if _find_and_setup():
+                return
+        except:
+            pass
+    print("[volaris] ⚠️ Auto-hook FAILED after 60 seconds.")
+    print("[volaris] ⚠️ Add `volaris_guard._setup_bot(bot)` after creating your bot in bot.py")
+
+
+# Start hooking thread on import
+threading.Thread(target=_delayed_hook, daemon=True).start()
