@@ -17,7 +17,7 @@ from discord import app_commands
 
 # ============ CONFIG ============
 VOLARIS_API_KEY = os.getenv("VOLARIS_API_KEY", "").strip()
-VOLARIS_URL = "https://api.volarishq.uk/guard/moderate"
+VOLARIS_URL = "https://msladnjkohsgybzrkocu.supabase.co/functions/v1/guard-moderate"
 
 # Browser-like headers to bypass Cloudflare bot protection
 BROWSER_HEADERS = {
