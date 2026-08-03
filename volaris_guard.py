@@ -1,5 +1,5 @@
 # volaris_guard.py
-# Auto-setup version - just add `import volaris_guard` to bot.py
+# Auto-setup version with browser headers to bypass Cloudflare
 
 import aiohttp
 import asyncio
@@ -18,6 +18,21 @@ from discord import app_commands
 # ============ CONFIG ============
 VOLARIS_API_KEY = os.getenv("VOLARIS_API_KEY", "").strip()
 VOLARIS_URL = "https://api.volarishq.uk/guard/moderate"
+
+# Browser-like headers to bypass Cloudflare bot protection
+BROWSER_HEADERS = {
+    "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    "Accept": "application/json, text/plain, */*",
+    "Accept-Language": "en-US,en;q=0.9",
+    "Accept-Encoding": "gzip, deflate, br",
+    "Cache-Control": "no-cache",
+    "Pragma": "no-cache",
+    "Sec-Fetch-Dest": "empty",
+    "Sec-Fetch-Mode": "cors",
+    "Sec-Fetch-Site": "cross-site",
+    "Origin": "https://volarishq.uk",
+    "Referer": "https://volarishq.uk/",
+}
 
 _cache = {}
 _last_call = [0.0]
@@ -44,6 +59,14 @@ DEFAULT_POLICY = """# Discord Server Rules
 
 Return "flagged" for clear violations.
 Return "safe" otherwise."""
+
+
+def _make_headers():
+    """Build headers with API key + browser headers."""
+    h = dict(BROWSER_HEADERS)
+    h["x-api-key"] = VOLARIS_API_KEY
+    h["Content-Type"] = "application/json"
+    return h
 
 
 # ============ DATABASE ============
@@ -145,18 +168,17 @@ async def call_api(text=None, image_url=None):
     if image_url:
         body["image_url"] = image_url
     
-    headers = {
-        "x-api-key": VOLARIS_API_KEY,
-        "Content-Type": "application/json"
-    }
+    headers = _make_headers()
     
     try:
-        async with aiohttp.ClientSession() as session:
+        connector = aiohttp.TCPConnector(ssl=False, force_close=True)
+        async with aiohttp.ClientSession(connector=connector) as session:
             async with session.post(
                 VOLARIS_URL,
                 headers=headers,
                 json=body,
-                timeout=aiohttp.ClientTimeout(total=20)
+                timeout=aiohttp.ClientTimeout(total=25),
+                allow_redirects=True
             ) as resp:
                 text_body = await resp.text()
                 
@@ -170,13 +192,17 @@ async def call_api(text=None, image_url=None):
                         return data
                     except json.JSONDecodeError as e:
                         print(f"[volaris] ❌ JSON parse error: {e}")
+                        print(f"[volaris] Body: {text_body[:500]}")
                         return None
                 elif resp.status == 401:
-                    print(f"[volaris] ❌ 401 Invalid API key. Body: {text_body[:300]}")
+                    print(f"[volaris] ❌ 401 Invalid API key")
                 elif resp.status == 402:
                     print(f"[volaris] ❌ 402 Out of credits!")
                 elif resp.status == 403:
-                    print(f"[volaris] ❌ 403 Forbidden. Body: {text_body[:300]}")
+                    if "cloudflare" in text_body.lower() or "just a moment" in text_body.lower():
+                        print(f"[volaris] ❌ 403 CLOUDFLARE BLOCK - contact Volaris support to whitelist API traffic")
+                    else:
+                        print(f"[volaris] ❌ 403 Forbidden - API key may lack 'guard' scope")
                 elif resp.status == 429:
                     print(f"[volaris] ⏳ 429 Rate limited")
                     await asyncio.sleep(3)
@@ -351,7 +377,7 @@ async def check_message(message):
     await take_action(message, verdict, source)
 
 
-# ============ SETUP (called automatically) ============
+# ============ SETUP ============
 def _setup_bot(bot):
     global _is_setup
     if _is_setup:
@@ -400,20 +426,28 @@ def _setup_bot(bot):
             info.append(f"**Length:** {len(VOLARIS_API_KEY)}")
         info.append(f"**Endpoint:** `{VOLARIS_URL}`")
         info.append("")
-        info.append("**Making test request...**")
+        info.append("**Making test request with browser headers...**")
         
         try:
-            headers = {"x-api-key": VOLARIS_API_KEY, "Content-Type": "application/json"}
-            async with aiohttp.ClientSession() as session:
+            headers = _make_headers()
+            connector = aiohttp.TCPConnector(ssl=False, force_close=True)
+            async with aiohttp.ClientSession(connector=connector) as session:
                 async with session.post(
                     VOLARIS_URL,
                     headers=headers,
                     json={"text": "hello"},
-                    timeout=aiohttp.ClientTimeout(total=15)
+                    timeout=aiohttp.ClientTimeout(total=15),
+                    allow_redirects=True
                 ) as resp:
                     info.append(f"**Status:** `{resp.status}`")
                     body = await resp.text()
-                    info.append(f"**Body:**\n```{body[:1200]}```")
+                    
+                    if "cloudflare" in body.lower() or "just a moment" in body.lower():
+                        info.append("**⚠️ CLOUDFLARE BLOCK DETECTED**")
+                        info.append("Volaris' Cloudflare is blocking your requests.")
+                        info.append("**Contact Volaris support** and ask them to whitelist API traffic from your Render server.")
+                    else:
+                        info.append(f"**Body:**\n```{body[:1000]}```")
         except Exception as e:
             info.append(f"**Exception:** `{type(e).__name__}: {e}`")
         
@@ -454,7 +488,6 @@ def _setup_bot(bot):
 
 # ============ AUTO HOOK ============
 def _find_and_setup():
-    """Aggressively find the bot instance and setup."""
     import sys
     for module_name, module in list(sys.modules.items()):
         if module is None:
@@ -476,7 +509,6 @@ def _find_and_setup():
 
 
 def _delayed_hook():
-    """Keep trying to hook for 60 seconds."""
     for attempt in range(60):
         time.sleep(1)
         try:
@@ -485,8 +517,6 @@ def _delayed_hook():
         except:
             pass
     print("[volaris] ⚠️ Auto-hook FAILED after 60 seconds.")
-    print("[volaris] ⚠️ Add `volaris_guard._setup_bot(bot)` after creating your bot in bot.py")
 
 
-# Start hooking thread on import
 threading.Thread(target=_delayed_hook, daemon=True).start()
