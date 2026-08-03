@@ -28,6 +28,7 @@ from datetime import datetime, timedelta
 from collections import defaultdict, deque
 import dashboard
 import psutil
+import volaris_guard
 import platform
 import sys
 import time as time_module
