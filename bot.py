@@ -42,19 +42,12 @@ from command_parser import NaturalCommandParser
 from database import Database
 from utils import *
 
-# Optional modules
 try:
     import image_moderation
     IMAGE_MOD = True
 except ImportError:
     IMAGE_MOD = False
-
-try:
-    import dashboard
-    DASHBOARD = True
-except ImportError:
-    DASHBOARD = False
-
+    
 try:
     import welcome_system
     WELCOME = True
