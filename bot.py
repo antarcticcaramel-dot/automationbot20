@@ -913,15 +913,5 @@ if __name__ == "__main__":
         print("❌ GROQ_API_KEY missing!")
         exit(1)
 
-    db.init_schema()
-
-    if DASHBOARD:
-        try:
-            dashboard.set_bot(bot)
-            threading.Thread(target=dashboard.run_dashboard, daemon=True).start()
-            print("✓ Dashboard started")
-        except Exception as e:
-            print(f"✗ Dashboard: {e}")
-
     print(f"🚀 Starting SentinelMod v{BOT_IDENTITY['version']}...")
     bot.run(os.getenv("DISCORD_TOKEN"))
