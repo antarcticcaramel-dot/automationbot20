@@ -323,7 +323,7 @@ class Database:
                DO UPDATE SET count=count+1, last_msg=CURRENT_TIMESTAMP""",
             (str(user_id), str(guild_id))
         )
-        # Also bump daily stats
+
         today = datetime.now().date().isoformat()
         self.execute(
             """INSERT INTO daily_stats (guild_id, date, messages)
@@ -333,13 +333,14 @@ class Database:
             (str(guild_id), today)
         )
 
-   def archive_message(self, guild_id, channel_id, user_id, content: str):
-    if not content or len(content.strip()) < 2:
-        return
-    self.execute(
-        "INSERT INTO message_archive (guild_id,channel_id,user_id,content) VALUES (?,?,?,?)",
-        (str(guild_id), str(channel_id), str(user_id), content[:2000])
-    )
+    def archive_message(self, guild_id, channel_id, user_id, content: str):
+        if not content or len(content.strip()) < 2:
+            return
+
+        self.execute(
+            "INSERT INTO message_archive (guild_id,channel_id,user_id,content) VALUES (?,?,?,?)",
+            (str(guild_id), str(channel_id), str(user_id), content[:2000])
+        )
 
     # ------------------------------------------------------------------
     # WARNINGS
